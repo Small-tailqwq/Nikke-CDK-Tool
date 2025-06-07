@@ -3,7 +3,9 @@ import axios from 'axios'
 // 创建axios实例
 const api = axios.create({
   // baseURL为cloudflare worker的API地址，如担心隐私问题，请自己替换部署
-  baseURL: 'https://nikke-cdk.shunxi.workers.dev/api',
+  // baseURL: 'https://nikke-cdk.shunxi.workers.dev/api',
+  baseURL: 'https://nikke-cdk.hayasa.org/api',
+
   timeout: 10000,
   withCredentials: true,
   headers: {
