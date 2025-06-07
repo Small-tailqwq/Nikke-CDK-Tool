@@ -1,0 +1,64 @@
+name: CDK 投稿
+description: 用于上报新的NIKKE CDK公告信息
+labels: [cdk]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你的贡献！请按下方格式填写CDK信息。
+  - type: input
+    id: code
+    attributes:
+      label: CDK码
+      description: 请输入CDK兑换码
+      placeholder: 例如 NIKKE2024NEW
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: CDK名称/活动
+      description: 该CDK的名称或活动来源
+      placeholder: 例如 2024新年礼包
+    validations:
+      required: false
+  - type: input
+    id: reward
+    attributes:
+      label: 奖励内容
+      description: 兑换后获得的奖励
+      placeholder: 例如 高级招募券×5, 金币×10000
+    validations:
+      required: false
+  - type: input
+    id: servers
+    attributes:
+      label: 适用服务器
+      description: 适用的服务器（用英文逗号分隔，如 global, cn, tw）
+      placeholder: global, cn
+    validations:
+      required: false
+  - type: input
+    id: status
+    attributes:
+      label: 状态
+      description: 可用/已过期
+      placeholder: 可用
+    validations:
+      required: false
+  - type: input
+    id: note
+    attributes:
+      label: 备注
+      description: 其他说明（可选）
+      placeholder: 例如 新年活动CDK
+    validations:
+      required: false
+  - type: input
+    id: author
+    attributes:
+      label: 贡献者昵称
+      description: 你的昵称或ID
+      placeholder: 例如 Small-tailqwq
+    validations:
+      required: false 
