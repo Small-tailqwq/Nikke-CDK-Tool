@@ -5,13 +5,13 @@ on:
     branches:
       - masrer
 
-# 👇 这里授予 GITHUB_TOKEN 推送权限
 permissions:
   contents: write
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,17 +19,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: 18
+          cache: npm
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
       - name: Build
         run: npm run build
 
-      - name: Deploy
+      - name: Copy index.html to 404.html
+        run: cp dist/index.html dist/404.html
+
+      - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: dist        # Vite 构建输出目录
-          branch: gh-pages    # 部署分支
+          folder: dist          # Vite 输出目录
+          branch: gh-pages      # 目标分支
+          clean: true           # 可选：每次清空旧文件
+          commit-message: |
+            🚀 Deploy: ${{ github.workflow }} @ ${{ github.sha }}
