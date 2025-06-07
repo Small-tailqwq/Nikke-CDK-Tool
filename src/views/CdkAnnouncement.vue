@@ -105,9 +105,10 @@ const loadCdkList = async () => {
   try {
     // 如需修改远程读取CDK列表，直接修改下列链接即可，如：
     //const response = await fetch('https://raw.githubusercontent.com/你的用户名/你的仓库名/main/public/cdk-list.json')
-    const response = await fetch('/cdk-list.json')
+    const response = await fetch('https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json')
+    //const response = await fetch('/cdk-list.json')
     const data = await response.json()
-    console.log('CDK列表数据:', data) // 添加调试日志
+    // console.log('CDK列表数据:', data) // 添加调试日志
     cdkList.value = data.cdks
   } catch (error) {
     console.error('加载CDK列表失败:', error)
