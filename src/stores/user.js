@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { userStorage } from '../utils/storage'
+import { userStorage, tutorialStorage } from '../utils/storage'
 
 export const useUserStore = defineStore('user', () => {
   // 状态
   const users = ref(userStorage.loadUsers())
   const loading = ref(false)
+  const hasTutorialShown = ref(tutorialStorage.loadTutorialShown())
 
   // 计算属性
   const userCount = computed(() => users.value.length)
@@ -49,20 +50,15 @@ export const useUserStore = defineStore('user', () => {
   // 更新用户
   const updateUser = async (id, userData) => {
     try {
-      // 先更新 store 中的数据
       const index = users.value.findIndex(u => u.id === id)
       if (index !== -1) {
-        // 创建新的用户对象，保留原有数据
         const updatedUser = {
           ...users.value[index],
           ...userData,
-          // 确保保留 id 和 createTime
           id: users.value[index].id,
           createTime: users.value[index].createTime
         }
-        // 更新 store
         users.value[index] = updatedUser
-        // 保存到 localStorage
         if (!userStorage.saveUsers(users.value)) {
           throw new Error('保存到本地存储失败')
         }
@@ -94,10 +90,22 @@ export const useUserStore = defineStore('user', () => {
     return users.value.find(u => u.id === id)
   }
 
+  // 设置教程显示状态
+  const setTutorialShown = (shown) => {
+    hasTutorialShown.value = shown
+    tutorialStorage.saveTutorialShown(shown)
+  }
+
+  // 获取教程显示状态
+  const getTutorialShown = () => {
+    return hasTutorialShown.value
+  }
+
   return {
     // 状态
     users,
     loading,
+    hasTutorialShown,
     // 计算属性
     userCount,
     userOptions,
@@ -106,6 +114,8 @@ export const useUserStore = defineStore('user', () => {
     addUser,
     updateUser,
     deleteUser,
-    getUserById
+    getUserById,
+    setTutorialShown,
+    getTutorialShown
   }
 }) 

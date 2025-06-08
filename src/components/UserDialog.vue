@@ -2,18 +2,39 @@
   <el-dialog
     v-model="dialogVisible"
     :title="isEdit ? '编辑用户' : '添加用户'"
-    width="600px"
+    :width="isMobile ? '90%' : '600px'"
     @close="handleClose"
+    class="user-dialog"
+    :fullscreen="isMobile"
   >
     <el-form
       ref="formRef"
       :model="form"
       :rules="rules"
-      label-width="120px"
+      :label-width="isMobile ? '80px' : '120px'"
       @submit.prevent
     >
       <el-form-item label="用户名" prop="name">
         <el-input v-model="form.name" placeholder="请输入用户名" />
+        <el-popover
+          v-if="showTutorial && currentTutorialField === 'name'"
+          :visible="true"
+          :title="tutorialSteps.name.title"
+          :placement="tutorialSteps.name.placement"
+          width="300"
+          trigger="manual"
+        >
+          <template #reference>
+            <div class="tutorial-target"></div>
+          </template>
+          <p>{{ tutorialSteps.name.content }}</p>
+          <div class="tutorial-footer">
+            <el-button type="primary" size="small" @click="handleTutorialNext"
+              >下一步</el-button
+            >
+            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
+          </div>
+        </el-popover>
       </el-form-item>
 
       <el-form-item label="服务器" prop="server">
@@ -25,6 +46,25 @@
             :value="server.value"
           />
         </el-select>
+        <el-popover
+          v-if="showTutorial && currentTutorialField === 'server'"
+          :visible="true"
+          :title="tutorialSteps.server.title"
+          :placement="tutorialSteps.server.placement"
+          width="300"
+          trigger="manual"
+        >
+          <template #reference>
+            <div class="tutorial-target"></div>
+          </template>
+          <p>{{ tutorialSteps.server.content }}</p>
+          <div class="tutorial-footer">
+            <el-button type="primary" size="small" @click="handleTutorialNext"
+              >下一步</el-button
+            >
+            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
+          </div>
+        </el-popover>
       </el-form-item>
 
       <el-form-item label="UID" v-if="isEdit">
@@ -33,9 +73,9 @@
 
       <el-form-item label="Cookie信息" prop="cookie">
         <template v-if="isEdit && !showCookie">
-          <el-card 
-            class="cookie-mask" 
-            shadow="never" 
+          <el-card
+            class="cookie-mask"
+            shadow="never"
             @click="showCookie = true"
           >
             <div class="cookie-mask-content">
@@ -50,7 +90,7 @@
           </el-card>
           <div class="cookie-info-footer">
             <div class="cookie-expire-info">
-              <el-tag 
+              <el-tag
                 :type="getCookieStatusType(form.cookieExpireDays)"
                 size="small"
                 class="cookie-days"
@@ -80,9 +120,9 @@
           <div class="cookie-content">
             <div class="cookie-content-header">
               <span class="cookie-content-title">Cookie 详情</span>
-              <el-button 
-                type="primary" 
-                link 
+              <el-button
+                type="primary"
+                link
                 @click="showCookie = false"
                 class="cookie-hide-btn"
               >
@@ -98,7 +138,7 @@
             />
             <div class="cookie-info-footer">
               <div class="cookie-expire-info">
-                <el-tag 
+                <el-tag
                   :type="getCookieStatusType(form.cookieExpireDays)"
                   size="small"
                   class="cookie-days"
@@ -132,8 +172,41 @@
           :rows="10"
           :placeholder="cookiePlaceholder"
         />
+        <el-popover
+          v-if="showTutorial && currentTutorialField === 'cookie'"
+          :visible="true"
+          :title="tutorialSteps.cookie.title"
+          :placement="tutorialSteps.cookie.placement"
+          width="300"
+          trigger="manual"
+        >
+          <template #reference>
+            <div class="tutorial-target"></div>
+          </template>
+          <p class="tutorial-cookie-content">
+            {{ tutorialSteps.cookie.content }}
+          </p>
+          <div class="tutorial-cookie-actions">
+            <a
+              href="https://github.com/Small-tailqwq/Nikke-CDK-Tool?tab=readme-ov-file#cookie-%E8%8E%B7%E5%8F%96%E4%B8%8E%E5%AE%89%E5%85%A8"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="tutorial-link"
+            >
+              <el-button type="primary"> 查看详细教程 </el-button>
+            </a>
+          </div>
+          <div class="tutorial-footer">
+            <el-button type="primary" size="small" @click="handleTutorialNext"
+              >完成</el-button
+            >
+            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
+          </div>
+        </el-popover>
         <div class="form-tip">
-          <p>提示：请从浏览器开发者工具中复制完整的Cookie信息，包含以下字段：</p>
+          <p>
+            提示：请从浏览器开发者工具中复制完整的Cookie信息，包含以下字段：
+          </p>
           <ul>
             <li>game_token</li>
             <li>game_gameid</li>
@@ -158,24 +231,37 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineProps, defineEmits, watch, nextTick } from 'vue'
+import {
+  ref,
+  reactive,
+  defineProps,
+  defineEmits,
+  watch,
+  nextTick,
+  computed,
+} from 'vue'
 import { ElMessage } from 'element-plus'
-import { Lock, InfoFilled, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
+import {
+  Lock,
+  InfoFilled,
+  ArrowRight,
+  ArrowLeft,
+} from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false
+    default: false,
   },
   isEdit: {
     type: Boolean,
-    default: false
+    default: false,
   },
   userId: {
     type: [Number, String],
-    default: null
-  }
+    default: null,
+  },
 })
 
 const emit = defineEmits(['update:visible'])
@@ -186,11 +272,61 @@ const saving = ref(false)
 const dialogVisible = ref(false)
 const showCookie = ref(false)
 
+// 新增：新手教程相关
+const showTutorial = ref(!userStore.getTutorialShown())
+
+// 新增：教程步骤
+const tutorialSteps = {
+  name: {
+    title: '用户名说明',
+    content:
+      '用户名仅用于区分多个账号，方便您管理。这不是游戏登录名，可以自由设置。',
+    placement: 'right',
+  },
+  server: {
+    title: '服务器说明',
+    content:
+      '选择您的游戏服务器。目前此选项仅用于区分不同服务器的账号，暂无实际业务作用。',
+    placement: 'right',
+  },
+  cookie: {
+    title: 'Cookie信息说明',
+    content:
+      '您需要从游戏CDK兑换页面获取Cookie信息。为了确保您能正确获取Cookie，我们提供了详细的图文教程。',
+    placement: 'left',
+  },
+}
+
+// 新增：当前显示的教程步骤
+const currentTutorialField = ref(null)
+
+// 新增：处理教程显示
+const handleTutorialNext = () => {
+  const fields = ['name', 'server', 'cookie']
+  const currentIndex = fields.indexOf(currentTutorialField.value)
+
+  if (currentIndex === -1) {
+    currentTutorialField.value = fields[0]
+  } else if (currentIndex < fields.length - 1) {
+    currentTutorialField.value = fields[currentIndex + 1]
+  } else {
+    currentTutorialField.value = null
+    showTutorial.value = false
+    userStore.setTutorialShown(true)
+  }
+}
+
+// 新增：跳过教程
+const skipTutorial = () => {
+  showTutorial.value = false
+  userStore.setTutorialShown(true)
+}
+
 // 服务器选项
 const serverOptions = [
-  { label: '全球服', value: 'global' },
-  { label: '日服', value: 'jp' },
-  { label: '韩服', value: 'kr' }
+  { label: '国际服', value: 'global' },
+  { label: '港澳台服', value: 'tw' },
+  { label: '国服', value: 'cn' },
 ]
 
 // 表单数据
@@ -199,7 +335,7 @@ const form = reactive({
   server: 'global',
   cookie: '',
   cookieExpireDays: 365,
-  uid: ''
+  uid: '',
 })
 
 // 临时存储编辑模式的数据
@@ -226,14 +362,12 @@ const getCookieStatusType = (days) => {
 const rules = {
   name: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' },
   ],
-  server: [
-    { required: true, message: '请选择服务器', trigger: 'change' }
-  ],
+  server: [{ required: true, message: '请选择服务器', trigger: 'change' }],
   cookie: [
     { required: true, message: '请输入Cookie信息', trigger: 'blur' },
-    { 
+    {
       validator: (rule, value, callback) => {
         if (!value) {
           callback(new Error('请输入Cookie信息'))
@@ -248,7 +382,7 @@ const rules = {
           const cookieLines = value.split('\n')
           const cookiePairs = []
 
-          cookieLines.forEach(line => {
+          cookieLines.forEach((line) => {
             const parts = line.split('\t')
             if (parts.length < 5) return // 需要至少5列来获取过期时间
 
@@ -266,12 +400,16 @@ const rules = {
           'game_openid',
           'game_uid',
           'game_channelid',
-          'game_user_name'
+          'game_user_name',
         ]
 
-        const missingFields = requiredFields.filter(field => !cookieStr.includes(field))
+        const missingFields = requiredFields.filter(
+          (field) => !cookieStr.includes(field)
+        )
         if (missingFields.length > 0) {
-          callback(new Error(`缺少必需的Cookie字段: ${missingFields.join(', ')}`))
+          callback(
+            new Error(`缺少必需的Cookie字段: ${missingFields.join(', ')}`)
+          )
           return
         }
 
@@ -279,55 +417,74 @@ const rules = {
         form.cookie = cookieStr
         callback()
       },
-      trigger: 'blur'
-    }
-  ]
+      trigger: 'blur',
+    },
+  ],
 }
 
+// 检测是否为移动端
+const isMobile = computed(() => window.innerWidth <= 768)
+
 // 监听visible属性变化
-watch(() => props.visible, (val) => {
-  dialogVisible.value = val
-  showCookie.value = false // 重置Cookie显示状态
-  
-  if (val) {
-    if (props.isEdit && props.userId) {
-      // 编辑模式：获取用户数据
-      const userData = userStore.getUserById(props.userId)
-      if (userData) {
-        // 保存编辑前的数据，用于取消时恢复
-        editFormData.value = { ...userData }
-        // 设置表单数据
-        Object.assign(form, {
-          name: userData.name,
-          server: userData.server,
-          cookie: userData.cookie,
-          cookieExpireDays: userData.cookieExpireDays || 365,
-          uid: userData.uid
-        })
+watch(
+  () => props.visible,
+  (val) => {
+    dialogVisible.value = val
+    showCookie.value = false // 重置Cookie显示状态
+
+    if (val) {
+      if (props.isEdit && props.userId) {
+        // 编辑模式：获取用户数据
+        const userData = userStore.getUserById(props.userId)
+        if (userData) {
+          // 保存编辑前的数据，用于取消时恢复
+          editFormData.value = { ...userData }
+          // 设置表单数据
+          Object.assign(form, {
+            name: userData.name,
+            server: userData.server,
+            cookie: userData.cookie,
+            cookieExpireDays: userData.cookieExpireDays || 365,
+            uid: userData.uid,
+          })
+        }
+      } else {
+        // 添加模式：重置表单
+        resetForm()
+        editFormData.value = null
+        // 初始化教程状态
+        showTutorial.value = !userStore.getTutorialShown()
+        if (showTutorial.value) {
+          nextTick(() => {
+            currentTutorialField.value = 'name'
+          })
+        }
       }
     } else {
-      // 添加模式：重置表单
-      resetForm()
-      editFormData.value = null
-    }
-  } else {
-    // 对话框关闭时，如果是编辑模式且没有保存，恢复原始数据
-    if (props.isEdit && editFormData.value) {
-      const userData = userStore.getUserById(props.userId)
-      if (userData) {
-        // 恢复用户列表中的实际数据
-        Object.assign(userData, editFormData.value)
+      // 对话框关闭时，如果是编辑模式且没有保存，恢复原始数据
+      if (props.isEdit && editFormData.value) {
+        const userData = userStore.getUserById(props.userId)
+        if (userData) {
+          // 恢复用户列表中的实际数据
+          Object.assign(userData, editFormData.value)
+        }
       }
+      // 清理临时数据
+      editFormData.value = null
+      // 重置教程状态
+      showTutorial.value = false
+      currentTutorialField.value = null
     }
-    // 清理临时数据
-    editFormData.value = null
   }
-})
+)
 
 // 监听对话框可见性变化
-watch(() => dialogVisible.value, (val) => {
-  emit('update:visible', val)
-})
+watch(
+  () => dialogVisible.value,
+  (val) => {
+    emit('update:visible', val)
+  }
+)
 
 // 重置表单
 const resetForm = () => {
@@ -340,7 +497,7 @@ const resetForm = () => {
     server: 'global',
     cookie: '',
     cookieExpireDays: 365,
-    uid: ''
+    uid: '',
   })
 }
 
@@ -352,24 +509,25 @@ const handleClose = () => {
 // 处理提交
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   try {
     await formRef.value.validate()
-    
+
     saving.value = true
-    
+
     // 解析Cookie中的用户信息
     const uid = form.cookie.match(/game_uid=([^;]+)/)?.[1] || ''
-    const userName = form.cookie.match(/game_user_name=([^;]+)/)?.[1] || form.name
+    const userName =
+      form.cookie.match(/game_user_name=([^;]+)/)?.[1] || form.name
 
     const userData = {
       name: form.name,
       server: form.server,
-      serverName: serverOptions.find(s => s.value === form.server)?.label,
+      serverName: serverOptions.find((s) => s.value === form.server)?.label,
       uid,
       userName,
       cookie: form.cookie,
-      cookieExpireDays: Number(form.cookieExpireDays)
+      cookieExpireDays: Number(form.cookieExpireDays),
     }
 
     if (props.isEdit && props.userId) {
@@ -403,34 +561,78 @@ const handleSubmit = async () => {
 <style lang="scss">
 // 全局样式，确保在生产环境中也能正确应用
 .el-dialog {
+  @media screen and (max-width: 768px) {
+    &.user-dialog {
+      .el-dialog__body {
+        padding: 16px !important;
+      }
+
+      .el-dialog__header {
+        padding: 16px !important;
+        margin-right: 0;
+        .el-dialog__title {
+          font-size: 16px;
+        }
+      }
+
+      .el-dialog__footer {
+        padding: 12px 16px !important;
+      }
+
+      .el-form-item {
+        margin-bottom: 16px;
+
+        .el-form-item__label {
+          font-size: 14px;
+        }
+      }
+
+      .el-input,
+      .el-select {
+        font-size: 14px;
+      }
+    }
+  }
+
   .cookie-mask {
     height: 120px;
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 8px;
-    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
+    background: linear-gradient(
+      135deg,
+      var(--el-fill-color-light) 0%,
+      var(--el-fill-color-lighter) 100%
+    );
     margin-bottom: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    
+
+    @media screen and (max-width: 768px) {
+      height: 100px;
+      margin-bottom: 12px;
+    }
+
     &:hover {
-      border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      transform: translateY(-2px);
+      @media screen and (min-width: 769px) {
+        border-color: var(--el-color-primary-light-5);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
 
-      .cookie-mask-icon {
-        transform: scale(1.1);
-        background-color: var(--el-color-primary-light-8);
-        
-        .el-icon {
-          color: var(--el-color-primary);
+        .cookie-mask-icon {
+          transform: scale(1.1);
+          background-color: var(--el-color-primary-light-8);
+
+          .el-icon {
+            color: var(--el-color-primary);
+          }
         }
-      }
 
-      .cookie-mask-text {
-        .cookie-mask-title {
-          color: var(--el-color-primary);
+        .cookie-mask-text {
+          .cookie-mask-title {
+            color: var(--el-color-primary);
+          }
         }
       }
     }
@@ -448,6 +650,11 @@ const handleSubmit = async () => {
       gap: 16px;
       position: relative;
       z-index: 1;
+
+      @media screen and (max-width: 768px) {
+        padding: 0 16px;
+        gap: 12px;
+      }
     }
 
     .cookie-mask-icon {
@@ -460,11 +667,20 @@ const handleSubmit = async () => {
       justify-content: center;
       flex-shrink: 0;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
+
+      @media screen and (max-width: 768px) {
+        width: 40px;
+        height: 40px;
+      }
+
       .el-icon {
         font-size: 24px;
         color: var(--el-color-primary-light-3);
         transition: color 0.3s ease;
+
+        @media screen and (max-width: 768px) {
+          font-size: 20px;
+        }
       }
     }
 
@@ -480,11 +696,19 @@ const handleSubmit = async () => {
         font-weight: 500;
         color: var(--el-text-color-primary);
         transition: color 0.3s ease;
+
+        @media screen and (max-width: 768px) {
+          font-size: 14px;
+        }
       }
 
       .cookie-mask-desc {
         font-size: 13px;
         color: var(--el-text-color-secondary);
+
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+        }
       }
     }
   }
@@ -499,12 +723,26 @@ const handleSubmit = async () => {
     justify-content: space-between;
     align-items: center;
 
+    @media screen and (max-width: 768px) {
+      padding: 8px;
+      margin-top: 8px;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
     .cookie-expire-info {
       .cookie-days {
         font-size: 13px;
         padding: 0 8px;
         height: 24px;
         line-height: 24px;
+
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+          height: 22px;
+          line-height: 22px;
+        }
       }
     }
 
@@ -513,19 +751,36 @@ const handleSubmit = async () => {
       align-items: center;
       gap: 8px;
 
+      @media screen and (max-width: 768px) {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
       .expire-days-input {
         width: 100px;
+
+        @media screen and (max-width: 768px) {
+          width: 80px;
+        }
       }
 
       .expire-days-label {
         color: var(--el-text-color-regular);
         font-size: 13px;
+
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+        }
       }
 
       .info-icon {
         color: var(--el-text-color-secondary);
         font-size: 14px;
         cursor: help;
+
+        @media screen and (max-width: 768px) {
+          font-size: 13px;
+        }
       }
     }
   }
@@ -537,10 +792,18 @@ const handleSubmit = async () => {
       align-items: center;
       margin-bottom: 12px;
 
+      @media screen and (max-width: 768px) {
+        margin-bottom: 8px;
+      }
+
       .cookie-content-title {
         font-size: 15px;
         font-weight: 500;
         color: var(--el-text-color-primary);
+
+        @media screen and (max-width: 768px) {
+          font-size: 14px;
+        }
       }
 
       .cookie-hide-btn {
@@ -549,9 +812,23 @@ const handleSubmit = async () => {
         gap: 4px;
         font-size: 13px;
 
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+        }
+
         .el-icon {
           font-size: 14px;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+          }
         }
+      }
+    }
+
+    .el-textarea {
+      @media screen and (max-width: 768px) {
+        font-size: 13px;
       }
     }
   }
@@ -564,20 +841,124 @@ const handleSubmit = async () => {
     font-size: 12px;
     color: var(--el-text-color-secondary);
 
+    @media screen and (max-width: 768px) {
+      margin-top: 8px;
+      padding: 8px;
+      font-size: 11px;
+    }
+
     p {
       margin: 0 0 8px 0;
       font-weight: 500;
+
+      @media screen and (max-width: 768px) {
+        margin-bottom: 6px;
+      }
     }
 
     ul {
       margin: 0;
       padding-left: 20px;
-      
+
+      @media screen and (max-width: 768px) {
+        padding-left: 16px;
+      }
+
       li {
         line-height: 1.8;
         color: var(--el-text-color-regular);
+
+        @media screen and (max-width: 768px) {
+          line-height: 1.6;
+        }
       }
     }
   }
 }
-</style> 
+
+// 新增：教程相关样式
+.tutorial-target {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2000;
+}
+
+.tutorial-footer {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+
+  @media screen and (max-width: 768px) {
+    margin-top: 8px;
+    gap: 6px;
+  }
+}
+
+.tutorial-cookie-content {
+  white-space: pre-line;
+  line-height: 1.6;
+
+  @media screen and (max-width: 768px) {
+    line-height: 1.5;
+  }
+}
+
+.el-popover {
+  max-width: 320px;
+  padding: 16px;
+
+  @media screen and (max-width: 768px) {
+    max-width: 280px;
+    padding: 12px;
+  }
+
+  .el-popover__title {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+
+    @media screen and (max-width: 768px) {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--el-text-color-regular);
+
+    @media screen and (max-width: 768px) {
+      font-size: 12px;
+    }
+  }
+}
+
+.tutorial-cookie-actions {
+  margin: 12px 0;
+  display: flex;
+  justify-content: center;
+
+  @media screen and (max-width: 768px) {
+    margin: 8px 0;
+  }
+
+  .tutorial-link {
+    width: 100%;
+    text-decoration: none;
+
+    .el-button {
+      width: 100%;
+
+      @media screen and (max-width: 768px) {
+        font-size: 12px;
+        padding: 6px 12px;
+      }
+    }
+  }
+}
+</style>

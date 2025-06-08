@@ -5,7 +5,12 @@
         <div class="card-header">
           <span>兑换历史</span>
           <div class="header-actions">
-            <el-select v-model="selectedUser" placeholder="选择用户" clearable>
+            <el-select
+              v-model="selectedUser"
+              placeholder="选择用户"
+              clearable
+              size="small"
+            >
               <el-option
                 v-for="user in userStore.users"
                 :key="user.id"
@@ -21,22 +26,34 @@
         :data="historyList"
         stripe
         v-loading="loading"
+        class="history-table"
       >
-        <el-table-column prop="date" label="兑换时间" width="180" sortable>
+        <el-table-column
+          prop="date"
+          label="兑换时间"
+          min-width="180"
+          sortable
+          class-name="hide-on-mobile"
+        >
           <template #default="{ row }">
             {{ row.date }}
           </template>
         </el-table-column>
-        <el-table-column prop="userName" label="用户" width="150" />
+        <el-table-column prop="userName" label="用户" min-width="120" />
         <el-table-column prop="cdk" label="CDK码" min-width="200" />
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" min-width="80" fixed="right">
           <template #default="{ row }">
-            <el-tag :type="row.success ? 'success' : 'danger'">
+            <el-tag :type="row.success ? 'success' : 'danger'" size="small">
               {{ row.success ? '成功' : '失败' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="结果" min-width="200" />
+        <el-table-column
+          prop="message"
+          label="结果"
+          min-width="200"
+          show-overflow-tooltip
+        />
       </el-table>
 
       <div class="pagination-container">
@@ -45,9 +62,12 @@
           v-model:page-size="pageSize"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next"
+          :layout="
+            isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'
+          "
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
+          small
         />
       </div>
     </el-card>
@@ -68,13 +88,16 @@ const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
+// 检测是否为移动端
+const isMobile = computed(() => window.innerWidth <= 768)
+
 // 计算属性：根据选择的用户和分页过滤历史记录
 const historyList = computed(() => {
   let list = exchangeStore.history
 
   // 按用户筛选
   if (selectedUser.value) {
-    list = list.filter(record => record.userId === selectedUser.value)
+    list = list.filter((record) => record.userId === selectedUser.value)
   }
 
   // 计算总数
@@ -113,12 +136,23 @@ onMounted(() => {
   max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
+
+  @media screen and (max-width: 768px) {
+    padding: 12px;
+  }
 
   .history-card {
     .card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      @media screen and (max-width: 768px) {
+        font-size: 14px;
+      }
 
       .header-actions {
         display: flex;
@@ -127,6 +161,32 @@ onMounted(() => {
 
         .el-select {
           width: 200px;
+
+          @media screen and (max-width: 768px) {
+            width: 160px;
+          }
+        }
+      }
+    }
+
+    :deep(.history-table) {
+      // 移动端表格样式优化
+      @media screen and (max-width: 768px) {
+        .hide-on-mobile {
+          display: none;
+        }
+
+        .el-table__header-wrapper {
+          font-size: 14px;
+        }
+
+        .el-table__body-wrapper {
+          font-size: 13px;
+        }
+
+        .el-tag {
+          font-size: 12px;
+          padding: 0 4px;
         }
       }
     }
@@ -136,6 +196,11 @@ onMounted(() => {
     margin-top: 20px;
     display: flex;
     justify-content: flex-end;
+
+    @media screen and (max-width: 768px) {
+      margin-top: 16px;
+      justify-content: center;
+    }
   }
 }
-</style> 
+</style>

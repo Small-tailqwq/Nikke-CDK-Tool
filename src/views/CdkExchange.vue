@@ -28,7 +28,7 @@
                 <p class="uid">UID: {{ user.uid }}</p>
               </div>
               <div class="cookie-info">
-                <el-tag 
+                <el-tag
                   :type="getCookieStatusType(user.cookieExpireDays)"
                   size="small"
                 >
@@ -63,9 +63,9 @@
       <template #header>
         <div class="card-header">
           <span>CDK兑换</span>
-          <el-button 
-            type="primary" 
-            @click="handleExchange" 
+          <el-button
+            type="primary"
+            @click="handleExchange"
             :loading="exchanging"
             :disabled="!canExchange"
           >
@@ -90,8 +90,7 @@
             <div class="form-tip">
               <el-icon><InfoFilled /></el-icon>
               <span>提示：每行输入一个CDK，支持批量兑换</span>
-              <br>
-              <span class="keyboard-tip">按 Enter 换行</span>
+              <br />
             </div>
           </div>
         </el-form-item>
@@ -100,20 +99,21 @@
       <!-- 兑换结果展示 -->
       <div v-if="exchangeResults.length" class="exchange-results">
         <el-collapse v-model="activeResults">
-          <el-collapse-item 
-            v-for="(result, index) in exchangeResults" 
+          <el-collapse-item
+            v-for="(result, index) in exchangeResults"
             :key="index"
             :name="index"
           >
             <template #title>
-              <el-tag 
+              <el-tag
                 :type="result.success ? 'success' : 'danger'"
                 size="small"
               >
                 {{ result.userName }}
               </el-tag>
               <span class="result-title">
-                {{ result.cdk }} - {{ result.success ? '兑换成功' : '兑换失败' }}
+                {{ result.cdk }} -
+                {{ result.success ? '兑换成功' : '兑换失败' }}
               </span>
             </template>
             <p class="result-message">{{ result.message }}</p>
@@ -133,8 +133,8 @@
         </div>
       </template>
 
-      <el-table 
-        :data="exchangeStore.recentHistory" 
+      <el-table
+        :data="exchangeStore.recentHistory"
         stripe
         v-loading="exchangeStore.loading"
       >
@@ -153,10 +153,7 @@
     </el-card>
 
     <!-- 用户对话框 -->
-    <user-dialog
-      v-model:visible="dialogVisible"
-      :is-edit="false"
-    />
+    <user-dialog v-model:visible="dialogVisible" :is-edit="false" />
   </div>
 </template>
 
@@ -181,7 +178,7 @@ const activeResults = ref([])
 const exchangeResults = ref([])
 
 const form = reactive({
-  cdk: ''
+  cdk: '',
 })
 
 // 监听路由参数变化
@@ -199,13 +196,22 @@ watch(
 
 // 是否可以兑换
 const canExchange = computed(() => {
-  return selectedUserIds.value.length > 0 && form.cdk.trim().split('\n').some(cdk => cdk.trim() !== '')
+  return (
+    selectedUserIds.value.length > 0 &&
+    form.cdk
+      .trim()
+      .split('\n')
+      .some((cdk) => cdk.trim() !== '')
+  )
 })
 
 // 兑换按钮文本
 const exchangeButtonText = computed(() => {
   if (selectedUserIds.value.length === 0) return '请选择用户'
-  const cdkCount = form.cdk.trim().split('\n').filter(cdk => cdk.trim() !== '').length
+  const cdkCount = form.cdk
+    .trim()
+    .split('\n')
+    .filter((cdk) => cdk.trim() !== '').length
   return `为 ${selectedUserIds.value.length} 个用户兑换 ${cdkCount} 个CDK`
 })
 
@@ -262,11 +268,16 @@ const handleExchange = async () => {
 
   exchanging.value = true
   exchangeResults.value = []
-  
+
   try {
-    const selectedUsers = selectedUserIds.value.map(id => userStore.getUserById(id))
-    const cdkList = form.cdk.split('\n').map(cdk => cdk.trim()).filter(cdk => cdk)
-    
+    const selectedUsers = selectedUserIds.value.map((id) =>
+      userStore.getUserById(id)
+    )
+    const cdkList = form.cdk
+      .split('\n')
+      .map((cdk) => cdk.trim())
+      .filter((cdk) => cdk)
+
     // 为每个用户兑换每个CDK
     const results = []
     for (const user of selectedUsers) {
@@ -282,15 +293,17 @@ const handleExchange = async () => {
             cdk: cdk,
             success: result.success,
             message: result.message,
-            date: exchangeStartTime.toLocaleString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
-            }).replace(/\//g, '-')
+            date: exchangeStartTime
+              .toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              })
+              .replace(/\//g, '-'),
           })
         } catch (error) {
           // 使用兑换开始时间作为记录时间
@@ -300,19 +313,21 @@ const handleExchange = async () => {
             cdk: cdk,
             success: false,
             message: error.message || '兑换失败',
-            date: exchangeStartTime.toLocaleString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
-            }).replace(/\//g, '-')
+            date: exchangeStartTime
+              .toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+              })
+              .replace(/\//g, '-'),
           })
         }
         // 添加小延迟，避免请求过于密集
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise((resolve) => setTimeout(resolve, 100))
       }
     }
 
@@ -324,9 +339,9 @@ const handleExchange = async () => {
     exchangeResults.value = results
 
     // 显示结果统计
-    const successCount = results.filter(r => r.success).length
+    const successCount = results.filter((r) => r.success).length
     const failCount = results.length - successCount
-    
+
     if (failCount === 0) {
       ElMessage.success(`全部兑换成功`)
       form.cdk = ''
@@ -388,14 +403,14 @@ onMounted(() => {
 
     .cdk-textarea {
       width: 100% !important;
-      
+
       :deep(.el-textarea__inner) {
         width: 100% !important;
         font-family: monospace;
         line-height: 1.5;
         padding: 12px;
         font-size: 14px;
-        
+
         &:focus {
           box-shadow: 0 0 0 1px var(--el-color-primary) inset;
         }
@@ -439,4 +454,4 @@ onMounted(() => {
     }
   }
 }
-</style> 
+</style>
