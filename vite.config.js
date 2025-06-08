@@ -19,9 +19,6 @@ export default defineConfig({
     stringify: true
   },
   css: {
-    modules: {
-      scopeBehaviour: 'local'
-    },
     preprocessorOptions: {
       scss: {
         charset: false
@@ -29,14 +26,13 @@ export default defineConfig({
     }
   },
   build: {
-    cssCodeSplit: false,
-    cssMinify: 'lightningcss',
+    cssCodeSplit: true,
+    cssMinify: true,
     rollupOptions: {
       output: {
-        manualChunks: undefined,
         assetFileNames: (assetInfo) => {
           if (assetInfo.name.endsWith('.css')) {
-            return 'assets/styles.[hash].css'
+            return 'assets/[name].[hash].css'
           }
           return 'assets/[name].[hash][extname]'
         }
