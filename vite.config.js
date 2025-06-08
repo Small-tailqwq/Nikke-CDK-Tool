@@ -17,5 +17,30 @@ export default defineConfig({
   },
   json: {
     stringify: true
+  },
+  css: {
+    modules: {
+      scopeBehaviour: 'local'
+    },
+    preprocessorOptions: {
+      scss: {
+        charset: false
+      }
+    }
+  },
+  build: {
+    cssCodeSplit: false,
+    cssMinify: 'lightningcss',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.css')) {
+            return 'assets/styles.[hash].css'
+          }
+          return 'assets/[name].[hash][extname]'
+        }
+      }
+    }
   }
 }) 

@@ -33,7 +33,11 @@
 
       <el-form-item label="Cookie信息" prop="cookie">
         <template v-if="isEdit && !showCookie">
-          <div class="cookie-mask" @click="showCookie = true">
+          <el-card 
+            class="cookie-mask" 
+            shadow="never" 
+            @click="showCookie = true"
+          >
             <div class="cookie-mask-content">
               <div class="cookie-mask-icon">
                 <el-icon><Lock /></el-icon>
@@ -43,7 +47,7 @@
                 <span class="cookie-mask-desc">点击查看 Cookie 详情</span>
               </div>
             </div>
-          </div>
+          </el-card>
           <div class="cookie-info-footer">
             <div class="cookie-expire-info">
               <el-tag 
@@ -396,212 +400,184 @@ const handleSubmit = async () => {
 }
 </script>
 
-<style lang="scss" scoped>
-.cookie-info-footer {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
-  border: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+<style lang="scss">
+// 全局样式，确保在生产环境中也能正确应用
+.el-dialog {
+  .cookie-mask {
+    height: 120px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
+    margin-bottom: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    
+    &:hover {
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
 
-  .cookie-expire-info {
-    .cookie-days {
-      font-size: 13px;
-      padding: 0 8px;
-      height: 24px;
-      line-height: 24px;
+      .cookie-mask-icon {
+        transform: scale(1.1);
+        background-color: var(--el-color-primary-light-8);
+        
+        .el-icon {
+          color: var(--el-color-primary);
+        }
+      }
+
+      .cookie-mask-text {
+        .cookie-mask-title {
+          color: var(--el-color-primary);
+        }
+      }
     }
-  }
 
-  .cookie-expire-setting {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .expire-days-input {
-      width: 100px;
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     }
 
-    .expire-days-label {
-      color: var(--el-text-color-regular);
-      font-size: 13px;
-    }
-
-    .info-icon {
-      color: var(--el-text-color-secondary);
-      font-size: 14px;
-      cursor: help;
-    }
-  }
-}
-
-.cookie-mask {
-  height: 120px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
-  margin-bottom: 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  z-index: 1;
-  pointer-events: auto;
-  
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 100%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  &:hover {
-    border-color: var(--el-color-primary-light-5);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-
-    &::after {
-      opacity: 0.1;
+    .cookie-mask-content {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 16px;
+      position: relative;
+      z-index: 1;
     }
 
     .cookie-mask-icon {
-      transform: scale(1.1);
-      background-color: var(--el-color-primary-light-8);
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background-color: var(--el-color-primary-light-9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
       .el-icon {
-        color: var(--el-color-primary);
+        font-size: 24px;
+        color: var(--el-color-primary-light-3);
+        transition: color 0.3s ease;
       }
     }
 
     .cookie-mask-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      text-align: left;
+      flex-grow: 1;
+
       .cookie-mask-title {
-        color: var(--el-color-primary);
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+        transition: color 0.3s ease;
+      }
+
+      .cookie-mask-desc {
+        font-size: 13px;
+        color: var(--el-text-color-secondary);
       }
     }
   }
 
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  }
-
-  .cookie-mask-content {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 24px;
-    gap: 16px;
-    position: relative;
-    z-index: 2;
-    pointer-events: auto;
-  }
-
-  .cookie-mask-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: var(--el-color-primary-light-9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    z-index: 2;
-    
-    .el-icon {
-      font-size: 24px;
-      color: var(--el-color-primary-light-3);
-      transition: color 0.3s ease;
-    }
-  }
-
-  .cookie-mask-text {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    text-align: left;
-    flex-grow: 1;
-    position: relative;
-    z-index: 2;
-
-    .cookie-mask-title {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
-      transition: color 0.3s ease;
-    }
-
-    .cookie-mask-desc {
-      font-size: 13px;
-      color: var(--el-text-color-secondary);
-    }
-  }
-}
-
-.cookie-content {
-  .cookie-content-header {
+  .cookie-info-footer {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 4px;
+    border: 1px solid var(--el-border-color-lighter);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
 
-    .cookie-content-title {
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--el-text-color-primary);
+    .cookie-expire-info {
+      .cookie-days {
+        font-size: 13px;
+        padding: 0 8px;
+        height: 24px;
+        line-height: 24px;
+      }
     }
 
-    .cookie-hide-btn {
+    .cookie-expire-setting {
       display: flex;
       align-items: center;
-      gap: 4px;
-      font-size: 13px;
+      gap: 8px;
 
-      .el-icon {
+      .expire-days-input {
+        width: 100px;
+      }
+
+      .expire-days-label {
+        color: var(--el-text-color-regular);
+        font-size: 13px;
+      }
+
+      .info-icon {
+        color: var(--el-text-color-secondary);
         font-size: 14px;
+        cursor: help;
       }
     }
   }
-}
 
-.form-tip {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: var(--el-fill-color-light);
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  .cookie-content {
+    .cookie-content-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
 
-  p {
-    margin: 0 0 8px 0;
-    font-weight: 500;
-  }
+      .cookie-content-title {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--el-text-color-primary);
+      }
 
-  ul {
-    margin: 0;
-    padding-left: 20px;
-    
-    li {
-      line-height: 1.8;
-      color: var(--el-text-color-regular);
+      .cookie-hide-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+
+        .el-icon {
+          font-size: 14px;
+        }
+      }
     }
   }
-}
 
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  .form-tip {
+    margin-top: 12px;
+    padding: 12px;
+    background-color: var(--el-fill-color-light);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+
+    p {
+      margin: 0 0 8px 0;
+      font-weight: 500;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      
+      li {
+        line-height: 1.8;
+        color: var(--el-text-color-regular);
+      }
+    }
+  }
 }
 </style> 
