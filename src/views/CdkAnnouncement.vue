@@ -88,13 +88,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, InfoFilled } from '@element-plus/icons-vue'
+import { fetchCdkList } from '../utils/fetchCdk'
+import type { CDK } from '../utils/fetchCdk'
 
 // CDK列表数据
-const cdkList = ref([])
+const cdkList = ref<CDK[]>([])
 const filterForm = ref({
   server: '',
   status: ''
@@ -103,12 +105,7 @@ const filterForm = ref({
 // 加载CDK列表
 const loadCdkList = async (isManualRefresh = false) => {
   try {
-    // 添加时间戳参数避免缓存
-    const timestamp = new Date().getTime()
-    // 如需修改远程读取CDK列表，直接修改下列链接即可，如：
-    //const response = await fetch('https://raw.githubusercontent.com/你的用户名/你的仓库名/main/public/cdk-list.json')
-    const response = await fetch(`https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json?t=${timestamp}`)
-    const data = await response.json()
+    const data = await fetchCdkList()
     cdkList.value = data.cdks
     // 只在手动刷新时显示提示
     if (isManualRefresh) {
@@ -116,7 +113,7 @@ const loadCdkList = async (isManualRefresh = false) => {
     }
   } catch (error) {
     console.error('加载CDK列表失败:', error)
-    ElMessage.error('加载CDK列表失败，请稍后重试')
+    ElMessage.error(error instanceof Error ? error.message : '加载CDK列表失败，请稍后重试')
   }
 }
 

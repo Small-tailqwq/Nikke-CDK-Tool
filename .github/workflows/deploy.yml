@@ -42,20 +42,25 @@ jobs:
           commit-message: |
             🚀 Deploy: ${{ github.workflow }} @ ${{ github.sha }}
 
-            
+
       - name: Detect cdk-list.json changes
         id: cdk_changed
-        shell: bash
         run: |
-          if git diff --name-only "$(git rev-parse HEAD^)" HEAD | grep -q '^public/cdk-list\.json$'; then
-            echo "changed=true"  >> "$GITHUB_OUTPUT"
+          git fetch origin masrer --depth=2
+          if git diff --name-only HEAD^ HEAD | grep -q '^public/cdk-list\.json$'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
           else
-            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Purge jsDelivr cache
-        if: ${{ steps.cdk_changed.outputs.changed == 'true' }}
+      - name: Purge jsDelivr & refresh Worker
+        if: steps.cdk_changed.outputs.changed == 'true'
+        env:
+          WORKER_REFRESH: ${{ secrets.WORKER_REFRESH }}
         run: |
-          echo "🔄  cdk-list.json changed, purging jsDelivr cache…"
-          curl -sSf "https://purge.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json" \
-            && echo "✅  jsDelivr cache purged."
+          echo '🔄 Purge jsDelivr'
+          curl -fsSL "https://purge.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json" || true
+          echo '🔄 Refresh KV'
+          curl -fsSL -X POST "https://nikke-cdk.hayasa.org/api/refresh" \
+               -H "X-Auth-Key: ${WORKER_REFRESH}" || true
+
