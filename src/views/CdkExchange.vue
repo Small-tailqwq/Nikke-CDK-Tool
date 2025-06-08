@@ -74,18 +74,25 @@
         </div>
       </template>
 
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="CDK">
-          <el-input
-            v-model="form.cdk"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入CDK，每行一个"
-            :disabled="exchanging"
-            @keydown.enter.prevent="handleEnterKey"
-          />
-          <div class="form-tip">
-            <p>提示：每行输入一个CDK，支持批量兑换</p>
+      <el-form :model="form" class="cdk-form">
+        <el-form-item label="CDK" label-position="top">
+          <div class="cdk-input-wrapper">
+            <el-input
+              v-model="form.cdk"
+              type="textarea"
+              :rows="4"
+              placeholder="请输入CDK，每行一个&#10;按 Enter 换行"
+              :disabled="exchanging"
+              @keydown.enter.prevent="handleEnterKey"
+              resize="none"
+              class="cdk-textarea"
+            />
+            <div class="form-tip">
+              <el-icon><InfoFilled /></el-icon>
+              <span>提示：每行输入一个CDK，支持批量兑换</span>
+              <br>
+              <span class="keyboard-tip">按 Enter 换行</span>
+            </div>
           </div>
         </el-form-item>
       </el-form>
@@ -156,7 +163,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Check, Plus } from '@element-plus/icons-vue'
+import { Check, Plus, InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import UserDialog from '../components/UserDialog.vue'
@@ -213,6 +220,16 @@ const showAddUserDialog = () => {
 const handleEnterKey = (e) => {
   if (e.shiftKey) {
     // Shift + Enter 时插入换行
+    const textarea = e.target
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    form.cdk = form.cdk.substring(0, start) + '\n' + form.cdk.substring(end)
+    // 设置光标位置到换行符后
+    setTimeout(() => {
+      textarea.selectionStart = textarea.selectionEnd = start + 1
+    })
+  } else {
+    // 普通 Enter 时也插入换行
     const textarea = e.target
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
@@ -331,10 +348,65 @@ onMounted(() => {
     color: var(--el-color-primary);
   }
 
-  .form-tip {
-    margin-top: 8px;
-    color: #909399;
-    font-size: 12px;
+  .cdk-form {
+    :deep(.el-form-item) {
+      width: 100%;
+    }
+
+    :deep(.el-form-item__content) {
+      width: 100%;
+    }
+
+    :deep(.el-form-item__label) {
+      padding-bottom: 8px;
+      font-weight: 500;
+      font-size: 15px;
+      color: var(--el-text-color-primary);
+    }
+
+    .cdk-input-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .cdk-textarea {
+      width: 100% !important;
+      
+      :deep(.el-textarea__inner) {
+        width: 100% !important;
+        font-family: monospace;
+        line-height: 1.5;
+        padding: 12px;
+        font-size: 14px;
+        
+        &:focus {
+          box-shadow: 0 0 0 1px var(--el-color-primary) inset;
+        }
+      }
+    }
+
+    .form-tip {
+      display: flex;
+      align-items: flex-start;
+      gap: 4px;
+      color: var(--el-text-color-secondary);
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 4px;
+
+      .el-icon {
+        margin-top: 2px;
+        font-size: 14px;
+        color: var(--el-color-info);
+      }
+
+      .keyboard-tip {
+        color: var(--el-color-info);
+        font-size: 12px;
+      }
+    }
   }
 
   .exchange-results {

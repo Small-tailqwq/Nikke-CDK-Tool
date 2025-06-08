@@ -25,9 +25,32 @@
         </router-view>
       </el-main>
 
-      <el-footer height="60px">
+      <el-footer height="auto" class="footer">
         <div class="footer-content">
-          <p>© 2024 NIKKE CDK兑换工具 | 本工具仅供学习交流使用</p>
+          <div class="footer-section">
+            <h4>NIKKE CDK兑换工具</h4>
+            <p class="copyright">© 2025 | 本工具仅供学习交流使用</p>
+          </div>
+          <div class="footer-section">
+            <p class="tech-desc">本项目由以下服务提供支持：</p>
+            <div class="tech-stack">
+              <el-tooltip content="静态页面托管服务" placement="top">
+                <el-tag size="small" type="info" effect="plain">GitHub Pages</el-tag>
+              </el-tooltip>
+              <el-tooltip content="自动化构建与部署" placement="top">
+                <el-tag size="small" type="info" effect="plain">GitHub Actions</el-tag>
+              </el-tooltip>
+              <el-tooltip content="后端API代理服务" placement="top">
+                <el-tag size="small" type="info" effect="plain">Cloudflare Worker</el-tag>
+              </el-tooltip>
+              <el-tooltip content="CDK列表CDN加速" placement="top">
+                <el-tag size="small" type="info" effect="plain">jsDelivr</el-tag>
+              </el-tooltip>
+              <el-tooltip content="就算你把鼠标放在我上面，但是我只是一只doro" placement="top">
+                <el-tag size="small" type="info" effect="plain">Doro</el-tag>
+              </el-tooltip>
+            </div>
+          </div>
         </div>
       </el-footer>
     </el-container>
@@ -39,7 +62,7 @@
       @click.stop="handleDoroClick"
       :title="doroClickCount < 3 ? 'doro~' : ''"
     >
-      <img src="/doro_icon.png" alt="doro" />
+      <img :src="doroIcon" alt="doro" />
     </div>
     <!-- doro爆炸飞出 -->
     <transition-group name="doro-burst" tag="div">
@@ -47,7 +70,7 @@
         v-for="item in burstList"
         :key="item.id"
         class="doro-burst-img"
-        :src="'/doro_icon.png'"
+        :src="doroIcon"
         :style="item.style"
       />
     </transition-group>
@@ -57,6 +80,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import doroIcon from '@/assets/doro_icon.png'
 
 const router = useRouter()
 const route = useRoute()
@@ -472,5 +496,71 @@ html, body {
   pointer-events: none;
   position: fixed;
   z-index: 99999;
+}
+
+.footer {
+  background-color: var(--el-bg-color);
+  border-top: 1px solid var(--el-border-color-light);
+  padding: 20px 0;
+  margin-top: 40px;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.footer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-section h4 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--el-text-color-primary);
+  font-weight: 500;
+}
+
+.copyright {
+  margin: 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.tech-desc {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.tech-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tech-stack .el-tag {
+  margin: 0;
+  cursor: help;
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .tech-stack {
+    justify-content: flex-start;
+  }
 }
 </style> 

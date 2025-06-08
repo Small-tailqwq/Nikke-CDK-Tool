@@ -30,7 +30,7 @@
               </el-select>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" size="small" @click="loadCdkList">刷新列表</el-button>
+              <el-button type="primary" size="small" @click="loadCdkList(true)">刷新列表</el-button>
             </el-form-item>
           </el-form>
         </el-card>
@@ -101,15 +101,19 @@ const filterForm = ref({
 })
 
 // 加载CDK列表
-const loadCdkList = async () => {
+const loadCdkList = async (isManualRefresh = false) => {
   try {
+    // 添加时间戳参数避免缓存
+    const timestamp = new Date().getTime()
     // 如需修改远程读取CDK列表，直接修改下列链接即可，如：
     //const response = await fetch('https://raw.githubusercontent.com/你的用户名/你的仓库名/main/public/cdk-list.json')
-    const response = await fetch('https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json')
-    //const response = await fetch('/cdk-list.json')
+    const response = await fetch(`https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json?t=${timestamp}`)
     const data = await response.json()
-    // console.log('CDK列表数据:', data) // 添加调试日志
     cdkList.value = data.cdks
+    // 只在手动刷新时显示提示
+    if (isManualRefresh) {
+      ElMessage.success('CDK列表已更新')
+    }
   } catch (error) {
     console.error('加载CDK列表失败:', error)
     ElMessage.error('加载CDK列表失败，请稍后重试')
@@ -159,10 +163,10 @@ const getServerName = (server) => {
   return serverNames[server] || server
 }
 
-// 页面加载时获取CDK列表
+// 页面加载时获取CDK列表（首次加载不显示提示）
 onMounted(() => {
-  console.log('CDK公告组件已挂载') // 添加调试日志
-  loadCdkList()
+  console.log('CDK公告组件已挂载')
+  loadCdkList(false)
 })
 </script>
 

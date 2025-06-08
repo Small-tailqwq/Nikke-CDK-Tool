@@ -104,8 +104,8 @@ CDK公告数据存放在 `public/cdk-list.json`，任何人都可以通过 Pull 
 
 ```json
 {
-  "code": "NIKKE2024NEW",
-  "name": "2024新年礼包",
+  "code": "NIKKE2026NEW",
+  "name": "2026新年礼包",
   "reward": "高级招募券×5, 橘子×2, 纯牛奶x2",
   "image": "",
   "servers": ["cn"],
@@ -114,6 +114,10 @@ CDK公告数据存放在 `public/cdk-list.json`，任何人都可以通过 Pull 
   "author": "doro"
 }
 ```
+
+> 这只是一个示例，目前本项目暂不支持国服兑换和兑换纯牛奶等功能，等待后续更新。
+  
+
 
 3. 提交 Pull Request，等待合并。
 

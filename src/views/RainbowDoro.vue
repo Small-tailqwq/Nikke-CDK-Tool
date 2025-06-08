@@ -10,11 +10,12 @@
   <script setup>
   
   import { onMounted, onBeforeUnmount, ref } from 'vue'
+  import doroPng from '@/assets/doro_icon.png'
   
   const cvs = ref()
   let ctx, rafId, spawnTimer
   const doroImg = new Image()
-  doroImg.src = '/doro_icon.png'
+  doroImg.src = doroPng
   
   const colors = ['#ff0033', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3']
   

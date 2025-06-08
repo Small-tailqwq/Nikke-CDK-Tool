@@ -31,10 +31,9 @@ export const exchangeCDK = async (cookie, cdk) => {
     
     const errorMessages = {
         // 代码由AI生成，可能需要维护
-      1302015: 'CDK无效或已使用',
-      1302016: 'CDK已过期',
-      1302017: '该账号已兑换过此CDK',
-      1302018: 'CDK兑换次数已达上限',
+      1302009: 'CDK兑换次数已达上限',
+      1302015: 'CDK无效',
+      1302016: '该账号已兑换过此CDK',
       300001: '游戏未登录或Cookie已过期'
     }
     
@@ -44,6 +43,13 @@ export const exchangeCDK = async (cookie, cdk) => {
     }
   } catch (error) {
     console.error('CDK兑换失败:', error)
+    // 处理超时错误
+    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      return {
+        success: false,
+        message: '请求超时，请检查网络连接或稍后重试'
+      }
+    }
     return {
       success: false,
       message: error.message || '网络错误，请稍后重试'
