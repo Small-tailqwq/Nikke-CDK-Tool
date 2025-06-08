@@ -49,17 +49,26 @@ export const useUserStore = defineStore('user', () => {
   // 更新用户
   const updateUser = async (id, userData) => {
     try {
-      if (userStorage.updateUser(id, userData)) {
-        const index = users.value.findIndex(u => u.id === id)
-        if (index !== -1) {
-          users.value[index] = {
-            ...users.value[index],
-            ...userData
-          }
+      // 先更新 store 中的数据
+      const index = users.value.findIndex(u => u.id === id)
+      if (index !== -1) {
+        // 创建新的用户对象，保留原有数据
+        const updatedUser = {
+          ...users.value[index],
+          ...userData,
+          // 确保保留 id 和 createTime
+          id: users.value[index].id,
+          createTime: users.value[index].createTime
+        }
+        // 更新 store
+        users.value[index] = updatedUser
+        // 保存到 localStorage
+        if (!userStorage.saveUsers(users.value)) {
+          throw new Error('保存到本地存储失败')
         }
         return true
       }
-      throw new Error('保存失败')
+      throw new Error('用户不存在')
     } catch (error) {
       console.error('更新用户失败:', error)
       throw error

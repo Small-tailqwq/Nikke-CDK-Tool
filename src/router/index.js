@@ -1,11 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import CdkExchange from '../views/CdkExchange.vue'
 import UserManagement from '../views/UserManagement.vue'
 import ExchangeHistory from '../views/ExchangeHistory.vue'
 import CdkAnnouncement from '../views/CdkAnnouncement.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',

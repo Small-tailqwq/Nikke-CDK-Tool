@@ -151,7 +151,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, InfoFilled, Loading, Picture } from '@element-plus/icons-vue'
 import { fetchCdkList } from '../utils/fetchCdk'
@@ -174,6 +174,10 @@ const selectedCdks = ref<string[]>([])
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
 
+// 图片加载状态和URL的缓存键
+const CACHE_KEY = 'nikke_cdk_image_cache'
+const CACHE_VERSION = '1' // 用于在需要时清除缓存
+
 // 图片加载状态
 const imageLoadStates = ref<Record<string, 'loading' | 'success' | 'error'>>({})
 
@@ -181,20 +185,85 @@ const imageLoadStates = ref<Record<string, 'loading' | 'success' | 'error'>>({})
 const imageUrls = ref<Record<string, string>>({})
 
 // 处理单个CDK的图片URL
-const processCdkImage = async (cdk: CDK) => {
+const processCdkImage = async (cdk: CDK, forceRefresh = false) => {
   if (!cdk.image) {
     imageLoadStates.value[cdk.code] = 'error'
+    return
+  }
+
+  // 如果已有缓存且不强制刷新，直接使用缓存
+  if (!forceRefresh && imageLoadStates.value[cdk.code] === 'success' && imageUrls.value[cdk.code]) {
+    console.log('使用缓存的图片:', cdk.code)
     return
   }
   
   imageLoadStates.value[cdk.code] = 'loading'
   try {
+    // 使用 safeImg 处理图片URL
     const safeUrl = await safeImg(cdk.image)
+    console.log('获取到安全的图片URL:', cdk.code, safeUrl)
+    
+    // 更新状态和URL
     imageUrls.value[cdk.code] = safeUrl
     imageLoadStates.value[cdk.code] = 'success'
+    
+    // 立即保存到缓存
+    const cache = {
+      version: CACHE_VERSION,
+      data: {
+        states: { ...imageLoadStates.value },
+        urls: { ...imageUrls.value }
+      }
+    }
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+      console.log('缓存已更新:', Object.keys(imageUrls.value).length, '个URL')
+    } catch (e) {
+      console.error('保存缓存失败:', e)
+    }
   } catch (e) {
     console.error('处理图片URL失败:', e)
     imageLoadStates.value[cdk.code] = 'error'
+    // 保存错误状态到缓存
+    saveImageCache()
+  }
+}
+
+// 从缓存加载图片状态
+const loadImageCache = () => {
+  try {
+    const cache = localStorage.getItem(CACHE_KEY)
+    if (cache) {
+      const { version, data } = JSON.parse(cache)
+      if (version === CACHE_VERSION) {
+        console.log('从缓存加载:', Object.keys(data.urls).length, '个URL')
+        // 使用解构赋值创建新的对象，避免引用问题
+        imageLoadStates.value = { ...data.states }
+        imageUrls.value = { ...data.urls }
+        return true
+      }
+    }
+  } catch (e) {
+    console.error('读取缓存失败:', e)
+  }
+  console.log('无缓存或缓存版本不匹配')
+  return false
+}
+
+// 保存图片状态到缓存
+const saveImageCache = () => {
+  try {
+    const cache = {
+      version: CACHE_VERSION,
+      data: {
+        states: { ...imageLoadStates.value },
+        urls: { ...imageUrls.value }
+      }
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
+    console.log('保存缓存:', Object.keys(imageUrls.value).length, '个URL')
+  } catch (e) {
+    console.error('保存缓存失败:', e)
   }
 }
 
@@ -203,8 +272,24 @@ const loadCdkList = async (manual = false) => {
   try {
     const { cdks } = await fetchCdkList()
     cdkList.value = cdks
-    // 处理所有CDK的图片URL
-    await Promise.all(cdks.map(processCdkImage))
+    
+    // 如果是手动刷新，强制重新加载所有图片
+    // 否则尝试使用缓存，只加载新CDK的图片
+    const forceRefresh = manual
+    if (!forceRefresh && loadImageCache()) {
+      console.log('使用缓存，只加载新CDK')
+      // 只处理新增的CDK图片
+      const newCdks = cdks.filter(cdk => !imageLoadStates.value[cdk.code])
+      if (newCdks.length > 0) {
+        console.log('发现新CDK:', newCdks.length, '个')
+        await Promise.all(newCdks.map(cdk => processCdkImage(cdk, false)))
+      }
+    } else {
+      console.log('重新加载所有图片')
+      // 处理所有CDK的图片
+      await Promise.all(cdks.map(cdk => processCdkImage(cdk, forceRefresh)))
+    }
+    
     manual && ElMessage.success('CDK列表已更新')
   } catch (e) {
     ElMessage.error('加载CDK列表失败，请稍后重试')
@@ -309,6 +394,11 @@ const handleImageLoad = (code: string) => {
 onMounted(() => {
   console.log('CDK公告组件已挂载')
   loadCdkList(false)
+})
+
+// 组件卸载时保存缓存
+onBeforeUnmount(() => {
+  saveImageCache()
 })
 </script>
 

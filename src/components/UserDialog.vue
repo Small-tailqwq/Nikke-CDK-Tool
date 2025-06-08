@@ -154,7 +154,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
+import { ref, reactive, defineProps, defineEmits, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Lock, InfoFilled, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
@@ -198,6 +198,9 @@ const form = reactive({
   uid: ''
 })
 
+// 临时存储编辑模式的数据
+const editFormData = ref(null)
+
 // Cookie输入框提示文本
 const cookiePlaceholder = `请粘贴完整的Cookie信息，支持以下两种格式：
 
@@ -235,13 +238,11 @@ const rules = {
 
         // 处理从Application面板复制的Cookie格式
         let cookieStr = value
-        let cookieExpireDays = 365 // 默认365天
 
         if (value.includes('\t')) {
           // 如果包含制表符，说明是从Application面板复制的格式
           const cookieLines = value.split('\n')
           const cookiePairs = []
-          let expiresDate = null
 
           cookieLines.forEach(line => {
             const parts = line.split('\t')
@@ -249,28 +250,9 @@ const rules = {
 
             // 第一列是名称，第二列是值
             cookiePairs.push(`${parts[0]}=${parts[1]}`)
-
-            // 第五列是过期时间
-            if (parts[4] && parts[4].includes('202')) { // 确保是日期格式
-              try {
-                const date = new Date(parts[4])
-                if (!isNaN(date) && (!expiresDate || date < expiresDate)) {
-                  expiresDate = date
-                }
-              } catch (e) {
-                console.error('解析过期时间失败:', e)
-              }
-            }
           })
 
           cookieStr = cookiePairs.filter(Boolean).join('; ')
-
-          // 计算剩余天数
-          if (expiresDate) {
-            const now = new Date()
-            const diffTime = expiresDate - now
-            cookieExpireDays = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-          }
         }
 
         // 验证必需的Cookie字段
@@ -291,7 +273,6 @@ const rules = {
 
         // 更新表单中的Cookie值为处理后的格式
         form.cookie = cookieStr
-        form.cookieExpireDays = cookieExpireDays
         callback()
       },
       trigger: 'blur'
@@ -303,21 +284,39 @@ const rules = {
 watch(() => props.visible, (val) => {
   dialogVisible.value = val
   showCookie.value = false // 重置Cookie显示状态
-  if (val && props.isEdit && props.userId) {
-    // 编辑模式：获取用户数据
-    const userData = userStore.getUserById(props.userId)
-    if (userData) {
-      Object.assign(form, {
-        name: userData.name,
-        server: userData.server,
-        cookie: userData.cookie,
-        cookieExpireDays: userData.cookieExpireDays,
-        uid: userData.uid
-      })
+  
+  if (val) {
+    if (props.isEdit && props.userId) {
+      // 编辑模式：获取用户数据
+      const userData = userStore.getUserById(props.userId)
+      if (userData) {
+        // 保存编辑前的数据，用于取消时恢复
+        editFormData.value = { ...userData }
+        // 设置表单数据
+        Object.assign(form, {
+          name: userData.name,
+          server: userData.server,
+          cookie: userData.cookie,
+          cookieExpireDays: userData.cookieExpireDays || 365,
+          uid: userData.uid
+        })
+      }
+    } else {
+      // 添加模式：重置表单
+      resetForm()
+      editFormData.value = null
     }
   } else {
-    // 添加模式：重置表单
-    resetForm()
+    // 对话框关闭时，如果是编辑模式且没有保存，恢复原始数据
+    if (props.isEdit && editFormData.value) {
+      const userData = userStore.getUserById(props.userId)
+      if (userData) {
+        // 恢复用户列表中的实际数据
+        Object.assign(userData, editFormData.value)
+      }
+    }
+    // 清理临时数据
+    editFormData.value = null
   }
 })
 
@@ -328,14 +327,22 @@ watch(() => dialogVisible.value, (val) => {
 
 // 重置表单
 const resetForm = () => {
-  formRef.value?.resetFields()
-  form.server = 'global'
+  if (formRef.value) {
+    formRef.value.resetFields()
+  }
+  // 完全重置所有字段到初始值
+  Object.assign(form, {
+    name: '',
+    server: 'global',
+    cookie: '',
+    cookieExpireDays: 365,
+    uid: ''
+  })
 }
 
 // 处理关闭
 const handleClose = () => {
   dialogVisible.value = false
-  resetForm()
 }
 
 // 处理提交
@@ -357,13 +364,23 @@ const handleSubmit = async () => {
       serverName: serverOptions.find(s => s.value === form.server)?.label,
       uid,
       userName,
-      cookie: form.cookie, // 实际使用时需要加密
-      cookieExpireDays: form.cookieExpireDays // 添加Cookie有效期
+      cookie: form.cookie,
+      cookieExpireDays: Number(form.cookieExpireDays)
     }
 
     if (props.isEdit && props.userId) {
+      // 编辑模式：保留原有用户的 id 和创建时间
+      const existingUser = userStore.getUserById(props.userId)
+      if (existingUser) {
+        userData.id = existingUser.id
+        userData.createTime = existingUser.createTime
+      }
       await userStore.updateUser(props.userId, userData)
+      // 更新成功后清理临时数据
+      editFormData.value = null
     } else {
+      // 添加模式：创建新用户
+      userData.createTime = new Date().toLocaleString()
       await userStore.addUser(userData)
     }
 
@@ -431,6 +448,8 @@ const handleSubmit = async () => {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  z-index: 1;
+  pointer-events: auto;
   
   &::after {
     content: '';
@@ -442,6 +461,8 @@ const handleSubmit = async () => {
     background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 100%);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 0;
   }
   
   &:hover {
@@ -481,7 +502,8 @@ const handleSubmit = async () => {
     padding: 0 24px;
     gap: 16px;
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    pointer-events: auto;
   }
 
   .cookie-mask-icon {
@@ -494,6 +516,8 @@ const handleSubmit = async () => {
     justify-content: center;
     flex-shrink: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 2;
     
     .el-icon {
       font-size: 24px;
@@ -508,6 +532,8 @@ const handleSubmit = async () => {
     gap: 4px;
     text-align: left;
     flex-grow: 1;
+    position: relative;
+    z-index: 2;
 
     .cookie-mask-title {
       font-size: 15px;

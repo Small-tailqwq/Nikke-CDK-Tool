@@ -53,34 +53,77 @@ const loadData = (key) => {
 // 用户数据操作
 export const userStorage = {
   // 保存用户列表
-  saveUsers: (users) => saveData(STORAGE_KEYS.USERS, users),
+  saveUsers: (users) => {
+    try {
+      const encryptedData = encrypt(users)
+      if (!encryptedData) {
+        console.error('加密用户数据失败')
+        return false
+      }
+      localStorage.setItem(STORAGE_KEYS.USERS, encryptedData)
+      return true
+    } catch (error) {
+      console.error('保存用户数据失败:', error)
+      return false
+    }
+  },
   
   // 读取用户列表
-  loadUsers: () => loadData(STORAGE_KEYS.USERS) || [],
+  loadUsers: () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.USERS)
+      if (!data) return []
+      const decryptedData = decrypt(data)
+      return Array.isArray(decryptedData) ? decryptedData : []
+    } catch (error) {
+      console.error('读取用户数据失败:', error)
+      return []
+    }
+  },
   
   // 添加用户
   addUser: (user) => {
-    const users = userStorage.loadUsers()
-    users.push(user)
-    return userStorage.saveUsers(users)
+    try {
+      const users = userStorage.loadUsers()
+      users.push(user)
+      return userStorage.saveUsers(users)
+    } catch (error) {
+      console.error('添加用户失败:', error)
+      return false
+    }
   },
   
   // 更新用户
   updateUser: (id, userData) => {
-    const users = userStorage.loadUsers()
-    const index = users.findIndex(u => u.id === id)
-    if (index !== -1) {
-      users[index] = { ...users[index], ...userData }
-      return userStorage.saveUsers(users)
+    try {
+      const users = userStorage.loadUsers()
+      const index = users.findIndex(u => u.id === id)
+      if (index !== -1) {
+        users[index] = {
+          ...users[index],
+          ...userData,
+          id: users[index].id, // 确保保留 id
+          createTime: users[index].createTime // 确保保留创建时间
+        }
+        return userStorage.saveUsers(users)
+      }
+      return false
+    } catch (error) {
+      console.error('更新用户失败:', error)
+      return false
     }
-    return false
   },
   
   // 删除用户
   deleteUser: (id) => {
-    const users = userStorage.loadUsers()
-    const newUsers = users.filter(u => u.id !== id)
-    return userStorage.saveUsers(newUsers)
+    try {
+      const users = userStorage.loadUsers()
+      const newUsers = users.filter(u => u.id !== id)
+      return userStorage.saveUsers(newUsers)
+    } catch (error) {
+      console.error('删除用户失败:', error)
+      return false
+    }
   }
 }
 
