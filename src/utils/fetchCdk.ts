@@ -7,9 +7,9 @@
 const LOCAL_PREFIX = '/Nikke-CDK-Tool/';
 
 const sources: string[] = [
-  `${LOCAL_PREFIX}public/cdk-list.json`,                                    // GitHub Pages 同源
+  `${LOCAL_PREFIX}cdk-list.json`,
+  'https://nikke-cdk-list.hayasa.org/api/',
   'https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json',
-  'https://nikke-cdk-list.hayasa.org/api/',                                 // Cloudflare Worker
 ];
 
 // -------------------------------------
