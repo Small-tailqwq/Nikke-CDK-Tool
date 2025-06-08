@@ -15,6 +15,10 @@
         修复GitHub page的404问题。<br>
         由于cloudflare worker的官方域名被概率阻断，替换api域名为自建域名<br>
         修复CDK列表更新后，CDK公告界面不刷新的问题。<br>
+        优化用户管理界面，改进 Cookie 存储展示效果。<br>
+        新增 Cookie 到期天数自定义设置功能。<br>
+        优化图片加载体验，添加加载状态和错误提示。<br>
+        修复 Twitter 图片链接访问问题，添加图片代理支持。<br>
         </li>
         <li>2024-06-07：使用cursor创建第一版UI，然后卡在API提交上。后续使用GPTo3完成后端cloudflare worker的构建方式确定。</li>
       </ul>

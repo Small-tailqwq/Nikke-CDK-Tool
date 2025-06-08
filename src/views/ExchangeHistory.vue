@@ -13,9 +13,6 @@
                 :value="user.id"
               />
             </el-select>
-            <el-button type="primary" @click="handleRefresh">
-              刷新
-            </el-button>
           </div>
         </div>
       </template>
@@ -59,10 +56,8 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import { getExchangeHistory } from '../utils/api'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -91,58 +86,6 @@ const historyList = computed(() => {
   return list.slice(start, end)
 })
 
-// 获取历史记录
-const fetchHistory = async () => {
-  loading.value = true
-  try {
-    // 如果选择了特定用户，则获取该用户的历史记录
-    if (selectedUser.value) {
-      const user = userStore.getUserById(selectedUser.value)
-      if (user) {
-        const result = await getExchangeHistory(user.cookie)
-        if (result.success) {
-          // 更新历史记录
-          const records = result.data.map(item => ({
-            ...item,
-            userId: user.id,
-            userName: user.name
-          }))
-          await exchangeStore.addExchangeRecords(records)
-        } else {
-          ElMessage.error(result.message)
-        }
-      }
-    } else {
-      // 获取所有用户的历史记录
-      const promises = userStore.users.map(async user => {
-        const result = await getExchangeHistory(user.cookie)
-        if (result.success) {
-          return result.data.map(item => ({
-            ...item,
-            userId: user.id,
-            userName: user.name
-          }))
-        }
-        return []
-      })
-
-      const results = await Promise.all(promises)
-      const allRecords = results.flat()
-      await exchangeStore.addExchangeRecords(allRecords)
-    }
-  } catch (error) {
-    ElMessage.error('获取历史记录失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 处理刷新
-const handleRefresh = () => {
-  currentPage.value = 1
-  fetchHistory()
-}
-
 // 处理页码改变
 const handleCurrentChange = (page) => {
   currentPage.value = page
@@ -157,12 +100,11 @@ const handleSizeChange = (size) => {
 // 监听选择的用户变化
 watch(selectedUser, () => {
   currentPage.value = 1
-  fetchHistory()
 })
 
 onMounted(() => {
   userStore.fetchUsers()
-  fetchHistory()
+  exchangeStore.fetchHistory()
 })
 </script>
 

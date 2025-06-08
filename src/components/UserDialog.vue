@@ -32,25 +32,93 @@
       </el-form-item>
 
       <el-form-item label="Cookie信息" prop="cookie">
-        <div class="cookie-header" v-if="isEdit">
-          <el-tag 
-            :type="getCookieStatusType(form.cookieExpireDays)"
-            size="small"
-          >
-            Cookie剩余 {{ form.cookieExpireDays }} 天
-          </el-tag>
-          <el-button 
-            type="primary" 
-            link 
-            @click="showCookie = !showCookie"
-          >
-            {{ showCookie ? '隐藏' : '显示' }} Cookie
-          </el-button>
-        </div>
         <template v-if="isEdit && !showCookie">
-          <div class="cookie-mask">
-            <el-icon><Lock /></el-icon>
-            <span>Cookie已加密存储</span>
+          <div class="cookie-mask" @click="showCookie = true">
+            <div class="cookie-mask-content">
+              <div class="cookie-mask-icon">
+                <el-icon><Lock /></el-icon>
+              </div>
+              <div class="cookie-mask-text">
+                <span class="cookie-mask-title">Cookie 已加密存储</span>
+                <span class="cookie-mask-desc">点击查看 Cookie 详情</span>
+              </div>
+            </div>
+          </div>
+          <div class="cookie-info-footer">
+            <div class="cookie-expire-info">
+              <el-tag 
+                :type="getCookieStatusType(form.cookieExpireDays)"
+                size="small"
+                class="cookie-days"
+              >
+                Cookie剩余 {{ form.cookieExpireDays }} 天
+              </el-tag>
+            </div>
+            <div class="cookie-expire-setting">
+              <el-input-number
+                v-model="form.cookieExpireDays"
+                :min="1"
+                :max="3650"
+                size="small"
+                class="expire-days-input"
+              />
+              <span class="expire-days-label">天</span>
+              <el-tooltip
+                content="设置 Cookie 的剩余有效期天数，用于计算到期时间"
+                placement="top"
+              >
+                <el-icon class="info-icon"><InfoFilled /></el-icon>
+              </el-tooltip>
+            </div>
+          </div>
+        </template>
+        <template v-else-if="isEdit && showCookie">
+          <div class="cookie-content">
+            <div class="cookie-content-header">
+              <span class="cookie-content-title">Cookie 详情</span>
+              <el-button 
+                type="primary" 
+                link 
+                @click="showCookie = false"
+                class="cookie-hide-btn"
+              >
+                <el-icon><ArrowLeft /></el-icon>
+                返回
+              </el-button>
+            </div>
+            <el-input
+              v-model="form.cookie"
+              type="textarea"
+              :rows="10"
+              :placeholder="cookiePlaceholder"
+            />
+            <div class="cookie-info-footer">
+              <div class="cookie-expire-info">
+                <el-tag 
+                  :type="getCookieStatusType(form.cookieExpireDays)"
+                  size="small"
+                  class="cookie-days"
+                >
+                  Cookie剩余 {{ form.cookieExpireDays }} 天
+                </el-tag>
+              </div>
+              <div class="cookie-expire-setting">
+                <el-input-number
+                  v-model="form.cookieExpireDays"
+                  :min="1"
+                  :max="3650"
+                  size="small"
+                  class="expire-days-input"
+                />
+                <span class="expire-days-label">天</span>
+                <el-tooltip
+                  content="设置 Cookie 的剩余有效期天数，用于计算到期时间"
+                  placement="top"
+                >
+                  <el-icon class="info-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
+            </div>
           </div>
         </template>
         <el-input
@@ -88,7 +156,7 @@
 <script setup>
 import { ref, reactive, defineProps, defineEmits, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Lock } from '@element-plus/icons-vue'
+import { Lock, InfoFilled, ArrowRight, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 
 const props = defineProps({
@@ -312,37 +380,186 @@ const handleSubmit = async () => {
 </script>
 
 <style lang="scss" scoped>
-.cookie-header {
+.cookie-info-footer {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
+  border: 1px solid var(--el-border-color-lighter);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+
+  .cookie-expire-info {
+    .cookie-days {
+      font-size: 13px;
+      padding: 0 8px;
+      height: 24px;
+      line-height: 24px;
+    }
+  }
+
+  .cookie-expire-setting {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .expire-days-input {
+      width: 100px;
+    }
+
+    .expire-days-label {
+      color: var(--el-text-color-regular);
+      font-size: 13px;
+    }
+
+    .info-icon {
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      cursor: help;
+    }
+  }
 }
 
 .cookie-mask {
-  height: 100px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-text-color-secondary);
-  background-color: var(--el-fill-color-lighter);
+  height: 120px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--el-fill-color-light) 0%, var(--el-fill-color-lighter) 100%);
+  margin-bottom: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
   
-  .el-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--el-color-primary-light-9) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover {
+    border-color: var(--el-color-primary-light-5);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+
+    &::after {
+      opacity: 0.1;
+    }
+
+    .cookie-mask-icon {
+      transform: scale(1.1);
+      background-color: var(--el-color-primary-light-8);
+      
+      .el-icon {
+        color: var(--el-color-primary);
+      }
+    }
+
+    .cookie-mask-text {
+      .cookie-mask-title {
+        color: var(--el-color-primary);
+      }
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .cookie-mask-content {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .cookie-mask-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--el-color-primary-light-9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    .el-icon {
+      font-size: 24px;
+      color: var(--el-color-primary-light-3);
+      transition: color 0.3s ease;
+    }
+  }
+
+  .cookie-mask-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+    flex-grow: 1;
+
+    .cookie-mask-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+      transition: color 0.3s ease;
+    }
+
+    .cookie-mask-desc {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+    }
+  }
+}
+
+.cookie-content {
+  .cookie-content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+
+    .cookie-content-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+    }
+
+    .cookie-hide-btn {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+
+      .el-icon {
+        font-size: 14px;
+      }
+    }
   }
 }
 
 .form-tip {
-  margin-top: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background-color: var(--el-fill-color-light);
+  border-radius: 4px;
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
 
   p {
-    margin: 0 0 4px 0;
+    margin: 0 0 8px 0;
+    font-weight: 500;
   }
 
   ul {
@@ -351,6 +568,7 @@ const handleSubmit = async () => {
     
     li {
       line-height: 1.8;
+      color: var(--el-text-color-regular);
     }
   }
 }

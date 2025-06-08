@@ -161,14 +161,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Check, Plus, InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
+import { useRoute } from 'vue-router'
 import UserDialog from '../components/UserDialog.vue'
 import { exchangeCDK } from '../utils/api'
 
+const route = useRoute()
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
 
@@ -181,6 +183,19 @@ const exchangeResults = ref([])
 const form = reactive({
   cdk: ''
 })
+
+// 监听路由参数变化
+watch(
+  () => route.query.cdks,
+  (newCdks) => {
+    if (newCdks) {
+      form.cdk = decodeURIComponent(newCdks)
+      // 清除路由参数，避免刷新页面时重复填充
+      window.history.replaceState({}, '', '/cdk')
+    }
+  },
+  { immediate: true }
+)
 
 // 是否可以兑换
 const canExchange = computed(() => {
