@@ -81,6 +81,49 @@ export const useDoroStore = defineStore('doro', () => {
   const mousePosition = reactive({ x: 0, y: 0 }) // 鼠标位置
   const explosionPosition = reactive({ x: 0, y: 0 }) // 爆炸位置，用于物理球重生
 
+  // ** 智能传送位置管理 **
+  const recentTeleports = ref([]) // 最多记录3次传送位置
+
+  // === 智能传送位置计算 ===
+  function getSmartTeleportPosition() {
+    const samples = 25 // 取25个随机采样
+    const margin = 50
+    const size = currentDoroSize.value
+    const maxX = window.innerWidth - size - margin
+    const maxY = window.innerHeight - size - margin
+
+    const candidates = []
+    for (let i = 0; i < samples; i++) {
+      const x = margin + Math.random() * maxX
+      const y = margin + Math.random() * maxY
+      const dx = x + size / 2 - mousePosition.x
+      const dy = y + size / 2 - mousePosition.y
+      const dist = Math.hypot(dx, dy)
+      candidates.push({ x, y, dist })
+    }
+
+    // 距离降序排列
+    candidates.sort((a, b) => b.dist - a.dist)
+
+    // 低血量有10%概率取"中距离"点，制造假动作
+    const needFake = doroHealth.value <= 3 && Math.random() < 0.1
+    const pool = needFake
+      ? candidates.slice(Math.floor(samples * 0.4), Math.floor(samples * 0.7)) // 40~70%距离
+      : candidates.slice(0, Math.ceil(samples / 3)) // 最远1/3
+
+    // 随机尝试最多10次，避开与最近落点太近的情况
+    for (let i = 0; i < 10; i++) {
+      const p = pool[Math.floor(Math.random() * pool.length)]
+      const tooClose = recentTeleports.value.some(
+        t => Math.hypot(t.x - p.x, t.y - p.y) < 120
+      )
+      if (!tooClose) return p
+    }
+
+    // 实在挑不到就用最远点
+    return candidates[0]
+  }
+
   // --- Getters (Computed) ---
 
   // ** 动态Doro尺寸 **
@@ -90,23 +133,22 @@ export const useDoroStore = defineStore('doro', () => {
 
   // ** 动态移动速度 **
   const currentMoveSpeed = computed(() => {
-    // 基础速度：根据屏幕大小调整，但最低速度提高
+    // 基础速度：根据屏幕大小调整，提升基础值
     const screenArea = window.innerWidth * window.innerHeight
-    const baseSpeed = Math.max(4, Math.min(10, 2000000 / screenArea * 8)) // 提升到4-10之间
+    const baseSpeed = Math.max(5, Math.min(12, 2200000 / screenArea * 9))
 
-    let finalSpeed = baseSpeed
+    // 0~10 血量 => 0~1 的缺失比例
+    const missingRatio = (10 - doroHealth.value) / 10
+    // 满血 = 1.3×baseSpeed，残血≈2.6×baseSpeed
+    let finalSpeed = baseSpeed * (1.3 + missingRatio * 1.3)
 
-    // 被击中后的速度翻倍（2秒）
+    // 被击中后的速度加成降低
     if (isSpeedBoosted.value) {
-      finalSpeed *= 2.5 // 从2倍提升到2.5倍
+      finalSpeed *= 1.9 // 从 2.5 降低到 1.9
     }
 
-    // 低血量时速度大幅提升
-    if (doroHealth.value < 3) {
-      finalSpeed *= 3 // 从2倍提升到3倍
-    }
-
-    return finalSpeed
+    // 设置绝对上限
+    return Math.min(finalSpeed, baseSpeed * 3)
   })
 
   // ** 动态提示语 **
@@ -158,6 +200,7 @@ export const useDoroStore = defineStore('doro', () => {
     isInvincible.value = false
     isSpeedBoosted.value = false
     lastHitTime.value = 0
+    recentTeleports.value = [] // 重置传送记录
     if (healthTimer.value) {
       clearTimeout(healthTimer.value)
       healthTimer.value = null
@@ -286,53 +329,6 @@ export const useDoroStore = defineStore('doro', () => {
     }, 3000) // 3秒过场动画
   }
 
-  // ** 计算离鼠标最远的位置 **
-  function getFarthestPosition() {
-    if (mousePosition.x === 0 && mousePosition.y === 0) {
-      // 如果没有鼠标位置数据，返回随机角落
-      const corners = [
-        { x: 50, y: 50 },
-        { x: window.innerWidth - currentDoroSize.value - 50, y: 50 },
-        { x: 50, y: window.innerHeight - currentDoroSize.value - 50 },
-        { x: window.innerWidth - currentDoroSize.value - 50, y: window.innerHeight - currentDoroSize.value - 50 }
-      ]
-      return corners[Math.floor(Math.random() * corners.length)]
-    }
-
-    const currentSize = currentDoroSize.value
-    const margin = 50
-
-    // 计算有效边界
-    const minX = margin
-    const maxX = window.innerWidth - currentSize - margin
-    const minY = margin
-    const maxY = window.innerHeight - currentSize - margin
-
-    // 屏幕四个角落的位置
-    const corners = [
-      { x: minX, y: minY },         // 左上
-      { x: maxX, y: minY },         // 右上
-      { x: minX, y: maxY },         // 左下
-      { x: maxX, y: maxY }          // 右下
-    ]
-
-    // 找到离鼠标最远的角落
-    let farthestCorner = corners[0]
-    let maxDistance = 0
-
-    corners.forEach(corner => {
-      const distance = Math.sqrt(
-        Math.pow(corner.x - mousePosition.x, 2) + Math.pow(corner.y - mousePosition.y, 2)
-      )
-      if (distance > maxDistance) {
-        maxDistance = distance
-        farthestCorner = corner
-      }
-    })
-
-    return farthestCorner
-  }
-
   function handleAimingHit() {
     const currentTime = Date.now()
 
@@ -347,11 +343,17 @@ export const useDoroStore = defineStore('doro', () => {
     // 命中Doro，血量-1
     doroHealth.value = Math.max(0, doroHealth.value - 1)
 
-    // 瞬移到离鼠标最远的位置
-    const farthestPos = getFarthestPosition()
-    position.value.x = farthestPos.x
-    position.value.y = farthestPos.y
-    console.log(`Doro 被击中后瞬移到最远位置: (${farthestPos.x}, ${farthestPos.y})`)
+    // 使用智能传送位置算法
+    const smartPos = getSmartTeleportPosition()
+    position.value.x = smartPos.x
+    position.value.y = smartPos.y
+    console.log(`Doro 被击中后智能传送到: (${smartPos.x}, ${smartPos.y})`)
+
+    // 记录传送落点，维护最近3次记录
+    recentTeleports.value.push(smartPos)
+    if (recentTeleports.value.length > 3) {
+      recentTeleports.value.shift()
+    }
 
     // 激活无敌帧和速度加成
     isInvincible.value = true
@@ -362,10 +364,10 @@ export const useDoroStore = defineStore('doro', () => {
       isInvincible.value = false
     }, 1000)
 
-    // 2秒后解除速度加成
+    // 1秒后解除速度加成（从2秒缩短到1秒）
     setTimeout(() => {
       isSpeedBoosted.value = false
-    }, 2000)
+    }, 1000)
 
     // 重置血量回复计时器
     resetHealthTimer()
@@ -411,29 +413,35 @@ export const useDoroStore = defineStore('doro', () => {
         Math.pow(doroCenterX - mousePosition.x, 2) + Math.pow(doroCenterY - mousePosition.y, 2)
       )
 
-      // 智能躲避鼠标（更敏感的躲避）
-      const dangerDistance = 150 + (doroHealth.value < 5 ? 100 : 0) // 血量低时更早躲避
+      // 计算缺失血量比例
+      const missingRatio = (10 - doroHealth.value) / 10
+
+      // 渐变躲避距离：50~220像素，血越少判定越大
+      const dangerDistance = 50 + missingRatio * 170
       let isAvoiding = false
 
-      if (mouseDistance < dangerDistance && currentTime - lastMouseAvoidance > 100) {
+      // 躲避刷新间隔从100ms缩短到60ms
+      if (mouseDistance < dangerDistance && currentTime - lastMouseAvoidance > 60) {
         // 计算远离鼠标的方向
         const avoidX = doroCenterX - mousePosition.x
         const avoidY = doroCenterY - mousePosition.y
         const avoidLength = Math.sqrt(avoidX * avoidX + avoidY * avoidY)
 
         if (avoidLength > 0) {
-          // 标准化躲避方向，并加强躲避力度
-          directionX = (avoidX / avoidLength) * 1.5 // 增强躲避力度
-          directionY = (avoidY / avoidLength) * 1.5
+          // 躲避力度按血量动态增强：1.1~2.3
+          const force = 1.1 + missingRatio * 1.2
+          directionX = (avoidX / avoidLength) * force
+          directionY = (avoidY / avoidLength) * force
           lastDirectionChange = currentTime
           lastMouseAvoidance = currentTime
           isAvoiding = true
         }
       }
 
-      // 强制随机移动 - 确保Doro永远不会停下来
-      if (!isAvoiding && currentTime - lastDirectionChange > 300) {
-        if (Math.random() < 0.25) { // 25%概率改变方向
+      // 动态方向刷新冷却时间：250ms -> 130ms
+      const changeCooldown = 250 - missingRatio * 120
+      if (!isAvoiding && currentTime - lastDirectionChange > changeCooldown) {
+        if (Math.random() < 0.35) { // 从25%提升到35%概率改变方向
           directionX = (Math.random() - 0.5) * 2
           directionY = (Math.random() - 0.5) * 2
           lastDirectionChange = currentTime
@@ -481,7 +489,7 @@ export const useDoroStore = defineStore('doro', () => {
         doroHealth.value = Math.min(10, doroHealth.value + 1)
         startHealthRegenTimer() // 继续下一次回复
       }
-    }, 3500) // 从2秒增加到3.5秒，让回复更慢
+    }, 5000) // 从3.5秒增加到5秒，让回复更慢
   }
 
   function resetHealthTimer() {

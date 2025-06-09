@@ -16,14 +16,6 @@ let ctx, rafId, spawnTimer
 const doroImg = new Image()
 doroImg.src = doroPng
 
-// 性能优化变量
-let lastFrameTime = 0
-const targetFPS = 60
-const frameInterval = 1000 / targetFPS
-let backgroundCanvas, backgroundCtx
-let starsCanvas, starsCtx
-let frameCount = 0
-
 const colors = [
   '#ff0033',
   '#ff7f00',
@@ -34,121 +26,96 @@ const colors = [
   '#9400d3',
 ]
 
-// doro参数
+// 车道参数
 const DORO_SIZE = 80
-const DORO_SPAWN_COUNT = 1 // 每次同时生成的彩虹doro数量
-const MAX_DOROS = 3 // 同屏最大彩虹doro数量
-const MAX_BIG_DOROS = 3 // 同屏最大大脸doro数量
-const LAUNCH_ANGLE_RANGE = 15 // 发射角度范围（度数）
+const LANE_GAP = 20
+let lanes = []
+let usedLanes = new Set()
 
 // doro队列
 let doros = []
 
-// 背景元素
+// 背景元素 - 保留原有的外星人和大脸doro
 let bigDoros = []
 let aliens = []
 let meteors = []
 let shootingStars = [] // 🌠流星
 
-// emoji数据
+// emoji数据 - 大幅扩展
 const alienEmojis = ['👽', '🛸', '🌌', '⭐', '🚀']
 const orangeEmoji = '🍊'
 const shootingStarEmoji = '🌠'
 
-// 预计算的星星位置 - 避免每帧重新计算
-let starPositions = []
+// 特殊外星人组合数据
+const specialAliens = [
+  // 普通外星人系列
+  { type: 'simple', emoji: '👽', name: '外星人' },
+  { type: 'simple', emoji: '🛸', name: '飞碟' },
+  { type: 'simple', emoji: '🚀', name: '火箭' },
+  { type: 'simple', emoji: '🌌', name: '银河' },
+  { type: 'simple', emoji: '⭐', name: '星星' },
 
-// 数量控制算法
-function calculateSpawnDelay(currentCount, maxCount, baseDelay) {
-  if (currentCount >= maxCount) {
-    return -1 // 停止生成
+  // 特殊组合系列
+  { type: 'combo', emoji: '✌👽', name: '比✌的外星人' },
+  { type: 'vertical', emojis: ['👽', '🛸'], name: '骑飞碟的外星人' },
+  { type: 'combo', emoji: '🛸💫', name: '闪亮飞碟' },
+  { type: 'combo', emoji: '🚀✨', name: '闪亮火箭' },
+  { type: 'combo', emoji: '👽🎪', name: '马戏团外星人' },
+
+  // 星球系列
+  { type: 'planet', emoji: '🌕', name: '满月', size: 'huge' },
+  { type: 'planet', emoji: '🌍', name: '地球', size: 'large' },
+  { type: 'planet', emoji: '🪐', name: '土星', size: 'large' },
+  { type: 'planet', emoji: '☄️', name: '彗星', size: 'medium' },
+  { type: 'planet', emoji: '🌟', name: '闪亮星', size: 'medium' },
+]
+
+function getAvailableLane() {
+  // 计算可用车道
+  const canvas = cvs.value
+  const h = canvas.height / (window.devicePixelRatio || 1)
+  const laneCount = Math.floor((h - LANE_GAP) / (DORO_SIZE + LANE_GAP))
+  if (lanes.length !== laneCount) {
+    lanes = []
+    for (let i = 0; i < laneCount; i++) {
+      lanes.push(LANE_GAP + i * (DORO_SIZE + LANE_GAP))
+    }
   }
-
-  const ratio = currentCount / maxCount
-  // 当接近最大数量时，延迟倍数呈指数增长
-  const delayMultiplier = 1 + Math.pow(ratio * 3, 2)
-  return baseDelay * delayMultiplier
-}
-
-function shouldSpawn(currentCount, maxCount) {
-  return currentCount < maxCount
+  // 找到未被占用的车道
+  const available = lanes.filter((_, idx) => !usedLanes.has(idx))
+  if (available.length === 0) return null
+  const idx = Math.floor(Math.random() * available.length)
+  return { y: available[idx], laneIdx: lanes.indexOf(available[idx]) }
 }
 
 function spawnDoro() {
-  // 检查是否应该生成新的doro
-  if (!shouldSpawn(doros.length, MAX_DOROS)) {
-    // 如果达到最大数量，延迟500ms后再检查
-    spawnTimer = setTimeout(spawnDoro, 500)
-    return
-  }
-
-  const canvas = cvs.value
-  const dpi = window.devicePixelRatio || 1
-  const w = canvas.width / dpi
-  const h = canvas.height / dpi
-
-  // 同时生成多个彩虹doro（但不超过最大数量）
-  const spawnCount = Math.min(DORO_SPAWN_COUNT, MAX_DOROS - doros.length)
-
-  for (let doroIndex = 0; doroIndex < spawnCount; doroIndex++) {
-    // 随机发射系统：从左侧随机高度，角度为水平轴上下15°
-    const startX = -200 - doroIndex * 100 // 错开起始位置
-    const startY = Math.random() * h // 随机高度
-
-    // 发射角度：水平轴上下15°随机
-    const angleInDegrees = (Math.random() - 0.5) * 2 * LAUNCH_ANGLE_RANGE // -15° 到 +15°
-    const angle = (angleInDegrees * Math.PI) / 180 // 转为弧度
-
-    // 计算发射距离（确保能飞出屏幕）
-    const distance = w + 400 + Math.random() * 200
-    const endX = startX + Math.cos(angle) * distance
-    const endY = startY + Math.sin(angle) * distance
-
-    doros.push({
-      x: startX,
-      y: startY,
-      endX: endX,
-      endY: endY,
-      angle: angle,
-      speed: 2.5 + Math.random() * 2,
-      tailLen: 400 + Math.random() * 80,
-      born: Date.now() + doroIndex * 100, // 稍微错开生成时间
-      distance: distance,
-      traveled: 0,
-      launchAngle: angleInDegrees, // 记录发射角度用于调试
-    })
-  }
-
-  // 计算下次生成延迟（基于当前数量动态调整）
-  const baseDelay = 800 + Math.random() * 1000
-  const nextDelay = calculateSpawnDelay(doros.length, MAX_DOROS, baseDelay)
-
-  if (nextDelay > 0) {
-    spawnTimer = setTimeout(spawnDoro, nextDelay)
-  } else {
-    // 如果返回-1，说明已达最大数量，等待一段时间后再检查
-    spawnTimer = setTimeout(spawnDoro, 1000)
-  }
+  const lane = getAvailableLane()
+  if (!lane) return
+  usedLanes.add(lane.laneIdx)
+  doros.push({
+    x: -200,
+    y: lane.y,
+    laneIdx: lane.laneIdx,
+    speed: 2.5 + Math.random() * 2,
+    tailLen: 400 + Math.random() * 80,
+    born: Date.now(),
+  })
+  // 下一只doro随机0.8~1.8秒后生成
+  spawnTimer = setTimeout(spawnDoro, 800 + Math.random() * 1000)
 }
 
-// 初始化背景元素 - 优化性能
+// 初始化背景元素
 function initBackground() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const w = canvas.width / dpi
   const h = canvas.height / dpi
 
-  // 创建离屏canvas用于背景缓存
-  createBackgroundCanvas(w, h)
-  createStarsCanvas(w, h)
-
-  // 太阳系行星已移除以提高性能
-
-  // 生成大型变形doro - 控制初始数量
+  // 生成大型变形doro
   bigDoros = []
-  for (let i = 0; i < MAX_BIG_DOROS; i++) {
+  for (let i = 0; i < 3; i++) {
     bigDoros.push({
-      x: -300 - i * 200, // 错开初始位置
+      x: -300 - i * 200,
       y: Math.random() * h,
       size: 120 + Math.random() * 80,
       speed: 0.3 + Math.random() * 0.7,
@@ -170,196 +137,169 @@ function initBackground() {
   shootingStars = []
 }
 
-// 创建背景缓存canvas
-function createBackgroundCanvas(w, h) {
-  backgroundCanvas = document.createElement('canvas')
-  backgroundCanvas.width = w
-  backgroundCanvas.height = h
-  backgroundCtx = backgroundCanvas.getContext('2d')
-}
-
-// 创建星星缓存canvas
-function createStarsCanvas(w, h) {
-  starsCanvas = document.createElement('canvas')
-  starsCanvas.width = w
-  starsCanvas.height = h
-  starsCtx = starsCanvas.getContext('2d')
-
-  // 预生成星星位置
-  starPositions = []
-  for (let i = 0; i < 50; i++) {
-    // 减少星星数量
-    starPositions.push({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      size: 1 + Math.random(),
-      alpha: 0.3 + Math.random() * 0.7,
-    })
-  }
-
-  // 绘制星星到缓存canvas
-  starsCtx.clearRect(0, 0, w, h)
-  starPositions.forEach((star) => {
-    starsCtx.fillStyle = `rgba(255,255,255,${star.alpha})`
-    starsCtx.fillRect(star.x, star.y, star.size, star.size)
-  })
-}
-
-// 生成外星人彩蛋 - 降低频率
+// 生成特殊外星人彩蛋 - 全新升级版
 function spawnAlien() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
+  const w = canvas.width / dpi
   const h = canvas.height / dpi
 
-  if (Math.random() < 0.005) {
-    // 提高到0.5%概率
+  if (Math.random() < 0.008) {
+    // 稍微提高生成频率
+    const specialAlien =
+      specialAliens[Math.floor(Math.random() * specialAliens.length)]
+
+    // 根据类型设置不同的尺寸
+    let baseSize = 25
+    if (specialAlien.size === 'huge') baseSize = 80
+    else if (specialAlien.size === 'large') baseSize = 50
+    else if (specialAlien.size === 'medium') baseSize = 35
+
+    // 为不同类型设置不同的运动模式
+    let motionType = 'wave' // 默认波浪运动
+    if (specialAlien.type === 'planet') motionType = 'straight' // 星球直线运动
+    else if (specialAlien.emoji && specialAlien.emoji.includes('🚀'))
+      motionType = 'rocket' // 火箭抛物线
+    else if (specialAlien.emoji && specialAlien.emoji.includes('🛸'))
+      motionType = 'zigzag' // 飞碟之字形
+    else if (specialAlien.type === 'vertical') motionType = 'wave' // 垂直组合用波浪
+
     aliens.push({
-      x: -100,
-      y: Math.random() * h,
-      emoji: alienEmojis[Math.floor(Math.random() * alienEmojis.length)],
-      speed: 1 + Math.random() * 2,
-      size: 25 + Math.random() * 15, // 稍微减小尺寸
+      x: -150,
+      y: Math.random() * h * 0.8 + h * 0.1, // 避开边缘
+      specialAlien: specialAlien,
+      speed:
+        specialAlien.type === 'planet'
+          ? 0.3 + Math.random() * 0.7
+          : 1 + Math.random() * 2,
+      size: baseSize + Math.random() * 15,
+      motionType: motionType,
+      amplitude: 30 + Math.random() * 50, // 波浪幅度
+      frequency: 0.02 + Math.random() * 0.03, // 波浪频率
+      phase: Math.random() * Math.PI * 2, // 初始相位
+      baseY: 0, // 会在下面设置
       rotation: 0,
-      rotationSpeed: 0.03 + Math.random() * 0.07,
+      rotationSpeed:
+        specialAlien.type === 'planet'
+          ? 0.01 + Math.random() * 0.02
+          : 0.03 + Math.random() * 0.07,
     })
+
+    // 设置基准Y坐标
+    const lastAlien = aliens[aliens.length - 1]
+    lastAlien.baseY = lastAlien.y
   }
 }
 
-// 生成橘子流星群
+// 生成橘子流星群 - 简化版本
 function spawnMeteor() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const w = canvas.width / dpi
 
-  if (Math.random() < 0.015) {
-    // 提高概率生成流星群
-    // 生成3-6个橘子组成流星群
-    const groupSize = 3 + Math.floor(Math.random() * 4)
+  if (Math.random() < 0.01) {
+    // 降低生成频率
+    // 生成1-6个橘子
+    const groupSize = 1 + Math.floor(Math.random() * 6)
     const baseX = Math.random() * w
     const baseSpeed = 2 + Math.random() * 3
 
     for (let i = 0; i < groupSize; i++) {
       meteors.push({
-        x: baseX + (Math.random() - 0.5) * 100, // 在基础位置附近分散
-        y: -50 - i * 20, // 错开高度
+        x: baseX + (Math.random() - 0.5) * 100,
+        y: -50 - i * 20,
         speed: baseSpeed + (Math.random() - 0.5) * 1,
         size: 12 + Math.random() * 8,
         rotation: Math.random() * Math.PI * 2,
         rotationSpeed: 0.08 + Math.random() * 0.15,
-        trail: [],
       })
     }
   }
 }
 
-// 生成🌠流星效果
+// 生成🌠流星效果 - 简化版本
 function spawnShootingStar() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const w = canvas.width / dpi
   const h = canvas.height / dpi
 
-  if (Math.random() < 0.003) {
-    // 较低概率生成
+  if (Math.random() < 0.002) {
+    // 降低生成频率
     const fromLeft = Math.random() > 0.5
     const startX = fromLeft ? -100 : w + 100
-    const endX = fromLeft ? w + 100 : -100
-    const startY = Math.random() * h * 0.4 + h * 0.1 // 上半部分
-    const endY = Math.random() * h * 0.4 + h * 0.5 // 下半部分
+    const startY = Math.random() * h * 0.4 + h * 0.1
 
     shootingStars.push({
       x: startX,
       y: startY,
-      endX: endX,
-      endY: endY,
       speed: 4 + Math.random() * 3,
-      size: 25 + Math.random() * 15,
-      angle: Math.atan2(endY - startY, endX - startX),
-      trail: [],
+      size: 20 + Math.random() * 10,
+      angle: fromLeft ? Math.PI / 4 : (3 * Math.PI) / 4,
     })
   }
 }
 
-function render(currentTime) {
-  // 帧率控制
-  if (currentTime - lastFrameTime < frameInterval) {
-    rafId = requestAnimationFrame(render)
-    return
-  }
-  lastFrameTime = currentTime
+let frameCount = 0
 
+function render() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
-  const w = canvas.width / dpi
-  const h = canvas.height / dpi
-  const time = Date.now()
-  frameCount++
-
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  // 使用缓存的星星背景
-  if (starsCanvas) {
-    ctx.drawImage(starsCanvas, 0, 0)
+  frameCount++
+
+  // 检查是否需要重新启动doro生成（解决后台切换问题）
+  if (frameCount % 120 === 0) {
+    // 每2秒检查一次
+    if (doros.length === 0 && !spawnTimer) {
+      console.log('重新启动doro生成')
+      spawnDoro()
+    }
   }
 
-  // 所有元素每帧都绘制，避免闪烁
-  // drawBackground() // 已移除太阳系背景
+  // 画所有doro
+  doros.forEach((doro, idx) => {
+    // 彩虹尾巴
+    colors.forEach((c, i) => {
+      ctx.fillStyle = c
+      ctx.fillRect(doro.x - doro.tailLen, doro.y + i * 6 + 20, doro.tailLen, 6)
+    })
+    // 星星 - 大幅减少数量，并且只在某些帧显示
+    if (frameCount % 3 === 0) {
+      for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = 'rgba(255,255,255,' + Math.random() + ')'
+        const sx = (Math.random() * canvas.width) / dpi,
+          sy = (Math.random() * canvas.height) / dpi
+        ctx.fillRect(sx, sy, 2, 2)
+      }
+    }
+    // doro本体
+    ctx.drawImage(doroImg, doro.x, doro.y, DORO_SIZE, DORO_SIZE)
+    doro.x += doro.speed
+  })
+
+  // 绘制背景元素
   drawMeteors()
   drawShootingStars()
   drawBigDoros()
   drawAliens()
 
-  // 降低更新逻辑的频率，但保持绘制连续性
-  if (frameCount % 3 === 0) {
+  // 更新背景元素 - 降低频率
+  if (frameCount % 10 === 0) {
+    updateBigDoros()
     spawnAlien()
     spawnMeteor()
     spawnShootingStar()
   }
 
-  if (frameCount % 2 === 0) {
-    updateBigDoros()
-  }
-
-  // 画所有doro - 主要动画保持流畅
-  doros.forEach((doro, idx) => {
-    // 按轨道移动
-    doro.traveled += doro.speed
-    const progress = doro.traveled / doro.distance
-
-    if (progress <= 1) {
-      doro.x = doro.x + Math.cos(doro.angle) * doro.speed
-      doro.y = doro.y + Math.sin(doro.angle) * doro.speed
-    }
-
-    // 彩虹尾巴 - 沿着轨道方向
-    colors.forEach((c, i) => {
-      ctx.fillStyle = c
-      const tailX = doro.x - Math.cos(doro.angle) * doro.tailLen
-      const tailY = doro.y - Math.sin(doro.angle) * doro.tailLen + i * 6
-      const tailEndX = doro.x
-      const tailEndY = doro.y + i * 6
-
-      ctx.save()
-      ctx.translate(tailX, tailY)
-      ctx.rotate(doro.angle)
-      ctx.fillRect(0, 0, doro.tailLen, 6)
-      ctx.restore()
-    })
-
-    // doro本体 - 朝向移动方向
-    ctx.save()
-    ctx.translate(doro.x + DORO_SIZE / 2, doro.y + DORO_SIZE / 2)
-    ctx.rotate(doro.angle)
-    ctx.drawImage(doroImg, -DORO_SIZE / 2, -DORO_SIZE / 2, DORO_SIZE, DORO_SIZE)
-    ctx.restore()
-  })
-
-  // 移除出界doro
+  // 移除出界doro，释放车道
   for (let i = doros.length - 1; i >= 0; i--) {
-    const doro = doros[i]
-    const progress = doro.traveled / doro.distance
-    if (progress > 1.2) {
-      // 超出轨道一定距离后移除
+    if (
+      doros[i].x - doros[i].tailLen >
+      canvas.width / (window.devicePixelRatio || 1)
+    ) {
+      usedLanes.delete(doros[i].laneIdx)
       doros.splice(i, 1)
     }
   }
@@ -369,10 +309,9 @@ function render(currentTime) {
 
 // 太阳系背景已移除以提高性能
 
-// 绘制大型变形doro - 优化版本
+// 绘制大型变形doro - 简化版本
 function drawBigDoros() {
   bigDoros.forEach((bigDoro) => {
-    // 每帧更新位置，保持平滑
     bigDoro.x += bigDoro.speed
     bigDoro.rotation += bigDoro.rotationSpeed
 
@@ -382,10 +321,12 @@ function drawBigDoros() {
     ctx.rotate(bigDoro.rotation)
     ctx.scale(bigDoro.scaleX, bigDoro.scaleY)
 
-    // 简化变形效果
-    const time = Date.now()
-    const warp = Math.sin(time * 0.002) * 0.1
-    ctx.scale(1 + warp, 1 - warp * 0.3)
+    // 简化变形效果 - 只在某些帧执行
+    if (frameCount % 4 === 0) {
+      const time = Date.now()
+      const warp = Math.sin(time * 0.002) * 0.05
+      ctx.scale(1 + warp, 1 - warp * 0.2)
+    }
 
     ctx.drawImage(
       doroImg,
@@ -398,23 +339,18 @@ function drawBigDoros() {
   })
 }
 
-// 更新大型doro - 应用数量控制算法
+// 更新大型doro
 function updateBigDoros() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const w = canvas.width / dpi
   const h = canvas.height / dpi
 
-  // 移除出界的大型doro
-  for (let i = bigDoros.length - 1; i >= 0; i--) {
-    if (bigDoros[i].x > w + 300) {
-      bigDoros.splice(i, 1)
-    }
-  }
+  // 清理出界的大型doro
+  bigDoros = bigDoros.filter((bigDoro) => bigDoro.x <= w + 300)
 
-  // 根据数量控制算法决定是否生成新的大型doro
-  if (shouldSpawn(bigDoros.length, MAX_BIG_DOROS) && Math.random() < 0.3) {
-    // 30%概率在检查时生成，避免一次性生成太多
+  // 随机生成新的大型doro
+  if (bigDoros.length < 3 && Math.random() < 0.01) {
     bigDoros.push({
       x: -300,
       y: Math.random() * h,
@@ -429,69 +365,91 @@ function updateBigDoros() {
   }
 }
 
-// 绘制外星人彩蛋
+// 绘制特殊外星人彩蛋 - 全新升级版
 function drawAliens() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const w = canvas.width / dpi
 
   aliens.forEach((alien) => {
-    // 每帧更新位置，保持平滑
+    // 根据运动类型更新位置
     alien.x += alien.speed
+
+    switch (alien.motionType) {
+      case 'wave':
+        // 波浪运动
+        alien.y =
+          alien.baseY +
+          Math.sin(alien.x * alien.frequency + alien.phase) * alien.amplitude
+        break
+      case 'zigzag':
+        // 之字形运动
+        alien.y = alien.baseY + Math.sin(alien.x * 0.05) * 60
+        break
+      case 'rocket':
+        // 火箭抛物线运动
+        const progress = alien.x / (w + 300)
+        alien.y = alien.baseY - Math.sin(progress * Math.PI) * 100
+        break
+      case 'straight':
+        // 直线运动（星球）
+        // Y坐标不变，保持直线
+        break
+    }
+
     alien.rotation += alien.rotationSpeed
 
     ctx.save()
     ctx.translate(alien.x + alien.size / 2, alien.y + alien.size / 2)
-    ctx.rotate(alien.rotation)
+
+    // 星球类型不旋转，其他的旋转
+    if (alien.specialAlien.type !== 'planet') {
+      ctx.rotate(alien.rotation)
+    }
+
     ctx.font = `${alien.size}px Arial`
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText(alien.emoji, 0, 0)
+
+    // 根据类型绘制不同内容
+    if (alien.specialAlien.type === 'vertical') {
+      // 垂直组合（骑飞碟的外星人）
+      ctx.fillText(alien.specialAlien.emojis[0], 0, -alien.size * 0.3) // 外星人在上
+      ctx.fillText(alien.specialAlien.emojis[1], 0, alien.size * 0.3) // 飞碟在下
+    } else {
+      // 单个emoji或combo
+      ctx.fillText(alien.specialAlien.emoji, 0, 0)
+    }
+
+    // 星球特殊效果：发光
+    if (
+      alien.specialAlien.type === 'planet' &&
+      alien.specialAlien.size === 'huge'
+    ) {
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
+      ctx.shadowBlur = 20
+      ctx.fillText(alien.specialAlien.emoji, 0, 0)
+      ctx.shadowBlur = 0 // 重置阴影
+    }
+
     ctx.restore()
   })
 
-  // 移除出界的外星人
-  for (let i = aliens.length - 1; i >= 0; i--) {
-    if (aliens[i].x > w + 100) {
-      aliens.splice(i, 1)
-    }
-  }
+  // 清理出界的外星人
+  aliens = aliens.filter((alien) => alien.x <= w + 200)
 }
 
-// 绘制橘子流星群 - 优化版本
+// 绘制橘子流星群 - 简化版本
 function drawMeteors() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   const h = canvas.height / dpi
 
   meteors.forEach((meteor) => {
-    // 每帧更新位置，保持平滑
     meteor.y += meteor.speed
     meteor.rotation += meteor.rotationSpeed
 
-    // 更新轨迹 - 增加拖尾长度
-    meteor.trail.push({ x: meteor.x, y: meteor.y })
-    if (meteor.trail.length > 6) {
-      // 增加到6段拖尾
-      meteor.trail.shift()
-    }
-
-    // 绘制拖尾
-    meteor.trail.forEach((point, index) => {
-      if (index < meteor.trail.length - 1) {
-        ctx.save()
-        ctx.globalAlpha = ((index + 1) / meteor.trail.length) * 0.4
-        ctx.font = `${
-          (meteor.size * (index + 1)) / meteor.trail.length
-        }px Arial`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(orangeEmoji, point.x, point.y)
-        ctx.restore()
-      }
-    })
-
-    // 绘制主体
+    // 简化：只绘制主体，不要复杂拖尾
     ctx.save()
     ctx.font = `${meteor.size}px Arial`
     ctx.textAlign = 'center'
@@ -500,15 +458,11 @@ function drawMeteors() {
     ctx.restore()
   })
 
-  // 移除出界的流星
-  for (let i = meteors.length - 1; i >= 0; i--) {
-    if (meteors[i].y > h + 50) {
-      meteors.splice(i, 1)
-    }
-  }
+  // 清理出界的流星
+  meteors = meteors.filter((meteor) => meteor.y <= h + 50)
 }
 
-// 绘制🌠流星效果
+// 绘制🌠流星效果 - 简化版本
 function drawShootingStars() {
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
@@ -516,31 +470,10 @@ function drawShootingStars() {
   const h = canvas.height / dpi
 
   shootingStars.forEach((star) => {
-    // 每帧更新位置
     star.x += Math.cos(star.angle) * star.speed
     star.y += Math.sin(star.angle) * star.speed
 
-    // 更新轨迹
-    star.trail.push({ x: star.x, y: star.y })
-    if (star.trail.length > 8) {
-      // 更长的拖尾
-      star.trail.shift()
-    }
-
-    // 绘制拖尾
-    star.trail.forEach((point, index) => {
-      if (index < star.trail.length - 1) {
-        ctx.save()
-        ctx.globalAlpha = ((index + 1) / star.trail.length) * 0.6
-        ctx.font = `${(star.size * (index + 1)) / star.trail.length}px Arial`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(shootingStarEmoji, point.x, point.y)
-        ctx.restore()
-      }
-    })
-
-    // 绘制主体
+    // 简化：只绘制主体
     ctx.save()
     ctx.font = `${star.size}px Arial`
     ctx.textAlign = 'center'
@@ -549,16 +482,26 @@ function drawShootingStars() {
     ctx.restore()
   })
 
-  // 移除出界的流星
-  for (let i = shootingStars.length - 1; i >= 0; i--) {
-    const star = shootingStars[i]
-    if (
-      star.x < -200 ||
-      star.x > w + 200 ||
-      star.y < -200 ||
-      star.y > h + 200
-    ) {
-      shootingStars.splice(i, 1)
+  // 清理出界的🌠流星
+  shootingStars = shootingStars.filter(
+    (star) =>
+      star.x >= -200 && star.x <= w + 200 && star.y >= -200 && star.y <= h + 200
+  )
+}
+
+// 页面可见性检测
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    // 页面重新变为可见时，检查并重启动画
+    console.log('页面重新可见，检查动画状态')
+    if (!rafId) {
+      console.log('重新启动render循环')
+      rafId = requestAnimationFrame(render)
+    }
+    // 如果没有doro且没有生成计时器，重新启动生成
+    if (doros.length === 0 && !spawnTimer) {
+      console.log('重新启动doro生成')
+      spawnDoro()
     }
   }
 }
@@ -574,17 +517,22 @@ onMounted(() => {
   ctx.scale(dpi, dpi)
 
   doros = []
+  usedLanes.clear()
 
   // 初始化所有背景元素
   initBackground()
 
   spawnDoro()
   doroImg.onload = () => render()
+
+  // 添加页面可见性检测
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(rafId)
   clearTimeout(spawnTimer)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 

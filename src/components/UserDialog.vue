@@ -6,6 +6,7 @@
     @close="handleClose"
     class="user-dialog"
     :fullscreen="isMobile"
+    :close-on-click-modal="false"
   >
     <el-form
       ref="formRef"
@@ -566,8 +567,16 @@ const handleSubmit = async () => {
 .el-dialog {
   @media screen and (max-width: 768px) {
     &.user-dialog {
+      // 确保对话框在移动端正确显示
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
       .el-dialog__body {
         padding: 16px !important;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;
       }
 
       .el-dialog__header {
@@ -583,16 +592,27 @@ const handleSubmit = async () => {
       }
 
       .el-form-item {
-        margin-bottom: 16px;
+        margin-bottom: 18px;
 
         .el-form-item__label {
           font-size: 14px;
+          line-height: 1.4;
+        }
+
+        .el-form-item__content {
+          line-height: 1.4;
         }
       }
 
       .el-input,
       .el-select {
         font-size: 14px;
+      }
+
+      .el-textarea {
+        .el-textarea__inner {
+          font-size: 13px !important;
+        }
       }
 
       // 新增：移动端教程弹窗样式
@@ -636,8 +656,12 @@ const handleSubmit = async () => {
 
       // 优化表单在移动端的间距
       .el-form-item {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         position: relative;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
 
         .tutorial-target {
           position: absolute;
@@ -646,6 +670,32 @@ const handleSubmit = async () => {
           top: 100%;
           height: 1px;
           z-index: 2000;
+        }
+
+        // 特别处理cookie字段的间距
+        &:has([prop='cookie']) {
+          margin-bottom: 16px;
+
+          .el-form-item__content {
+            .cookie-mask,
+            .cookie-content {
+              margin-bottom: 0;
+            }
+
+            .cookie-info-footer {
+              margin-top: 8px;
+            }
+          }
+        }
+
+        // 直接针对包含cookie输入框的表单项
+        &[prop='cookie'] {
+          .el-form-item__content {
+            > * {
+              width: 100%;
+              box-sizing: border-box;
+            }
+          }
         }
       }
     }
@@ -665,10 +715,17 @@ const handleSubmit = async () => {
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    max-width: 360px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
 
     @media screen and (max-width: 768px) {
-      height: 100px;
+      height: 90px;
       margin-bottom: 12px;
+      border-radius: 6px;
+      width: 100%;
+      max-width: none;
     }
 
     &:hover {
@@ -700,16 +757,17 @@ const handleSubmit = async () => {
     }
 
     .cookie-mask-content {
-      height: 100%;
+      width: 100%;
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       padding: 0 24px;
       gap: 16px;
       position: relative;
       z-index: 1;
 
       @media screen and (max-width: 768px) {
-        padding: 0 16px;
+        padding: 0 14px;
         gap: 12px;
       }
     }
@@ -726,17 +784,26 @@ const handleSubmit = async () => {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
       @media screen and (max-width: 768px) {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .el-icon {
         font-size: 24px;
         color: var(--el-color-primary-light-3);
         transition: color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
 
         @media screen and (max-width: 768px) {
-          font-size: 20px;
+          font-size: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
       }
     }
@@ -747,24 +814,35 @@ const handleSubmit = async () => {
       gap: 4px;
       text-align: left;
       flex-grow: 1;
+      justify-content: center;
+
+      @media screen and (max-width: 768px) {
+        gap: 2px;
+        justify-content: center;
+        align-self: center;
+      }
 
       .cookie-mask-title {
         font-size: 15px;
         font-weight: 500;
         color: var(--el-text-color-primary);
         transition: color 0.3s ease;
+        line-height: 1.3;
 
         @media screen and (max-width: 768px) {
-          font-size: 14px;
+          font-size: 13px;
+          line-height: 1.2;
         }
       }
 
       .cookie-mask-desc {
         font-size: 13px;
         color: var(--el-text-color-secondary);
+        line-height: 1.3;
 
         @media screen and (max-width: 768px) {
-          font-size: 12px;
+          font-size: 11px;
+          line-height: 1.2;
         }
       }
     }
@@ -779,26 +857,44 @@ const handleSubmit = async () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    max-width: 360px;
+    box-sizing: border-box;
 
     @media screen and (max-width: 768px) {
-      padding: 8px;
-      margin-top: 8px;
+      padding: 8px 10px;
+      margin-top: 10px;
       flex-direction: column;
-      gap: 8px;
-      align-items: flex-start;
+      gap: 10px;
+      align-items: stretch;
+      justify-content: flex-start;
+      width: 100%;
+      max-width: none;
+      border-radius: 6px;
     }
 
     .cookie-expire-info {
+      display: flex;
+      align-items: center;
+
+      @media screen and (max-width: 768px) {
+        justify-content: flex-start;
+        width: 100%;
+        margin-bottom: 4px;
+      }
+
       .cookie-days {
         font-size: 13px;
         padding: 0 8px;
         height: 24px;
         line-height: 24px;
+        white-space: nowrap;
 
         @media screen and (max-width: 768px) {
           font-size: 12px;
           height: 22px;
           line-height: 22px;
+          padding: 0 6px;
+          white-space: nowrap;
         }
       }
     }
@@ -811,22 +907,39 @@ const handleSubmit = async () => {
       @media screen and (max-width: 768px) {
         width: 100%;
         justify-content: flex-start;
+        flex-wrap: nowrap;
+        gap: 6px;
+        align-items: center;
       }
 
       .expire-days-input {
         width: 100px;
 
         @media screen and (max-width: 768px) {
-          width: 80px;
+          width: 100px;
+          flex-shrink: 0;
+        }
+
+        :deep(.el-input__inner) {
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+            height: 30px;
+            text-align: center;
+            padding: 0 8px;
+          }
         }
       }
 
       .expire-days-label {
         color: var(--el-text-color-regular);
         font-size: 13px;
+        flex-shrink: 0;
+        white-space: nowrap;
 
         @media screen and (max-width: 768px) {
           font-size: 12px;
+          line-height: 1.2;
+          white-space: nowrap;
         }
       }
 
@@ -834,6 +947,7 @@ const handleSubmit = async () => {
         color: var(--el-text-color-secondary);
         font-size: 14px;
         cursor: help;
+        flex-shrink: 0;
 
         @media screen and (max-width: 768px) {
           font-size: 13px;
@@ -843,6 +957,15 @@ const handleSubmit = async () => {
   }
 
   .cookie-content {
+    max-width: 360px;
+    box-sizing: border-box;
+
+    @media screen and (max-width: 768px) {
+      width: 100%;
+      max-width: none;
+      box-sizing: border-box;
+    }
+
     .cookie-content-header {
       display: flex;
       justify-content: space-between;
@@ -850,7 +973,9 @@ const handleSubmit = async () => {
       margin-bottom: 12px;
 
       @media screen and (max-width: 768px) {
-        margin-bottom: 8px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .cookie-content-title {
