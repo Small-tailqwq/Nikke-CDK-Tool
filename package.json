@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "prebuild": "node scripts/prebuild.mjs",
+    "build": "npm run prebuild && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
-    "axios": "^1.9.0",
     "crypto-js": "^4.1.1",
     "element-plus": "^2.10.1",
     "pinia": "^2.3.1",
@@ -18,7 +18,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
+    "axios": "^1.9.0",
     "sass": "^1.64.1",
-    "vite": "^4.5.14"
+    "vite": "^5.0.0"
   }
 }

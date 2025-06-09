@@ -87,26 +87,12 @@
 
           <!-- Header / 图片 -->
           <div class="cdk-image" :class="{ 'has-image': !!cdk.image }">
-            <template v-if="cdk.image">
-              <img
-                v-if="imageLoadStates[cdk.code] === 'success'"
-                :src="imageUrls[cdk.code] || cdk.image"
-                :alt="cdk.name || '未命名CDK'"
-                @error="handleImageError(cdk.code)"
-                @load="handleImageLoad(cdk.code)"
-              />
-              <div
-                v-else-if="imageLoadStates[cdk.code] === 'loading'"
-                class="image-loading"
-              >
-                <el-icon class="loading-icon"><Loading /></el-icon>
-                <span>加载中...</span>
-              </div>
-              <div v-else class="image-error">
-                <el-icon><Picture /></el-icon>
-                <span>图片加载失败</span>
-              </div>
-            </template>
+            <img
+              v-if="cdk.image"
+              :src="getImageUrl(cdk.image)"
+              :alt="cdk.name || '未命名CDK'"
+              class="announcement-image"
+            />
             <div v-else class="image-placeholder">
               <el-icon><Picture /></el-icon>
               <span>暂无图片</span>
@@ -175,7 +161,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, InfoFilled, Loading, Picture } from '@element-plus/icons-vue'
 import { fetchCdkList } from '../utils/fetchCdk'
-import { safeImg } from '../utils/img'
 import type { CDK } from '../utils/fetchCdk'
 import { useRouter } from 'vue-router'
 
@@ -200,16 +185,6 @@ const selectedCdks = ref<string[]>([])
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
 
-// 图片加载状态和URL的缓存键
-const CACHE_KEY = 'nikke_cdk_image_cache'
-const CACHE_VERSION = '1' // 用于在需要时清除缓存
-
-// 图片加载状态
-const imageLoadStates = ref<Record<string, 'loading' | 'success' | 'error'>>({})
-
-// 存储处理后的图片URL
-const imageUrls = ref<Record<string, string>>({})
-
 // 获取服务器名称
 const getServerName = (server: string): string => {
   const serverNames: Record<ServerType, string> = {
@@ -220,120 +195,26 @@ const getServerName = (server: string): string => {
   return serverNames[server as ServerType] || server
 }
 
-// 处理单个CDK的图片URL
-const processCdkImage = async (cdk: CDK, forceRefresh = false) => {
-  if (!cdk.image) {
-    imageLoadStates.value[cdk.code] = 'error'
-    return
-  }
-
-  // 如果已有缓存且不强制刷新，直接使用缓存
-  if (
-    !forceRefresh &&
-    imageLoadStates.value[cdk.code] === 'success' &&
-    imageUrls.value[cdk.code]
-  ) {
-    console.log('使用缓存的图片:', cdk.code)
-    return
-  }
-
-  imageLoadStates.value[cdk.code] = 'loading'
-  try {
-    // 使用 safeImg 处理图片URL
-    const safeUrl = await safeImg(cdk.image)
-    console.log('获取到安全的图片URL:', cdk.code, safeUrl)
-
-    // 更新状态和URL
-    imageUrls.value[cdk.code] = safeUrl
-    imageLoadStates.value[cdk.code] = 'success'
-
-    // 立即保存到缓存
-    const cache = {
-      version: CACHE_VERSION,
-      data: {
-        states: { ...imageLoadStates.value },
-        urls: { ...imageUrls.value },
-      },
-    }
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
-      console.log('缓存已更新:', Object.keys(imageUrls.value).length, '个URL')
-    } catch (e) {
-      console.error('保存缓存失败:', e)
-    }
-  } catch (e) {
-    console.error('处理图片URL失败:', e)
-    imageLoadStates.value[cdk.code] = 'error'
-    // 保存错误状态到缓存
-    saveImageCache()
-  }
-}
-
-// 从缓存加载图片状态
-const loadImageCache = () => {
-  try {
-    const cache = localStorage.getItem(CACHE_KEY)
-    if (cache) {
-      const { version, data } = JSON.parse(cache)
-      if (version === CACHE_VERSION) {
-        console.log('从缓存加载:', Object.keys(data.urls).length, '个URL')
-        // 使用解构赋值创建新的对象，避免引用问题
-        imageLoadStates.value = { ...data.states }
-        imageUrls.value = { ...data.urls }
-        return true
-      }
-    }
-  } catch (e) {
-    console.error('读取缓存失败:', e)
-  }
-  console.log('无缓存或缓存版本不匹配')
-  return false
-}
-
-// 保存图片状态到缓存
-const saveImageCache = () => {
-  try {
-    const cache = {
-      version: CACHE_VERSION,
-      data: {
-        states: { ...imageLoadStates.value },
-        urls: { ...imageUrls.value },
-      },
-    }
-    localStorage.setItem(CACHE_KEY, JSON.stringify(cache))
-    console.log('保存缓存:', Object.keys(imageUrls.value).length, '个URL')
-  } catch (e) {
-    console.error('保存缓存失败:', e)
-  }
+// 拼接完整的图片 URL（处理 base path）
+const getImageUrl = (localPath: string): string => {
+  if (!localPath) return ''
+  // 使用 import.meta.env.BASE_URL 来正确处理应用的 base 路径
+  return `${import.meta.env.BASE_URL}${
+    localPath.startsWith('/') ? localPath.substring(1) : localPath
+  }`
 }
 
 // 加载CDK列表
-const loadCdkList = async (manual = false) => {
+const loadCdkList = async (forceRefresh = false) => {
   try {
-    const { cdks } = await fetchCdkList()
-    cdkList.value = cdks
-
-    // 如果是手动刷新，强制重新加载所有图片
-    // 否则尝试使用缓存，只加载新CDK的图片
-    const forceRefresh = manual
-    if (!forceRefresh && loadImageCache()) {
-      console.log('使用缓存，只加载新CDK')
-      // 只处理新增的CDK图片
-      const newCdks = cdks.filter((cdk) => !imageLoadStates.value[cdk.code])
-      if (newCdks.length > 0) {
-        console.log('发现新CDK:', newCdks.length, '个')
-        await Promise.all(newCdks.map((cdk) => processCdkImage(cdk, false)))
-      }
-    } else {
-      console.log('重新加载所有图片')
-      // 处理所有CDK的图片
-      await Promise.all(cdks.map((cdk) => processCdkImage(cdk, forceRefresh)))
-    }
-
-    manual && ElMessage.success('CDK列表已更新')
-  } catch (e) {
-    ElMessage.error('加载CDK列表失败，请稍后重试')
-    console.error(e)
+    const data = await fetchCdkList()
+    // 过滤掉状态不是 '可用' 或 '已过期' 的CDK
+    cdkList.value = data.cdks.filter(
+      (cdk) => cdk.status === '可用' || cdk.status === '已过期'
+    )
+  } catch (error) {
+    ElMessage.error('获取CDK列表失败')
+    console.error(error)
   }
 }
 
@@ -450,16 +331,6 @@ const handleBatchExchange = () => {
   selectedCdks.value = []
 }
 
-// 处理图片加载错误
-const handleImageError = (code: string) => {
-  imageLoadStates.value[code] = 'error'
-}
-
-// 处理图片加载成功
-const handleImageLoad = (code: string) => {
-  imageLoadStates.value[code] = 'success'
-}
-
 // 页面加载时获取CDK列表（首次加载不显示提示）
 onMounted(() => {
   console.log('CDK公告组件已挂载')
@@ -468,7 +339,7 @@ onMounted(() => {
 
 // 组件卸载时保存缓存
 onBeforeUnmount(() => {
-  saveImageCache()
+  // 这里不需要保存缓存，因为缓存是静态的，不会改变
 })
 </script>
 
@@ -554,11 +425,7 @@ onBeforeUnmount(() => {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.3s;
-
-    &:hover {
-      transform: scale(1.05);
-    }
+    display: block;
   }
 
   .image-placeholder,

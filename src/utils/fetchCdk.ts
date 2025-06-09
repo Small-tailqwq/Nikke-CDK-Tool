@@ -1,63 +1,7 @@
 /// <reference types="vite/client" />
 
 // -------------------------------------
-// 动态计算「同源」地址
-// -------------------------------------
-// 使用绝对路径，避免受路由影响
-const LOCAL_PREFIX = '/Nikke-CDK-Tool/';
-
-const sources: string[] = [
-  `${LOCAL_PREFIX}cdk-list.json`,
-  'https://nikke-cdk-list.hayasa.org/api/',
-  'https://cdn.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json',
-];
-
-// -------------------------------------
-// 主函数
-// -------------------------------------
-export async function fetchCdkList(): Promise<{ cdks: CDK[] }> {
-  // 给每条请求 3 秒超时，互不影响
-  const tryFetch = (url: string) =>
-    new Promise<Response>((resolve, reject) => {
-      const ctrl = new AbortController();
-      const tm = setTimeout(() => ctrl.abort(), 3000);
-
-      fetch(url, {
-        signal: ctrl.signal,
-        cache: 'no-cache',
-        headers: { Accept: 'application/json' },
-      })
-        .then((r) => {
-          clearTimeout(tm);
-          r.ok ? resolve(r) : reject(new Error(`HTTP ${r.status}`));
-        })
-        .catch((e) => {
-          clearTimeout(tm);
-          reject(e);
-        });
-    });
-
-  // 顺序尝试
-  for (const url of sources) {
-    try {
-      console.debug(`[CDK] fetch → ${url}`);
-      const res = await tryFetch(url);
-      const json = await res.json();
-
-      if (!json || !Array.isArray(json.cdks))
-        throw new Error('数据结构不对');
-
-      return json; // ✅ 成功返回
-    } catch (e) {
-      console.warn(`[CDK] 源失败: ${url}`, e);
-      // 继续下一个
-    }
-  }
-  throw new Error('所有 CDK 源都无法访问');
-}
-
-// -------------------------------------
-// 类型
+// 类型定义
 // -------------------------------------
 export interface CDK {
   code: string;
@@ -68,4 +12,40 @@ export interface CDK {
   note?: string;
   author?: string;
   image?: string;
+}
+
+// -------------------------------------
+// 主函数
+// -------------------------------------
+/**
+ * 从预构建生成的 cdk-list.json 文件中获取公告列表。
+ * 这个文件应该位于应用的根目录下，路径由 Vite 的 base 配置决定。
+ */
+export async function fetchCdkList(): Promise<{ cdks: CDK[] }> {
+  // 使用 import.meta.env.BASE_URL 来确保我们总是从正确的相对路径获取数据
+  const listUrl = `${import.meta.env.BASE_URL}cdk-list.json`.replace('//', '/');
+
+  try {
+    console.debug(`[CDK] Fetching announcements from: ${listUrl}`);
+    const response = await fetch(listUrl, {
+      cache: 'no-cache', // 确保获取最新版本
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const json = await response.json();
+
+    if (!json || !Array.isArray(json.cdks)) {
+      throw new Error('Invalid CDK list data structure.');
+    }
+
+    return json;
+  } catch (error) {
+    console.error(`[CDK] Failed to fetch or parse CDK list from ${listUrl}:`, error);
+    // 抛出错误，让调用方（Vue组件）来处理UI上的失败状态
+    throw new Error('Failed to load CDK announcements.');
+  }
 }

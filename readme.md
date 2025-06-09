@@ -7,7 +7,9 @@
 ```text
 .
 ├── public/                    # 静态资源目录
-│   └── cdk-list.json         # CDK 列表数据
+│   ├── cdk-list.source.json  # 【请修改我】CDK 列表数据源
+│   ├── cdk-list.json         # (自动生成) 供浏览器使用的CDK列表
+│   └── announcement-images/  # (自动生成) 缓存的公告图片
 │
 ├── src/                       # 前端源代码
 │   ├── assets/               # 资源文件
@@ -136,7 +138,9 @@ MIT License
 
 ### CDK 公告数据贡献
 
-CDK 公告数据存放在 `public/cdk-list.json`，任何人都可以通过 Pull Request 或 Issue 投稿新 CDK。
+**重要提示：** 请修改位于 `public/cdk-list.source.json` 的源文件来贡献新的CDK。`public/cdk-list.json` 是在项目构建时自动生成的，请勿直接修改该文件。
+
+任何人都可以通过 Pull Request 或 Issue 投稿新 CDK 到 `public/cdk-list.source.json`。
 
 #### 投稿格式
 

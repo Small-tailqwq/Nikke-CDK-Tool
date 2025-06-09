@@ -276,26 +276,29 @@ const showCookie = ref(false)
 const showTutorial = ref(!userStore.getTutorialShown())
 
 // 新增：教程步骤
-const tutorialSteps = {
+const tutorialSteps = computed(() => ({
   name: {
     title: '用户名说明',
-    content:
-      '用户名仅用于区分多个账号，方便您管理。这不是游戏登录名，可以自由设置。',
-    placement: 'right',
+    content: isMobile.value
+      ? '用户名用于区分多个账号，可自由设置。'
+      : '用户名仅用于区分多个账号，方便您管理。这不是游戏登录名，可以自由设置。',
+    placement: isMobile.value ? 'bottom' : 'right',
   },
   server: {
     title: '服务器说明',
-    content:
-      '选择您的游戏服务器。目前此选项仅用于区分不同服务器的账号，暂无实际业务作用。',
-    placement: 'right',
+    content: isMobile.value
+      ? '选择您的游戏服务器。'
+      : '选择您的游戏服务器。目前此选项仅用于区分不同服务器的账号，暂无实际业务作用。',
+    placement: isMobile.value ? 'bottom' : 'right',
   },
   cookie: {
     title: 'Cookie信息说明',
-    content:
-      '您需要从游戏CDK兑换页面获取Cookie信息。为了确保您能正确获取Cookie，我们提供了详细的图文教程。',
-    placement: 'left',
+    content: isMobile.value
+      ? '请从游戏CDK兑换页面获取Cookie信息。'
+      : '您需要从游戏CDK兑换页面获取Cookie信息。为了确保您能正确获取Cookie，我们提供了详细的图文教程。',
+    placement: isMobile.value ? 'bottom' : 'left',
   },
-}
+}))
 
 // 新增：当前显示的教程步骤
 const currentTutorialField = ref(null)
@@ -590,6 +593,60 @@ const handleSubmit = async () => {
       .el-input,
       .el-select {
         font-size: 14px;
+      }
+
+      // 新增：移动端教程弹窗样式
+      .el-popover {
+        max-width: 85vw !important;
+        width: auto !important;
+        min-width: 200px !important;
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        margin: 8px 0 !important;
+        z-index: 2001 !important;
+
+        .tutorial-footer {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 12px;
+
+          .el-button {
+            width: 100%;
+            margin-left: 0;
+          }
+        }
+
+        .tutorial-cookie-actions {
+          margin: 12px 0;
+
+          .el-button {
+            width: 100%;
+          }
+        }
+
+        p {
+          font-size: 14px;
+          line-height: 1.5;
+          margin: 0;
+          padding: 0;
+        }
+      }
+
+      // 优化表单在移动端的间距
+      .el-form-item {
+        margin-bottom: 24px;
+        position: relative;
+
+        .tutorial-target {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 100%;
+          height: 1px;
+          z-index: 2000;
+        }
       }
     }
   }

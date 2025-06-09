@@ -81,68 +81,49 @@
                 >
               </el-tooltip>
               <el-tooltip
-                content="就算你把鼠标放在我上面，但是我只是一只doro"
+                v-if="doroStore.shouldShowButton"
+                :content="doroStore.tooltipMessage"
                 placement="top"
               >
-                <el-tag size="small" type="info" effect="plain">Doro</el-tag>
+                <el-tag
+                  size="small"
+                  type="info"
+                  effect="plain"
+                  @click="doroStore.handleActivationClick"
+                  style="user-select: none"
+                  tabindex="-1"
+                  :class="{ 'falling-button': doroStore.isButtonFalling }"
+                >
+                  Doro
+                </el-tag>
               </el-tooltip>
             </div>
           </div>
         </div>
       </el-footer>
     </el-container>
-    <!-- doro悬浮按钮，唯一彩蛋入口 -->
-    <div
-      class="doro-float"
-      :class="{
-        floating: doroIsFloating,
-        shaking: doroIsShaking,
-        exploding: doroIsExploding,
-      }"
-      :style="doroFloatStyle"
-      @click.stop="handleDoroClick"
-      :title="doroClickCount < 3 ? 'doro~' : ''"
-    >
-      <img :src="doroIcon" alt="doro" />
-    </div>
-    <!-- doro爆炸飞出 -->
-    <transition-group name="doro-burst" tag="div">
-      <img
-        v-for="item in burstList"
-        :key="item.id"
-        class="doro-burst-img"
-        :src="doroIcon"
-        :style="item.style"
-      />
-    </transition-group>
+    <FloatingDoro v-if="doroStore.isVisible" />
+    <DoroSummonAnimation
+      v-if="doroStore.isPhysicsBall"
+      :startX="doroStore.explosionPosition.x"
+      :startY="doroStore.explosionPosition.y"
+      @summonEnd="doroStore.finishSummonAnimation"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import doroIcon from '@/assets/doro_icon.png'
 import { useNavStore } from './stores/nav'
+import { useDoroStore } from './stores/doro'
+import FloatingDoro from './components/FloatingDoro.vue'
+import DoroSummonAnimation from './components/DoroSummonAnimation.vue'
 
 const router = useRouter()
 const route = useRoute()
 const navStore = useNavStore()
-
-// doro彩蛋相关
-const doroClickCount = ref(0)
-const doroScale = ref(1)
-const doroPos = ref({ right: 32, bottom: 32 }) // 初始右下角
-const doroIsFloating = ref(false)
-const doroIsShaking = ref(false)
-const doroShakeIntensity = ref(1)
-const doroIsExploding = ref(false)
-const burstList = ref([])
-let burstId = 0
-let shakeTimer = null
-
-// 蛋中蛋彩蛋相关
-const rainbowEggReady = ref(false)
-const rainbowEggCount = ref(0)
+const doroStore = useDoroStore()
 
 // 定义菜单项
 const menuItems = [
@@ -184,153 +165,10 @@ const getActiveItemStyle = computed(() => {
   }
 })
 
-function handleDoroClick(e) {
-  if (route.path !== '/about') {
-    router.push('/about')
-    return
-  }
-  // 蛋中蛋彩蛋逻辑
-  if (rainbowEggReady.value) {
-    rainbowEggCount.value++
-    if (rainbowEggCount.value >= 3) {
-      rainbowEggReady.value = false
-      rainbowEggCount.value = 0
-      router.push('/rainbow-doro')
-      return
-    }
-    return
-  }
-  doroClickCount.value++
-  // 3次后瞬移
-  if (doroClickCount.value === 3) {
-    moveDoroRandom()
-    doroIsFloating.value = true
-  }
-  // 3~20次变大并可继续瞬移
-  if (doroClickCount.value > 3 && doroClickCount.value < 20) {
-    doroScale.value += 0.18
-    moveDoroRandom()
-  }
-  // 10次后常态抖动
-  if (doroClickCount.value === 10) {
-    doroIsShaking.value = true
-    startDoroShake()
-  }
-  // 抖动幅度递增
-  if (doroClickCount.value >= 10 && doroClickCount.value < 20) {
-    doroShakeIntensity.value = 1 + (doroClickCount.value - 10) * 0.25
-  }
-  // 20次爆炸
-  if (doroClickCount.value >= 20) {
-    triggerBurst()
-    resetDoro()
-    // 爆炸后允许蛋中蛋
-    rainbowEggReady.value = true
-    rainbowEggCount.value = 0
-  }
-}
-
-function moveDoroRandom() {
-  // 屏幕边界留白，doro大小最大约200px
-  const margin = 40
-  const maxW = window.innerWidth - 120 - margin
-  const maxH = window.innerHeight - 120 - margin
-  const x = Math.random() * maxW + margin / 2
-  const y = Math.random() * maxH + margin / 2
-  doroPos.value = { left: x, top: y, right: 'auto', bottom: 'auto' }
-}
-
-function startDoroShake() {
-  if (shakeTimer) clearInterval(shakeTimer)
-  shakeTimer = setInterval(() => {
-    // 触发视图更新，CSS动画用变量控制幅度
-    doroShakeIntensity.value = 1 + (doroClickCount.value - 10) * 0.25
-  }, 500)
-}
-
-function resetDoro() {
-  doroClickCount.value = 0
-  doroScale.value = 1
-  doroPos.value = { right: 32, bottom: 32 }
-  doroIsFloating.value = false
-  doroIsShaking.value = false
-  doroShakeIntensity.value = 1
-  if (shakeTimer) clearInterval(shakeTimer)
-}
-
-function triggerBurst() {
-  doroIsExploding.value = true
-  const burstNum = 24 + Math.floor(Math.random() * 8)
-  burstList.value = []
-  for (let i = 0; i < burstNum; i++) {
-    const angle = Math.random() * 2 * Math.PI
-    const distance = 180 + Math.random() * 180
-    const x = Math.cos(angle) * distance
-    const y = Math.sin(angle) * distance
-    const rotate = Math.random() * 360
-    burstList.value.push({
-      id: burstId++,
-      style: {
-        position: 'fixed',
-        left: `calc(50vw + 0px)`,
-        top: `calc(50vh + 0px)`,
-        width: '48px',
-        height: '48px',
-        transform: `translate(${x}px, ${y}px) rotate(${rotate}deg) scale(${
-          0.7 + Math.random() * 0.6
-        })`,
-        opacity: 1,
-        transition: 'all 1.4s cubic-bezier(.36,1.64,.56,1)',
-        zIndex: 99999,
-      },
-    })
-  }
-  setTimeout(() => {
-    burstList.value.forEach((item) => {
-      item.style.opacity = 0
-    })
-  }, 200)
-  setTimeout(() => {
-    burstList.value = []
-    doroIsExploding.value = false
-  }, 1700)
-}
-
-const doroFloatStyle = computed(() => {
-  let style = {
-    position: 'fixed',
-    zIndex: 99999,
-    width: `${64 * doroScale.value}px`,
-    height: `${64 * doroScale.value}px`,
-    transition: 'all 0.35s cubic-bezier(.36,1.64,.56,1)',
-    right: '',
-    bottom: '',
-    left: '',
-    top: '',
-    transform: '',
-  }
-  if (doroIsFloating.value && doroPos.value.left !== undefined) {
-    style.left = `${doroPos.value.left}px`
-    style.top = `${doroPos.value.top}px`
-  } else {
-    style.right = `${doroPos.value.right}px`
-    style.bottom = `${doroPos.value.bottom}px`
-  }
-  if (doroIsShaking.value) {
-    style.animation = `doro-shake 0.35s infinite cubic-bezier(.36,1.64,.56,1)`
-    style['--shake-intensity'] = doroShakeIntensity.value
-  }
-  return style
-})
-
 // 启动彩虹动画
 let rainbowInterval
 onMounted(() => {
   rainbowInterval = setInterval(updateRainbowColor, 1000)
-  // 防止窗口缩放后doro出界
-  window.addEventListener('resize', () => {
-    if (doroIsFloating.value) moveDoroRandom()
-  })
 })
 
 onBeforeUnmount(() => {
@@ -989,5 +827,55 @@ body {
   pointer-events: none;
   position: fixed;
   z-index: 99999;
+}
+
+// 新增：按钮掉落动画
+.falling-button {
+  animation: button-fall 3s ease-in forwards;
+  transform-origin: center top;
+}
+
+@keyframes button-fall {
+  // 阶段1：螺丝松动摇摆 (0-1秒)
+  0% {
+    transform: rotate(0deg) translateY(0);
+  }
+  10% {
+    transform: rotate(-2deg) translateY(0);
+  }
+  20% {
+    transform: rotate(2deg) translateY(0);
+  }
+  30% {
+    transform: rotate(-3deg) translateY(0);
+  }
+  35% {
+    transform: rotate(3deg) translateY(0);
+  }
+
+  // 阶段2：开始掉落 (1-3秒)
+  40% {
+    transform: rotate(-5deg) translateY(10px);
+  }
+  50% {
+    transform: rotate(15deg) translateY(50px);
+  }
+  60% {
+    transform: rotate(-30deg) translateY(120px);
+  }
+  70% {
+    transform: rotate(45deg) translateY(220px);
+  }
+  80% {
+    transform: rotate(-80deg) translateY(350px);
+  }
+  90% {
+    transform: rotate(120deg) translateY(500px);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(180deg) translateY(800px);
+    opacity: 0;
+  }
 }
 </style>

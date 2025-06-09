@@ -1,27 +1,32 @@
 {
-    "version": 1,
-    "lastUpdate": "2024-03-08T12:34:56Z",
-  
-    "cdks": [
-      {
-        "code": "NIKKESTELLARBLADE",
-        "name": "剑星联动纪念SP生放送奖励",
-        "reward": "高级招募券×5, 成长套件：24H×1, 指挥官自由使用卷×3, 模组高级推进器×50", 
-        "image": "https://pbs.twimg.com/media/Gs1bDabboAAZZOe?format=jpg&name=large",
-        "servers": ["global","tw"],
-        "status": "可用",
-        "note": "剑星联动纪念SP生放送奖励CDK",
-        "author": "Small-tailqwq"
-      },
-      {
-        "code": "NIKKEDAILYNEWS",
-        "name": "尼基每日新闻推特（X）奖励",
-        "reward": "水晶×100", 
-        "image": "https://pbs.twimg.com/media/Gsl_oC1asAAaz8G?format=jpg&name=large",
-        "servers": ["global","tw"],
-        "status": "可用",
-        "note": "蚊子腿也是肉",
-        "author": "Small-tailqwq"
-      }
-    ]
-  } 
+  "version": 1.1,
+  "lastUpdate": "2024-03-08T12:34:56Z",
+  "cdks": [
+    {
+      "code": "NIKKESTELLARBLADE",
+      "name": "剑星联动纪念SP生放送奖励",
+      "reward": "高级招募券×5, 成长套件：24H×1, 指挥官自由使用卷×3, 模组高级推进器×50",
+      "image": "/announcement-images/NIKKESTELLARBLADE.png",
+      "servers": [
+        "global",
+        "tw"
+      ],
+      "status": "可用",
+      "note": "剑星联动纪念SP生放送奖励CDK",
+      "author": "Small-tailqwq"
+    },
+    {
+      "code": "NIKKEDAILYNEWS",
+      "name": "尼基每日新闻推特（X）奖励",
+      "reward": "水晶×100",
+      "image": "/announcement-images/NIKKEDAILYNEWS.png",
+      "servers": [
+        "global",
+        "tw"
+      ],
+      "status": "可用",
+      "note": "蚊子腿也是肉",
+      "author": "Small-tailqwq"
+    }
+  ]
+}

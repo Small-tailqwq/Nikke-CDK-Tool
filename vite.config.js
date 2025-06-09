@@ -27,16 +27,6 @@ export default defineConfig({
   },
   build: {
     cssCodeSplit: true,
-    cssMinify: true,
-    rollupOptions: {
-      output: {
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name.endsWith('.css')) {
-            return 'assets/[name].[hash].css'
-          }
-          return 'assets/[name].[hash][extname]'
-        }
-      }
-    }
+    cssMinify: true
   }
 }) 
