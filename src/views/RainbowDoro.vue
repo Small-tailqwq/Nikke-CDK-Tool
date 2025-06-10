@@ -64,10 +64,10 @@ const specialAliens = [
 
   // 星球系列
   { type: 'planet', emoji: '🌕', name: '满月', size: 'huge' },
-  { type: 'planet', emoji: '🌍', name: '地球', size: 'large' },
-  { type: 'planet', emoji: '🪐', name: '土星', size: 'large' },
-  { type: 'planet', emoji: '☄️', name: '彗星', size: 'medium' },
-  { type: 'planet', emoji: '🌟', name: '闪亮星', size: 'medium' },
+  // { type: 'planet', emoji: '🌍', name: '地球', size: 'large' },
+  // { type: 'planet', emoji: '🪐', name: '土星', size: 'large' },
+  // { type: 'planet', emoji: '☄️', name: '彗星', size: 'medium' },
+  // { type: 'planet', emoji: '🌟', name: '闪亮星', size: 'medium' },
 ]
 
 function getAvailableLane() {

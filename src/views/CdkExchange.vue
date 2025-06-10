@@ -450,7 +450,7 @@ onMounted(() => {
     .result-message {
       margin: 10px 0;
       font-size: 14px;
-      color: #606266;
+      color: var(--el-text-color-regular);
     }
   }
 }

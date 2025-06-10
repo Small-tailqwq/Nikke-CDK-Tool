@@ -375,12 +375,13 @@ onBeforeUnmount(() => {
 /* =============== 卡片 =============== */
 .cdk-card {
   position: relative;
-  overflow: hidden;
-  border-radius: 0 0 8px 8px;
+  overflow: hidden; /* 确保子元素圆角裁切 */
+  border-radius: 8px; /* 四角弧度完全对称 */
   border: none;
   height: 100%;
   animation: fadeInUp 0.3s ease-out;
-  transition: transform 0.25s;
+  transition: transform 0.25s, box-shadow 0.25s; /* 阴影效果跟随圆角轮廓 */
+  background: var(--el-bg-color);
 
   @media screen and (max-width: 768px) {
     font-size: 14px;
@@ -389,15 +390,19 @@ onBeforeUnmount(() => {
   &:hover {
     @media screen and (min-width: 769px) {
       transform: translateY(-4px);
+      /* 增强阴影效果以配合圆角 */
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
   }
 
   &.available {
-    border-top: 4px solid #67c23a;
+    border-top: 4px solid var(--el-color-success);
+    border-radius: 8px !important; /* 覆盖原有单侧圆角，确保四角对称 */
   }
 
   &.unavailable {
-    border-top: 4px solid #f56c6c;
+    border-top: 4px solid var(--el-color-danger);
+    border-radius: 8px !important; /* 覆盖原有单侧圆角，确保四角对称 */
   }
 }
 
@@ -414,8 +419,8 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 120px;
   position: relative;
-  border-radius: 0 0 8px 8px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7eb 100%);
+  border-radius: 8px 8px 0 0; /* 图片区域：仅顶部圆角，与卡片整体圆角配合 */
+  background: var(--el-fill-color-light);
 
   &.has-image {
     background: none;
@@ -439,7 +444,7 @@ onBeforeUnmount(() => {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    color: #909399;
+    color: var(--el-text-color-secondary);
     font-size: 14px;
     font-weight: 500;
 
@@ -456,7 +461,7 @@ onBeforeUnmount(() => {
   }
 
   .image-error {
-    color: #f56c6c;
+    color: var(--el-color-danger);
   }
 
   @media screen and (max-width: 768px) {
@@ -478,54 +483,250 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   &.status-available {
-    background: #67c23a;
+    background: var(--el-color-success);
   }
   &.status-unavailable {
-    background: #f56c6c;
+    background: var(--el-color-danger);
   }
 }
 
 /* =============== 复选框 =============== */
 .cdk-checkbox-wrapper {
+  --color-checkbox-border-light: rgba(0, 0, 0, 0.2);
+  --color-checkbox-border-dark: rgba(255, 255, 255, 0.3);
+  --checkbox-bg: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 0.15) 0%,
+    transparent 70%
+  );
+  --checkbox-size: 1.5em; /* 24px 转换为相对单位 */
+
   position: absolute;
-  top: 8px;
-  left: 8px;
+  top: 0.5em;
+  left: 0.5em;
   z-index: 20;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  background: #fff;
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  width: var(--checkbox-size);
+  height: var(--checkbox-size);
+  border-radius: 0.375em; /* 6px */
+  background: var(--el-bg-color);
+  border: 2px solid var(--color-checkbox-border-light); /* 恢复原本的灰色边框 */
+  box-sizing: border-box; /* 确保边框在外部，不影响内部尺寸 */
+  box-shadow: 0 0.0625em 0.1875em rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
+
+  /* 背景处理策略：提高在动态背景上的可见性 */
+  &::after {
+    content: '';
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    background: var(--checkbox-bg);
+    border-radius: inherit;
+    z-index: -1;
+    transition: opacity 0.3s ease;
+  }
+
+  /* 悬停效果 */
   &:hover {
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.25);
+
+    &::after {
+      --checkbox-bg: radial-gradient(
+        circle,
+        rgba(0, 0, 0, 0.25) 0%,
+        transparent 70%
+      );
+    }
+  }
+
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+    border-color: var(--color-checkbox-border-dark);
+    --checkbox-bg: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 70%
+    );
+
+    &:hover::after {
+      --checkbox-bg: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.25) 0%,
+        transparent 70%
+      );
+    }
+  }
+
+  /* Element Plus 暗色模式 */
+  html.dark & {
+    border-color: var(--color-checkbox-border-dark);
+    --checkbox-bg: radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.15) 0%,
+      transparent 70%
+    );
+
+    &:hover::after {
+      --checkbox-bg: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.25) 0%,
+        transparent 70%
+      );
+    }
   }
 }
+
 .cdk-checkbox {
+  --inner-size: 0.875em; /* 14px 转换为相对单位，与外层严格匹配 */
+
   pointer-events: auto;
-  margin: 0; /* 移除默认外边距 */
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  position: relative; /* 为伪元素定位做准备 */
+  border-radius: inherit; /* 继承外层容器的圆角 */
+  transition: all 0.2s ease; /* 平滑状态切换 */
+
+  /* 方案A：伪元素填充整个容器范围（100%），添加对勾符号 */
+  &.is-checked {
+    &::after {
+      content: '✓'; /* 添加对勾符号，避免空洞感 */
+      position: absolute;
+      top: 1px; /* 扩展填充范围，覆盖原17px白色层位置 */
+      left: 1px;
+      right: 1px;
+      bottom: 1px;
+      background: var(--el-color-primary); /* 使用主题色变量，支持暗色模式 */
+      border-radius: calc(0.375em - 1px); /* 相应调整内部圆角 */
+      border: none; /* 移除伪元素边框，使用容器原生边框 */
+      z-index: 2; /* 提高层级，确保覆盖白色层 */
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 更流畅的缓动函数 */
+
+      /* 对勾符号样式 */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.75em; /* 12px */
+      font-weight: bold;
+      line-height: 1;
+
+      /* 初始状态：从中心点开始缩放 */
+      transform: scale(0);
+      transform-origin: center;
+    }
+  }
+
+  /* 选中状态的缩放动画 */
+  &.is-checked::after {
+    transform: scale(1);
+  }
+
+  /* 悬停状态增强 */
+  &:hover.is-checked::after {
+    background: var(--el-color-primary-light-3); /* 使用主题色变量 */
+    transform: scale(1.02); /* 减小放大幅度，避免过度动画 */
+  }
+
+  /* 激活状态增强 */
+  &:active.is-checked::after {
+    background: var(--el-color-primary-dark-2); /* 使用主题色变量 */
+    transform: scale(0.98); /* 减小缩放幅度，保持平滑 */
+    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* 更快的激活反馈 */
+  }
+
+  /* 聚焦状态：给整个容器添加光晕效果 */
+  &.is-focus.is-checked::after {
+    box-shadow: 0 0 0 0.125em var(--el-color-primary-light-5);
+  }
+
+  /* 禁用状态保持透明度控制 */
+  &.is-disabled.is-checked {
+    opacity: 0.6; /* 整体透明度应用到容器 */
+
+    &::after {
+      background: var(--el-color-primary);
+      transform: scale(1); /* 确保禁用状态也有正确的缩放 */
+    }
+  }
+
+  /* 为未选中状态添加平滑过渡准备 */
+  &:not(.is-checked)::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    background: transparent; /* 取消选中时背景透明 */
+    border-radius: calc(0.375em - 1px);
+    border: none; /* 无需边框，使用容器原生边框 */
+    z-index: 2; /* 保持一致的层级 */
+    transform: scale(0);
+    transform-origin: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 未选中状态的交互效果（悬停、激活时也要确保透明） */
+  &:not(.is-checked):hover::after,
+  &:not(.is-checked):active::after {
+    background: transparent !important; /* 确保取消选中时交互状态也是透明 */
+  }
+
   :deep(.el-checkbox__input) {
     width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0;
+    position: relative;
+    z-index: 1; /* 确保在伪元素之上 */
+    background: transparent !important; /* 移除白色背景层 */
+
     .el-checkbox__inner {
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
+      /* 完全隐藏内部小框，避免白色描边效果 */
+      width: 0 !important;
+      height: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+
       &::after {
-        width: 3px;
-        height: 7px;
-        left: 4px;
-        top: 1px;
+        /* 移除默认的√符号，现在用大框的伪元素 */
+        content: none !important;
+        display: none !important;
       }
     }
+
+    /* 所有状态下都隐藏内部小框 */
+    &.is-checked .el-checkbox__inner,
+    &.is-disabled .el-checkbox__inner,
+    &.is-focus .el-checkbox__inner,
+    &:hover .el-checkbox__inner {
+      width: 0 !important;
+      height: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+    }
+
+    /* 确保所有状态下input元素背景都透明 */
+    &.is-checked,
+    &.is-disabled,
+    &.is-focus,
+    &:hover {
+      background: transparent !important;
+    }
   }
+
   /* 移除标签相关样式 */
   :deep(.el-checkbox__label) {
     display: none;
@@ -607,7 +808,7 @@ onBeforeUnmount(() => {
     top: var(--y, 50%);
     width: 20px;
     height: 20px;
-    background: #67c23a;
+    background: var(--el-color-success);
     border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
@@ -619,15 +820,15 @@ onBeforeUnmount(() => {
     content: '';
     position: absolute;
     inset: 0;
-    background: var(--el-tag-bg-color, #f0f9eb);
+    background: var(--el-fill-color-light);
     transform: translateY(-100%);
     pointer-events: none;
     z-index: 2;
   }
   &.copied {
     color: #fff;
-    background: #67c23a;
-    border-color: #67c23a;
+    background: var(--el-color-success);
+    border-color: var(--el-color-success);
     &::before {
       opacity: 1; /* 显示涟漪效果 */
       visibility: visible; /* 显示 */
@@ -658,7 +859,7 @@ onBeforeUnmount(() => {
 .cdk-footer {
   padding: 0 16px 12px;
   font-size: 12px;
-  color: #909399;
+  color: var(--el-text-color-secondary);
   text-align: right;
 }
 
@@ -671,17 +872,6 @@ onBeforeUnmount(() => {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-@media (prefers-color-scheme: dark) {
-  .cdk-card {
-    background: var(--el-bg-color-overlay);
-  }
-  .cdk-image:not(.has-image) {
-    background: linear-gradient(135deg, #2c2c2c 0%, #1d1e1f 100%);
-  }
-  .code-tag::after {
-    background: var(--el-tag-bg-color, #1d1e1f);
   }
 }
 

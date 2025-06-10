@@ -705,11 +705,7 @@ const handleSubmit = async () => {
     height: 120px;
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 8px;
-    background: linear-gradient(
-      135deg,
-      var(--el-fill-color-light) 0%,
-      var(--el-fill-color-lighter) 100%
-    );
+    background: var(--el-fill-color-light);
     margin-bottom: 16px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -731,7 +727,7 @@ const handleSubmit = async () => {
     &:hover {
       @media screen and (min-width: 769px) {
         border-color: var(--el-color-primary-light-5);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+        box-shadow: var(--el-box-shadow-light);
         transform: translateY(-2px);
 
         .cookie-mask-icon {
@@ -753,7 +749,7 @@ const handleSubmit = async () => {
 
     &:active {
       transform: translateY(0);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      box-shadow: var(--el-box-shadow-lighter);
     }
 
     .cookie-mask-content {

@@ -3,7 +3,21 @@
     <el-container>
       <el-header height="auto">
         <div class="header-content">
-          <h1>NIKKE CDK兑换工具</h1>
+          <div class="header-top">
+            <h1>NIKKE CDK兑换工具</h1>
+            <el-button
+              circle
+              size="small"
+              @click="toggleTheme"
+              :title="getThemeTitle()"
+              class="theme-toggle-btn"
+            >
+              <el-icon v-if="getThemeIcon() !== 'A'">
+                <component :is="getThemeIcon()" />
+              </el-icon>
+              <span v-else class="auto-icon">A</span>
+            </el-button>
+          </div>
           <nav class="nav-wrapper">
             <div
               class="nav-menu"
@@ -18,6 +32,7 @@
                   active: route.path === item.path,
                   rainbow: navStore.isRainbowMode,
                 }"
+                @click="handleNavClick(item.path)"
               >
                 {{ item.name }}
               </router-link>
@@ -27,9 +42,13 @@
       </el-header>
 
       <el-main>
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
+        <router-view v-slot="{ Component, route: currentRoute }">
+          <transition
+            :name="slideDirection"
+            :duration="slideDuration"
+            mode="out-in"
+          >
+            <component :is="Component" :key="currentRoute.path" />
           </transition>
         </router-view>
       </el-main>
@@ -113,12 +132,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useNavStore } from './stores/nav'
 import { useDoroStore } from './stores/doro'
+import { theme, toggleTheme, getThemeIcon, getThemeTitle } from './stores/theme'
+import { Sunny, Moon } from '@element-plus/icons-vue'
 import FloatingDoro from './components/FloatingDoro.vue'
 import DoroSummonAnimation from './components/DoroSummonAnimation.vue'
+import './assets/theme.scss'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,6 +154,75 @@ const menuItems = [
   { path: '/history', name: '兑换历史' },
   { path: '/announcement', name: 'CDK公告' },
 ]
+
+// 页面切换动画相关
+const slideDirection = ref('slide-left')
+const slideDuration = ref(300)
+const prevPageIndex = ref(0)
+const currentPageIndex = ref(0)
+
+// 获取页面索引
+const getPageIndex = (path) => {
+  const index = menuItems.findIndex((item) => item.path === path)
+  return index === -1 ? 0 : index
+}
+
+// 处理导航点击
+const handleNavClick = (targetPath) => {
+  const fromIndex = getPageIndex(route.path)
+  const toIndex = getPageIndex(targetPath)
+
+  prevPageIndex.value = fromIndex
+  currentPageIndex.value = toIndex
+
+  // 计算页面间距离
+  const distance = Math.abs(toIndex - fromIndex)
+
+  // 确定滑动方向
+  slideDirection.value = toIndex > fromIndex ? 'slide-left' : 'slide-right'
+
+  // 根据距离调整动画速度
+  if (distance === 0) {
+    slideDuration.value = 0
+  } else if (distance === 1) {
+    slideDuration.value = 200
+  } else if (distance === 2) {
+    slideDuration.value = 220
+  } else {
+    slideDuration.value = 240
+  }
+}
+
+// 监听路由变化
+watch(route, (to, from) => {
+  if (to.path !== from.path) {
+    const fromIndex = getPageIndex(from.path)
+    const toIndex = getPageIndex(to.path)
+
+    if (fromIndex !== toIndex) {
+      prevPageIndex.value = fromIndex
+      currentPageIndex.value = toIndex
+
+      const distance = Math.abs(toIndex - fromIndex)
+      slideDirection.value = toIndex > fromIndex ? 'slide-left' : 'slide-right'
+
+      if (distance === 0) {
+        slideDuration.value = 0
+      } else if (distance === 1) {
+        slideDuration.value = 300
+      } else if (distance === 2) {
+        slideDuration.value = 200
+      } else {
+        slideDuration.value = 150
+      }
+    }
+  }
+})
+
+// 初始化当前页面索引
+onMounted(() => {
+  currentPageIndex.value = getPageIndex(route.path)
+})
 
 // 彩虹颜色数组
 const rainbowColors = [
@@ -192,25 +283,29 @@ body {
   padding: 0;
   height: 100%;
   min-height: 100vh;
+  background-color: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
 }
 
 #app {
   height: 100%;
   min-height: 100vh;
+  background-color: var(--el-bg-color-page);
 }
 
 .app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background-color: var(--el-bg-color-page);
 
   .el-container {
     min-height: 100vh;
   }
 
   .el-header {
-    background-color: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background-color: var(--el-bg-color);
+    box-shadow: var(--el-box-shadow-lighter);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -222,10 +317,73 @@ body {
       padding: var(--app-padding);
       padding-bottom: 0;
 
-      h1 {
-        margin: 0 0 16px;
-        font-size: 24px;
-        text-align: center;
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+
+        h1 {
+          margin: 0;
+          font-size: 24px;
+          color: var(--el-text-color-primary);
+          flex: 1;
+          text-align: center;
+        }
+
+        .theme-toggle-btn {
+          transition: all 0.2s ease-out !important;
+          flex-shrink: 0;
+          width: 32px;
+          height: 32px;
+
+          .auto-icon {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--el-text-color-primary);
+          }
+
+          &:hover {
+            background-color: var(--hover-bg) !important;
+            transform: translateY(-1px) scale(1.05);
+          }
+
+          &:active {
+            background-color: var(--active-bg) !important;
+            transform: translateY(0) scale(1.02);
+          }
+        }
+
+        // 移动端适配
+        @media screen and (max-width: 768px) {
+          h1 {
+            font-size: 20px;
+          }
+
+          .theme-toggle-btn {
+            width: 28px;
+            height: 28px;
+
+            .auto-icon {
+              font-size: 12px;
+            }
+          }
+        }
+
+        @media screen and (max-width: 480px) {
+          h1 {
+            font-size: 18px;
+          }
+
+          .theme-toggle-btn {
+            width: 26px;
+            height: 26px;
+
+            .auto-icon {
+              font-size: 11px;
+            }
+          }
+        }
       }
 
       .nav-wrapper {
@@ -544,6 +702,8 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    background-color: var(--el-bg-color-page);
+    overflow: hidden; // 防止滑动动画时出现滚动条
 
     > div {
       max-width: var(--app-max-width);
@@ -612,10 +772,16 @@ body {
 
     .el-tag {
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.2s ease-out;
 
       &:hover {
-        background-color: var(--el-color-info-light-7);
+        background-color: var(--hover-bg);
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        background-color: var(--active-bg);
+        transform: translateY(0);
       }
     }
 
@@ -623,6 +789,11 @@ body {
       margin-right: 4px;
       font-size: 14px;
       vertical-align: -0.125em;
+      transition: transform 0.2s ease-out;
+    }
+
+    &:hover .github-icon {
+      transform: scale(1.1);
     }
   }
 
@@ -649,18 +820,61 @@ body {
   .tech-stack .el-tag {
     margin: 0;
     cursor: help;
+    transition: all 0.2s ease-out;
+
+    &:hover {
+      background-color: var(--hover-bg);
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      background-color: var(--active-bg);
+      transform: translateY(0);
+    }
   }
 }
 
 // 页面切换动画
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+.slide-left-enter-active,
+.slide-left-leave-active,
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: all 0.3s ease-out;
 }
 
-.fade-enter-from,
-.fade-leave-to {
+.slide-left-enter-from {
+  transform: translateX(100%);
   opacity: 0;
+}
+
+.slide-left-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.slide-right-enter-from {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+
+.slide-right-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+// 快速切换动画（跳过多页时）
+.slide-left-enter-active[style*='duration: 200ms'],
+.slide-left-leave-active[style*='duration: 200ms'],
+.slide-right-enter-active[style*='duration: 200ms'],
+.slide-right-leave-active[style*='duration: 200ms'] {
+  transition: all 0.2s ease-out;
+}
+
+.slide-left-enter-active[style*='duration: 150ms'],
+.slide-left-leave-active[style*='duration: 150ms'],
+.slide-right-enter-active[style*='duration: 150ms'],
+.slide-right-leave-active[style*='duration: 150ms'] {
+  transition: all 0.15s ease-out;
 }
 
 // 全局样式
@@ -679,21 +893,40 @@ body {
 
   .user-card {
     height: 120px;
-    border: 1px solid #ebeef5;
+    border: 1px solid var(--el-border-color-lighter);
     border-radius: 8px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease-out;
     position: relative;
     overflow: hidden;
+    background-color: var(--el-bg-color);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+      box-shadow: var(--el-box-shadow-light);
+      background-color: var(--hover-bg);
+      border-color: var(--el-border-color);
+    }
+
+    &:active {
+      transform: translateY(-1px);
+      background-color: var(--active-bg);
     }
 
     &.is-selected {
-      border-color: var(--el-color-primary);
-      background-color: var(--el-color-primary-light-9);
+      border-color: var(--selected-border);
+      background-color: var(--selected-bg);
+      box-shadow: var(--selected-glow);
+
+      &:hover {
+        background-color: var(--selected-bg);
+        transform: translateY(-2px);
+        box-shadow: var(--selected-glow), var(--el-box-shadow-light);
+      }
+
+      &:active {
+        transform: translateY(-1px);
+      }
     }
 
     .user-card-content {
@@ -708,12 +941,15 @@ body {
           margin: 0 0 8px 0;
           font-size: 16px;
           font-weight: 500;
+          color: var(--el-text-color-primary);
+          transition: color 0.2s ease-out;
         }
 
         p {
           margin: 0 0 4px 0;
-          color: #606266;
+          color: var(--el-text-color-regular);
           font-size: 14px;
+          transition: color 0.2s ease-out;
 
           &.uid {
             font-family: monospace;
@@ -726,34 +962,57 @@ body {
         top: 10px;
         right: 10px;
         color: var(--el-color-primary);
+        transition: all 0.2s ease-out;
+        opacity: 0;
+        transform: scale(0.8);
       }
+    }
+
+    &.is-selected .selection-indicator {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 
   .add-user-card {
-    border: 2px dashed #dcdfe6;
+    border: 2px dashed var(--el-border-color);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fafafa;
+    background: var(--el-fill-color-lighter);
+    color: var(--el-text-color-secondary);
+    transition: all 0.2s ease-out;
 
     &:hover {
       border-color: var(--el-color-primary);
       color: var(--el-color-primary);
+      background: var(--hover-bg);
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: translateY(-1px);
+      background: var(--active-bg);
     }
 
     .add-user-content {
       text-align: center;
+      transition: all 0.2s ease-out;
 
       .el-icon {
         font-size: 24px;
         margin-bottom: 8px;
+        transition: transform 0.2s ease-out;
       }
 
       span {
         display: block;
         font-size: 14px;
       }
+    }
+
+    &:hover .add-user-content .el-icon {
+      transform: scale(1.1);
     }
   }
 }
@@ -778,9 +1037,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fff;
+  background: var(--el-bg-color);
   border-radius: 50%;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--el-box-shadow-light);
   cursor: pointer;
   user-select: none;
   overflow: visible;
@@ -794,7 +1053,7 @@ body {
   pointer-events: none;
 }
 .doro-float.floating {
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--el-box-shadow);
 }
 .doro-float.shaking {
   animation: doro-shake 0.35s infinite cubic-bezier(0.36, 1.64, 0.56, 1);
