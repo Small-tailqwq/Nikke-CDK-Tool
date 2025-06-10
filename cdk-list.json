@@ -1,32 +1,72 @@
 {
-  "version": 1.1,
-  "lastUpdate": "2024-03-08T12:34:56Z",
+  "version": 2,
+  "lastUpdate": "2025-06-10T18:00:00Z",
   "cdks": [
     {
       "code": "NIKKESTELLARBLADE",
       "name": "剑星联动纪念SP生放送奖励",
-      "reward": "高级招募券×5, 成长套件：24H×1, 指挥官自由使用卷×3, 模组高级推进器×50",
-      "image": "/announcement-images/NIKKESTELLARBLADE.png",
+      "reward": "高级招募券×5, 成长套件：24H×1, 指挥官自由使用卷×3, 模组高级增强器×50",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
       "note": "剑星联动纪念SP生放送奖励CDK",
-      "author": "Small-tailqwq"
+      "author": "Small-tailqwq",
+      "image": "/announcement-images/NIKKESTELLARBLADE.webp"
     },
     {
       "code": "NIKKEDAILYNEWS",
       "name": "尼基每日新闻推特（X）奖励",
-      "reward": "水晶×100",
-      "image": "/announcement-images/NIKKEDAILYNEWS.png",
+      "reward": "珠宝×100",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
       "note": "蚊子腿也是肉",
-      "author": "Small-tailqwq"
+      "author": "Small-tailqwq",
+      "image": "/announcement-images/NIKKEDAILYNEWS.webp"
+    },
+    {
+      "type": "group",
+      "groupId": "CN_OVERZONE_01",
+      "groupName": "OVER ZONE 活动奖励",
+      "image": "/announcement-images/CN_OVERZONE_01.webp",
+      "note": "国服专属活动，三个CDK包含3个CDK",
+      "author": "Small-tailqwq",
+      "cdks": [
+        {
+          "code": "DORO888",
+          "name": "OVER ZONE 活动奖励 - 基础资源",
+          "reward": "信用点×10000, 战斗数据×10000",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "仅国服可用，本网页不提供兑换支持"
+        },
+        {
+          "code": "NIKKEXUNLI",
+          "name": "OVER ZONE 活动奖励 - 蓝票",
+          "reward": "招募券×10",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "仅国服可用，本网页不提供兑换支持"
+        },
+        {
+          "code": "OVERZONE",
+          "name": "OVER ZONE 活动奖励 - 水晶",
+          "reward": "珠宝×300",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "仅国服可用，本网页不提供兑换支持"
+        }
+      ]
     }
   ]
 }
