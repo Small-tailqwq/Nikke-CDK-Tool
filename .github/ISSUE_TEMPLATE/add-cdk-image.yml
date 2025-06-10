@@ -1,0 +1,62 @@
+name: 🖼️ 添加CDK图像
+description: 为CDK添加背景图像
+title: '[图像] 为 [CDK_CODE] 添加背景图'
+labels: ['enhancement', 'image']
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢您为项目添加CDK背景图像！请填写以下信息。
+
+  - type: input
+    id: cdk_code
+    attributes:
+      label: CDK代码
+      description: 请输入CDK代码（必须与JSON中的code字段完全一致）
+      placeholder: 例如：NIKKESTELLARBLADE
+    validations:
+      required: true
+
+  - type: input
+    id: cdk_name
+    attributes:
+      label: CDK名称
+      description: CDK的中文名称
+      placeholder: 例如：剑星联动纪念SP生放送奖励
+
+  - type: textarea
+    id: image_upload
+    attributes:
+      label: 图像文件
+      description: |
+        请拖拽图像文件到此处，或点击选择文件上传。
+
+        **图像要求：**
+        - 格式：PNG、JPG、WebP
+        - 尺寸：建议宽度400px，高度自适应
+        - 大小：不超过2MB
+        - 内容：与CDK相关的背景图或活动图
+    validations:
+      required: true
+
+  - type: input
+    id: image_source
+    attributes:
+      label: 图像来源
+      description: 图像的原始来源（可选）
+      placeholder: 例如：官方推特、游戏截图等
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 确认事项
+      description: 请确认以下事项
+      options:
+        - label: 我确认该图像不侵犯任何版权
+          required: true
+        - label: 我同意该图像在项目中使用
+          required: true
+        - label: 图像内容与CDK相关且适合作为背景
+          required: true

@@ -3,15 +3,89 @@
 // -------------------------------------
 // 类型定义
 // -------------------------------------
-export interface CDK {
+
+// 基础CDK类型
+export interface BaseCDK {
   code: string;
   name?: string;
   status: '可用' | '已过期';
   servers: Array<'global' | 'tw' | 'cn'>;
   reward?: string;
   note?: string;
+}
+
+// 单个CDK类型
+export interface SingleCDK extends BaseCDK {
+  type?: 'single';
   author?: string;
   image?: string;
+}
+
+// CDK组合类型
+export interface CDKGroup {
+  type: 'group';
+  groupId: string;
+  groupName: string;
+  image?: string;
+  note?: string;
+  author?: string;
+  cdks: BaseCDK[];
+}
+
+// 通用CDK类型（向后兼容）
+export type CDK = SingleCDK | CDKGroup;
+
+// 检查是否为CDK组合
+export function isCDKGroup(cdk: CDK): cdk is CDKGroup {
+  return cdk.type === 'group';
+}
+
+// 检查是否为单个CDK
+export function isSingleCDK(cdk: CDK): cdk is SingleCDK {
+  return !cdk.type || cdk.type === 'single';
+}
+
+// 获取CDK组合的总奖励
+export function getGroupTotalReward(group: CDKGroup): string {
+  if (group.cdks.length === 0) return '';
+  return group.cdks
+    .map(cdk => cdk.reward || '')
+    .filter(reward => reward)
+    .join(', ');
+}
+
+// 获取CDK组合中的所有CDK代码
+export function getGroupCodes(group: CDKGroup): string[] {
+  return group.cdks.map(cdk => cdk.code);
+}
+
+// 计算CDK组合的状态
+export function getGroupStatus(group: CDKGroup): '可用' | '已过期' | '部分可用' {
+  if (group.cdks.length === 0) return '已过期';
+  
+  const availableCount = group.cdks.filter(cdk => cdk.status === '可用').length;
+  const totalCount = group.cdks.length;
+  
+  if (availableCount === totalCount) {
+    return '可用';
+  } else if (availableCount === 0) {
+    return '已过期';
+  } else {
+    return '部分可用';
+  }
+}
+
+// 计算CDK组合支持的服务器（取所有子CDK的并集）
+export function getGroupServers(group: CDKGroup): Array<'global' | 'tw' | 'cn'> {
+  const serverSet = new Set<'global' | 'tw' | 'cn'>();
+  
+  group.cdks.forEach(cdk => {
+    cdk.servers.forEach(server => {
+      serverSet.add(server);
+    });
+  });
+  
+  return Array.from(serverSet);
 }
 
 // -------------------------------------

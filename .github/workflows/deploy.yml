@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: 部署到GitHub Pages
 
 on:
   push:
@@ -11,56 +11,34 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    name: 构建和部署
 
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: 设置Node.js环境
         uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: npm
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: npm ci
 
-      - name: Build
+      - name: 构建项目
         run: npm run build
 
-      - name: Copy index.html to 404.html
+      - name: 复制首页文件用于SPA路由支持
         run: cp dist/index.html dist/404.html
 
-      - name: Deploy to gh-pages
+      - name: 部署到GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
           branch: gh-pages
           clean: true
           commit-message: |
-            🚀 Deploy: ${{ github.workflow }} @ ${{ github.sha }}
-
-
-      - name: Detect cdk-list.json changes
-        id: cdk_changed
-        run: |
-          git fetch origin masrer --depth=2
-          if git diff --name-only HEAD^ HEAD | grep -q '^public/cdk-list\.json$'; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Purge jsDelivr & refresh Worker
-        if: steps.cdk_changed.outputs.changed == 'true'
-        env:
-          WORKER_REFRESH: ${{ secrets.WORKER_REFRESH }}
-        run: |
-          echo '🔄 Purge jsDelivr'
-          curl -fsSL "https://purge.jsdelivr.net/gh/Small-tailqwq/Nikke-CDK-Tool@masrer/public/cdk-list.json" || true
-          echo '🔄 Refresh KV'
-          curl -fsSL -X POST "https://nikke-cdk.hayasa.org/api/refresh" \
-               -H "X-Auth-Key: ${WORKER_REFRESH}" || true
-
+            🚀 部署: ${{ github.workflow }} @ ${{ github.sha }}

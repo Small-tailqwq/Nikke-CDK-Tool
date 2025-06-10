@@ -7,7 +7,7 @@
 ```text
 .
 ├── public/                    # 静态资源目录
-│   ├── cdk-list.source.json  # 【请修改我】CDK 列表数据源
+│   ├── cdk-list.source.json  # 【请修改我】CDK 列表数据源（支持单个CDK和组合）
 │   ├── cdk-list.json         # (自动生成) 供浏览器使用的CDK列表
 │   └── announcement-images/  # (自动生成) 缓存的公告图片
 │
@@ -16,7 +16,8 @@
 │   │   └── doro_icon.png    # 多萝图标
 │   │
 │   ├── components/           # 组件
-│   │   └── UserDialog.vue   # 用户管理对话框
+│   │   ├── UserDialog.vue   # 用户管理对话框
+│   │   └── CDKGroupCard.vue # CDK组合卡片组件
 │   │
 │   ├── stores/              # Pinia 状态管理
 │   │   ├── exchange.js      # CDK 兑换状态
@@ -25,12 +26,12 @@
 │   ├── utils/               # 工具函数
 │   │   ├── api.js           # Cloudflare Worker API 接口
 │   │   ├── cookie.js        # Cookie 管理
-│   │   ├── fetchCdk.ts      # CDK 列表获取
+│   │   ├── fetchCdk.ts      # CDK 列表获取与处理
 │   │   └── storage.js       # 本地存储
 │   │
 │   ├── views/               # 页面组件
 │   │   ├── About.vue        # 关于页面
-│   │   ├── CdkAnnouncement.vue  # CDK 公告
+│   │   ├── CdkAnnouncement.vue  # CDK 公告（支持组合显示）
 │   │   ├── CdkExchange.vue      # CDK 兑换
 │   │   ├── ExchangeHistory.vue  # 兑换历史
 │   │   └── UserManagement.vue   # 用户管理
@@ -44,6 +45,9 @@
 │   ├── Nikke-CDK.js             # CDK兑换接口代理
 │   ├── Nikke-CDK-list.js    # CDK 列表加速
 │   └── README.md            # Worker 说明文档
+│
+├── scripts/                  # 构建脚本
+│   └── (处理CDK数据的脚本)   # (自动化处理脚本)
 │
 ├── .github/                  # GitHub 配置
 │   └── workflows/           # GitHub Actions
@@ -66,6 +70,10 @@
 ## 功能特性
 
 - CDK 公告展示
+  - 支持单个CDK和CDK组合显示
+  - 智能状态管理（可用/部分可用/已过期）
+  - 批量选择和兑换功能
+  - 平滑的主题切换动画
 - CDK 兑换功能
 - 兑换历史记录
 - 用户管理
@@ -97,6 +105,7 @@ npm run build
 - 主分支的更改会自动触发部署
 - 部署配置在 `.github/workflows/deploy.yml`
 - 构建产物会部署到 `gh-pages` 分支
+- CDK数据更新时会自动重新构建和部署，无需手动刷新
 
 ### Cloudflare Workers
 
@@ -144,6 +153,7 @@ MIT License
 
 #### 投稿格式
 
+**单个CDK格式：**
 ```json
 {
   "code": "NIKKE2026NEW",
@@ -157,8 +167,36 @@ MIT License
 }
 ```
 
+**CDK组合格式：**
+```json
+{
+  "groupId": "nikke-anniversary-2026",
+  "groupName": "2026周年庆典组合",
+  "image": "",
+  "note": "周年庆典系列CDK",
+  "author": "doro",
+  "cdks": [
+    {
+      "code": "NIKKE2026A",
+      "name": "周年礼包A",
+      "reward": "高级招募券×3",
+      "servers": ["global", "tw"],
+      "status": "可用"
+    },
+    {
+      "code": "NIKKE2026B", 
+      "name": "周年礼包B",
+      "reward": "钻石×500",
+      "servers": ["global", "tw"],
+      "status": "可用"
+    }
+  ]
+}
+```
+
 #### 字段说明
 
+**单个CDK字段：**
 - `code`：CDK 码（必填）
 - `name`：CDK 名称或活动（建议填写）
 - `reward`：奖励内容（建议填写）
@@ -168,12 +206,24 @@ MIT License
 - `note`：备注（可选）
 - `author`：贡献者昵称
 
+**CDK组合字段：**
+- `groupId`：组合唯一标识（必填）
+- `groupName`：组合名称（必填）
+- `image`：组合图片 URL（可选）
+- `note`：组合备注（可选）
+- `author`：贡献者昵称
+- `cdks`：包含的CDK数组（必填），每个CDK包含上述单个CDK的字段
+
 ### 基本使用流程
 
 1. 添加用户：输入用户名、选择服务器、粘贴 Cookie 信息，保存即可
 2. 兑换 CDK：选择用户，输入/粘贴 CDK（支持多行），点击兑换
 3. 查看历史：在"兑换历史"页面查看所有兑换记录
 4. CDK 公告：在"CDK 公告"页面查看最新 CDK 及奖励信息
+   - 支持按服务器和状态筛选CDK
+   - 可批量选择CDK进行兑换
+   - CDK组合支持展开查看详细信息
+   - 智能状态显示（可用/部分可用/已过期）
 
 ## 免责声明
 

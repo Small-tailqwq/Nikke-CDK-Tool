@@ -24,32 +24,24 @@
                   placeholder="选择状态"
                   clearable
                   size="small"
-                  style="width: 100px"
+                  style="width: 110px"
                 >
                   <el-option label="可用" value="可用" />
+                  <el-option label="部分可用" value="部分可用" />
                   <el-option label="已过期" value="已过期" />
                 </el-select>
               </el-form-item>
-              <el-form-item>
+              <!-- 批量操作按钮 -->
+              <el-form-item v-if="selectedCdks.length > 0">
                 <el-button
-                  type="primary"
+                  type="success"
                   size="small"
-                  @click="loadCdkList(true)"
-                  >刷新列表</el-button
+                  @click="handleBatchExchange"
                 >
+                  批量兑换 ({{ selectedCdks.length }})
+                </el-button>
               </el-form-item>
             </el-form>
-
-            <!-- 批量操作按钮 -->
-            <div v-if="selectedCdks.length > 0" class="batch-actions">
-              <el-button
-                type="success"
-                size="small"
-                @click="handleBatchExchange"
-              >
-                批量兑换 ({{ selectedCdks.length }})
-              </el-button>
-            </div>
           </div>
         </el-card>
       </el-col>
@@ -58,7 +50,7 @@
     <el-row :gutter="20">
       <el-col
         v-for="cdk in filteredCdks"
-        :key="cdk.code"
+        :key="getCdkKey(cdk)"
         :xs="24"
         :sm="12"
         :md="8"
@@ -66,7 +58,16 @@
         :xl="6"
         class="mb-4"
       >
+        <!-- CDK组合卡片 -->
+        <CDKGroupCard
+          v-if="isCDKGroup(cdk)"
+          :group="cdk"
+          v-model:selectedCdks="selectedCdks"
+        />
+
+        <!-- 单个CDK卡片 -->
         <el-card
+          v-else
           class="cdk-card"
           :class="{
             available: cdk.status === '可用',
@@ -142,11 +143,11 @@
                 <span>备注</span>
               </el-tooltip>
             </div>
-          </div>
 
-          <!-- Footer -->
-          <div v-if="cdk.author" class="cdk-footer">
-            提供者：{{ cdk.author }}
+            <!-- Footer信息合并到content中 -->
+            <div v-if="cdk.author" class="cdk-author">
+              提供者：{{ cdk.author }}
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -160,9 +161,17 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Document, InfoFilled, Loading, Picture } from '@element-plus/icons-vue'
-import { fetchCdkList } from '../utils/fetchCdk'
-import type { CDK } from '../utils/fetchCdk'
+import {
+  fetchCdkList,
+  isCDKGroup,
+  isSingleCDK,
+  getGroupCodes,
+  getGroupStatus,
+  getGroupServers,
+} from '../utils/fetchCdk'
+import type { CDK, SingleCDK, CDKGroup } from '../utils/fetchCdk'
 import { useRouter } from 'vue-router'
+import CDKGroupCard from '../components/CDKGroupCard.vue'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
@@ -185,6 +194,14 @@ const selectedCdks = ref<string[]>([])
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
 
+// 获取CDK的唯一标识
+const getCdkKey = (cdk: CDK): string => {
+  if (isCDKGroup(cdk)) {
+    return cdk.groupId
+  }
+  return cdk.code
+}
+
 // 获取服务器名称
 const getServerName = (server: string): string => {
   const serverNames: Record<ServerType, string> = {
@@ -205,16 +222,39 @@ const getImageUrl = (localPath: string): string => {
 }
 
 // 加载CDK列表
-const loadCdkList = async (forceRefresh = false) => {
+const loadCdkList = async () => {
   try {
     const data = await fetchCdkList()
-    // 过滤掉状态不是 '可用' 或 '已过期' 的CDK
-    cdkList.value = data.cdks.filter(
-      (cdk) => cdk.status === '可用' || cdk.status === '已过期'
-    )
+    // 过滤掉状态不是 '可用' 或 '已过期' 或 '部分可用' 的CDK
+    cdkList.value = data.cdks.filter((cdk) => {
+      if (isCDKGroup(cdk)) {
+        const status = getGroupStatus(cdk)
+        return status === '可用' || status === '已过期' || status === '部分可用'
+      } else {
+        return cdk.status === '可用' || cdk.status === '已过期'
+      }
+    })
   } catch (error) {
     ElMessage.error('获取CDK列表失败')
     console.error(error)
+  }
+}
+
+// 获取CDK的状态（统一处理单个CDK和组合CDK）
+const getCdkStatus = (cdk: CDK): '可用' | '已过期' | '部分可用' => {
+  if (isCDKGroup(cdk)) {
+    return getGroupStatus(cdk)
+  } else {
+    return cdk.status
+  }
+}
+
+// 获取CDK的服务器列表（统一处理单个CDK和组合CDK）
+const getCdkServers = (cdk: CDK): Array<'global' | 'tw' | 'cn'> => {
+  if (isCDKGroup(cdk)) {
+    return getGroupServers(cdk)
+  } else {
+    return cdk.servers
   }
 }
 
@@ -222,21 +262,32 @@ const loadCdkList = async (forceRefresh = false) => {
 const filteredCdks = computed(() => {
   let result = [...cdkList.value]
 
-  // 优先显示可用的CDK
+  // 优先显示可用的CDK，然后是部分可用，最后是已过期
   result.sort((a, b) => {
-    if (a.status === '可用' && b.status !== '可用') return -1
-    if (a.status !== '可用' && b.status === '可用') return 1
-    return 0
+    const statusA = getCdkStatus(a)
+    const statusB = getCdkStatus(b)
+
+    // 定义状态优先级：可用 > 部分可用 > 已过期
+    const getPriority = (status: string) => {
+      if (status === '可用') return 3
+      if (status === '部分可用') return 2
+      if (status === '已过期') return 1
+      return 0
+    }
+
+    return getPriority(statusB) - getPriority(statusA)
   })
 
   // 应用过滤器
   if (filterForm.value.server) {
     result = result.filter((cdk) =>
-      cdk.servers.includes(filterForm.value.server as ServerType)
+      getCdkServers(cdk).includes(filterForm.value.server as ServerType)
     )
   }
   if (filterForm.value.status) {
-    result = result.filter((cdk) => cdk.status === filterForm.value.status)
+    result = result.filter(
+      (cdk) => getCdkStatus(cdk) === filterForm.value.status
+    )
   }
 
   return result
@@ -331,10 +382,10 @@ const handleBatchExchange = () => {
   selectedCdks.value = []
 }
 
-// 页面加载时获取CDK列表（首次加载不显示提示）
+// 页面加载时获取CDK列表
 onMounted(() => {
   console.log('CDK公告组件已挂载')
-  loadCdkList(false)
+  loadCdkList()
 })
 
 // 组件卸载时保存缓存
@@ -351,8 +402,50 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   overflow-x: hidden;
 
+  /* 美观的滚动条样式 */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+
+    &:active {
+      background: var(--scrollbar-thumb-active);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+
   @media screen and (max-width: 768px) {
     padding: 12px;
+
+    /* 移动端使用更细的滚动条 */
+    &::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      width: 6px;
+    }
   }
 }
 
@@ -380,7 +473,8 @@ onBeforeUnmount(() => {
   border: none;
   height: 100%;
   animation: fadeInUp 0.3s ease-out;
-  transition: transform 0.25s, box-shadow 0.25s; /* 阴影效果跟随圆角轮廓 */
+  transition: transform 0.25s, box-shadow 0.25s, background-color 0.3s ease,
+    border-color 0.3s ease; /* 添加主题切换动画 */
   background: var(--el-bg-color);
 
   @media screen and (max-width: 768px) {
@@ -740,6 +834,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: background-color 0.3s ease; /* 添加主题切换动画 */
 
   @media screen and (max-width: 768px) {
     padding: 12px;
@@ -855,12 +950,20 @@ onBeforeUnmount(() => {
   }
 }
 
-/* =============== Footer =============== */
-.cdk-footer {
-  padding: 0 16px 12px;
-  font-size: 12px;
+/* =============== Author =============== */
+.cdk-author {
+  margin-top: 12px;
+  padding-top: 8px;
   color: var(--el-text-color-secondary);
+  font-size: 12px;
   text-align: right;
+  border-top: 1px solid var(--el-border-color-lighter);
+  transition: color 0.3s ease, border-color 0.3s ease; /* 添加主题切换动画 */
+
+  @media screen and (max-width: 768px) {
+    margin-top: 8px;
+    padding-top: 6px;
+  }
 }
 
 /* =============== 动画 & 暗黑适配 =============== */

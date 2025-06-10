@@ -69,6 +69,12 @@
   --selected-bg: #ecf5ff;
   --selected-border: #409eff;
   --selected-glow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+
+  // 滚动条颜色变量 - 亮色模式
+  --scrollbar-track: rgba(0, 0, 0, 0.04);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.12);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-active: rgba(0, 0, 0, 0.24);
 }
 
 html.dark {
@@ -142,4 +148,134 @@ html.dark {
   --selected-bg: rgba(123, 185, 70, 0.15);
   --selected-border: #7bb946;
   --selected-glow: 0 0 0 2px rgba(123, 185, 70, 0.3), 0 0 12px rgba(123, 185, 70, 0.2);
+
+  // 滚动条颜色变量 - 暗色模式  
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --scrollbar-thumb-active: rgba(255, 255, 255, 0.35);
+}
+
+/* ========== 全局美观滚动条样式 ========== */
+
+/* 标准滚动条 - 适用于大部分容器 */
+.beautiful-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+    border-radius: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background: var(--scrollbar-thumb-hover);
+    }
+
+    &:active {
+      background: var(--scrollbar-thumb-active);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+  }
+}
+
+/* 细滚动条 - 适用于文本区域 */
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: var(--scrollbar-thumb-hover);
+      width: 6px;
+    }
+
+    &:active {
+      background: var(--scrollbar-thumb-active);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
+/* 悬停显示滚动条 - 鼠标悬停时才显示 */
+.hover-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+
+  &:hover {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+
+    &::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+      transition: width 0.2s ease;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+      border-radius: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 6px;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background: var(--scrollbar-thumb-hover);
+      }
+
+      &:active {
+        background: var(--scrollbar-thumb-active);
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: var(--scrollbar-track);
+    }
+  }
+}
+
+/* 隐藏滚动条但保持滚动功能 */
+.hidden-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 } 

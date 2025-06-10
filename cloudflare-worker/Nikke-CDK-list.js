@@ -1,3 +1,4 @@
+// 此文件被弃用，仅供留档
 // ------------- 配置 -------------
 const GITHUB_RAW = 'https://raw.githubusercontent.com/Small-tailqwq/Nikke-CDK-Tool/masrer/public/cdk-list.json';
 
@@ -39,7 +40,7 @@ export default {
       const kvSnap = await env.CDK_JSON.get('latest');
       if (kvSnap) {
         // 后台异步刷新，不阻塞响应
-        ctx.waitUntil(fetchAndCache(env.CDK_JSON).catch(() => {}));
+        ctx.waitUntil(fetchAndCache(env.CDK_JSON).catch(() => { }));
         return jsonResp(kvSnap);
       }
       // ② KV 为空 → 回源 GitHub
