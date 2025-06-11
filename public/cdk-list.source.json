@@ -52,6 +52,14 @@
             "servers": ["cn"],
             "status": "可用",
             "note": "仅国服可用，本网页不提供兑换支持"
+          },
+          {
+            "code": "SLNSZB11",
+            "name": "OVER ZONE 活动直播奖励 - 水晶",
+            "reward": "珠宝×300",
+            "servers": ["cn"],
+            "status": "可用",
+            "note": "仅国服可用，本网页不提供兑换支持"
           }
         ]
       }
