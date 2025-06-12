@@ -71,6 +71,15 @@
         "status": "可用",
         "note": "剑星联动蚊子腿",
         "author": "Small-tailqwq"
+      },
+      {
+        "code": "EVATADAN",
+        "name": "剑星联动奖励",
+        "reward": "珠宝×100",
+        "servers": ["global"],
+        "status": "可用",
+        "note": "剑星联动蚊子腿2",
+        "author": "66kelven66"
       }
     ]
   } 
