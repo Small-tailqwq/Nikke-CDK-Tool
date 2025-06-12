@@ -9,7 +9,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/cdk'
+      redirect: '/announcement'
     },
     {
       path: '/cdk',
