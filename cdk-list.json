@@ -1,13 +1,12 @@
 {
-  "version": 2,
-  "lastUpdate": "2025-06-13T02:11:00Z",
+  "version": 2.5,
+  "lastUpdate": "2025-06-14T04:06:00Z",
   "cdks": [
     {
       "type": "group",
       "groupId": "STELLAR_BLADE_01",
       "groupName": "剑星联动活动奖励",
       "note": "剑星联动相关CDK奖励",
-      "author": "Small-tailqwq",
       "cdks": [
         {
           "code": "NIKKESTELLARBLADE",
@@ -17,7 +16,9 @@
             "global"
           ],
           "status": "可用",
-          "note": "剑星联动纪念SP生放送奖励CDK"
+          "note": "剑星联动纪念SP生放送奖励CDK",
+          "author": "Small-tailqwq",
+          "created": "2025-06-07"
         },
         {
           "code": "STELLARNIKKEMYSG",
@@ -27,7 +28,9 @@
             "global"
           ],
           "status": "可用",
-          "note": "剑星联动蚊子腿"
+          "note": "剑星联动蚊子腿",
+          "author": "Small-tailqwq",
+          "created": "2025-06-12"
         },
         {
           "code": "EVATADAN",
@@ -37,7 +40,9 @@
             "global"
           ],
           "status": "可用",
-          "note": "剑星联动奖励"
+          "note": "剑星联动奖励",
+          "author": "kelven666",
+          "created": "2025-06-12"
         }
       ],
       "image": "/announcement-images/STELLAR_BLADE_01.webp"
@@ -52,6 +57,7 @@
       "status": "可用",
       "note": "蚊子腿也是肉",
       "author": "Small-tailqwq",
+      "created": "2025-06-05",
       "image": "/announcement-images/NIKKEDAILYNEWS.webp"
     },
     {
@@ -59,7 +65,6 @@
       "groupId": "CN_OVERZONE_01",
       "groupName": "OVER ZONE 活动奖励",
       "note": "国服专属活动，三个CDK包含3个CDK",
-      "author": "Small-tailqwq",
       "cdks": [
         {
           "code": "DORO888",
@@ -69,7 +74,9 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持"
+          "note": "仅国服可用，本网页不提供兑换支持",
+          "author": "Small-tailqwq",
+          "created": "2025-06-10"
         },
         {
           "code": "NIKKEXUNLI",
@@ -79,7 +86,9 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持"
+          "note": "仅国服可用，本网页不提供兑换支持",
+          "author": "Small-tailqwq",
+          "created": "2025-06-10"
         },
         {
           "code": "OVERZONE",
@@ -89,7 +98,9 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持"
+          "note": "仅国服可用，本网页不提供兑换支持",
+          "author": "Small-tailqwq",
+          "created": "2025-06-10"
         },
         {
           "code": "SLNSZB11",
@@ -99,7 +110,9 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持"
+          "note": "仅国服可用，本网页不提供兑换支持",
+          "author": "Small-tailqwq",
+          "created": "2025-06-11"
         }
       ],
       "image": "/announcement-images/CN_OVERZONE_01.webp"
