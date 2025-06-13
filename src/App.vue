@@ -4,7 +4,11 @@
       <el-header height="auto">
         <div class="header-content">
           <div class="header-top">
-            <h1>NIKKE CDK兑换工具</h1>
+            <div class="header-spacer"></div>
+            <div class="title-container">
+              <h1>NIKKE CDK Tools</h1>
+              <div class="splash-text">That's no game!</div>
+            </div>
             <div class="header-actions">
               <el-button
                 circle
@@ -78,7 +82,7 @@
       <el-footer height="auto" class="footer">
         <div class="footer-content">
           <div class="footer-section">
-            <h4>NIKKE CDK兑换工具</h4>
+            <h4>NIKKE CDK Tools</h4>
             <p class="copyright">© 2025 | 本工具仅供学习交流使用</p>
             <div class="footer-links">
               <a
@@ -140,10 +144,8 @@
                   >Cloudflare Worker</el-tag
                 >
               </el-tooltip>
-              <el-tooltip content="CDK列表CDN加速" placement="top">
-                <el-tag size="small" type="info" effect="plain"
-                  >jsDelivr</el-tag
-                >
+              <el-tooltip content="本项目的实际缔造者" placement="top">
+                <el-tag size="small" type="info" effect="plain">Cursor</el-tag>
               </el-tooltip>
               <el-tooltip
                 v-if="doroStore.shouldShowButton"
@@ -163,6 +165,26 @@
                 </el-tag>
               </el-tooltip>
             </div>
+            <p class="tech-desc" style="margin-top: 16px">友情链接：</p>
+            <div class="friend-links">
+              <a
+                href="https://github.com/1204244136/DoroHelper"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="friend-link"
+              >
+                <el-tag size="small" type="success" effect="plain">
+                  <el-icon class="github-icon"
+                    ><svg viewBox="0 0 1024 1024" width="1em" height="1em">
+                      <path
+                        fill="currentColor"
+                        d="M511.6 76.3C264.3 76.2 64 276.4 64 523.5 64 718.9 189.3 885 363.8 946c23.5 5.9 19.9-10.8 19.9-22.2v-77.5c-135.7 15.9-141.2-73.9-150.3-88.9C215 726 171.5 718 184.5 703c30.9-15.9 62.4 4 98.9 57.9 26.4 39.1 77.9 32.5 104 26 5.7-23.5 17.9-44.5 34.7-60.8-140.6-25.2-199.2-111-199.2-213 0-49.5 16.3-95 48.3-131.7-20.4-60.5 1.9-112.3 4.9-120 58.1-5.2 118.5 41.6 123.2 45.3 33-8.9 70.7-13.6 112.9-13.6 42.4 0 80.2 4.9 113.5 13.9 11.3-8.6 67.3-48.8 121.3-43.9 2.9 7.7 24.7 58.3 5.5 118 32.4 36.8 48.9 82.7 48.9 132.3 0 102.2-59 188.1-200 212.9a127.5 127.5 0 0 1 38.1 91v112.5c.8 9 0 17.9 15 17.9 177.1-59.7 304.6-227 304.6-424.1 0-247.2-200.4-447.3-447.5-447.3z"
+                      ></path></svg
+                  ></el-icon>
+                  DoroHelper
+                </el-tag>
+              </a>
+            </div>
           </div>
         </div>
       </el-footer>
@@ -179,19 +201,19 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useNavStore } from './stores/nav'
 import { useDoroStore } from './stores/doro'
+import { useUserStore } from './stores/user'
 import { theme, toggleTheme, getThemeIcon, getThemeTitle } from './stores/theme'
-import { Sunny, Moon } from '@element-plus/icons-vue'
 import FloatingDoro from './components/FloatingDoro.vue'
 import DoroSummonAnimation from './components/DoroSummonAnimation.vue'
 import './assets/theme.scss'
 
-const router = useRouter()
 const route = useRoute()
 const navStore = useNavStore()
 const doroStore = useDoroStore()
+const userStore = useUserStore()
 
 // 定义菜单项
 const menuItems = [
@@ -273,9 +295,18 @@ watch(route, (to, from) => {
   }
 })
 
-// 初始化当前页面索引
-onMounted(() => {
+// 初始化当前页面索引和BlablaLink认证管理器
+onMounted(async () => {
   currentPageIndex.value = getPageIndex(route.path)
+
+  // 初始化BlablaLink认证管理器
+  try {
+    console.log('[App] 正在初始化BlablaLink认证管理器...')
+    await userStore.initBlablaAuth()
+    console.log('[App] BlablaLink认证管理器初始化完成')
+  } catch (error) {
+    console.error('[App] BlablaLink认证管理器初始化失败:', error)
+  }
 })
 
 // 彩虹颜色数组
@@ -377,12 +408,50 @@ body {
         align-items: center;
         margin-bottom: 16px;
 
-        h1 {
-          margin: 0;
-          font-size: 24px;
-          color: var(--el-text-color-primary);
+        .header-spacer {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-shrink: 0;
+          width: 72px; // 两个32px按钮 + 8px间距
+          visibility: hidden; // 隐藏但保持布局空间
+        }
+
+        .title-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
           flex: 1;
-          text-align: center;
+          position: relative;
+
+          h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--el-text-color-primary);
+            text-align: center;
+          }
+
+          .splash-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-20%, 20%) scale(1) rotate(-15deg);
+            font-size: 14px;
+            color: #ffff55;
+            font-weight: 500;
+            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+            transform-origin: center center;
+            animation: minecraft-splash 1s ease-in-out infinite alternate;
+            user-select: none;
+            cursor: default;
+            white-space: nowrap;
+
+            // 在暗色模式下调整颜色
+            html.dark & {
+              color: #ffff77;
+              text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+            }
+          }
         }
 
         .header-actions {
@@ -422,6 +491,11 @@ body {
             font-size: 20px;
           }
 
+          .splash-text {
+            font-size: 12px;
+            transform: translate(-15%, 25%) scale(1) rotate(-15deg);
+          }
+
           .header-actions {
             gap: 6px;
           }
@@ -440,6 +514,20 @@ body {
         @media screen and (max-width: 480px) {
           h1 {
             font-size: 18px;
+          }
+
+          .splash-text {
+            font-size: 11px;
+            transform: translate(-10%, 30%) scale(1) rotate(-15deg);
+          }
+
+          @keyframes minecraft-splash {
+            0% {
+              transform: translate(-10%, 30%) scale(1) rotate(-15deg);
+            }
+            100% {
+              transform: translate(-10%, 30%) scale(1.05) rotate(-13deg);
+            }
           }
 
           .header-actions {
@@ -733,6 +821,16 @@ body {
         }
       }
 
+      // Minecraft风格闪烁标语动画
+      @keyframes minecraft-splash {
+        0% {
+          transform: translate(-20%, 20%) scale(1) rotate(-15deg);
+        }
+        100% {
+          transform: translate(-20%, 20%) scale(1.05) rotate(-13deg);
+        }
+      }
+
       // 移动端适配
       @media screen and (max-width: 768px) {
         .nav-menu {
@@ -849,8 +947,20 @@ body {
     }
   }
 
+  .friend-links {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    flex-wrap: wrap;
+
+    @media screen and (max-width: 768px) {
+      justify-content: center;
+    }
+  }
+
   .github-link,
-  .notion-link {
+  .notion-link,
+  .friend-link {
     text-decoration: none;
 
     .el-tag {

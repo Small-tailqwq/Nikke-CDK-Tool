@@ -12,12 +12,13 @@ export interface BaseCDK {
   servers: Array<'global' | 'tw' | 'cn'>;
   reward?: string;
   note?: string;
+  author?: string;
+  created?: string; // 收录日期，格式如 '2024-06-10'
 }
 
 // 单个CDK类型
 export interface SingleCDK extends BaseCDK {
   type?: 'single';
-  author?: string;
   image?: string;
 }
 
@@ -28,8 +29,7 @@ export interface CDKGroup {
   groupName: string;
   image?: string;
   note?: string;
-  author?: string;
-  cdks: BaseCDK[];
+  cdks: SingleCDK[];
 }
 
 // 通用CDK类型（向后兼容）

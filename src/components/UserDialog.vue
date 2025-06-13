@@ -72,7 +72,21 @@
         <el-input v-model="form.uid" disabled />
       </el-form-item>
 
-      <el-form-item label="Cookie信息" prop="cookie">
+      <el-form-item label="游戏URL" v-if="form.server === 'cn'" prop="gameUrl">
+        <el-input
+          v-model="form.gameUrl"
+          type="textarea"
+          :rows="3"
+          placeholder="请粘贴完整的游戏URL，例如：&#10;https://cdn-activity.game.qq.com/xxx?role_id=123&role_name=xxx&area_id=1&zone_id=1&...&#10;&#10;系统会自动解析URL中的参数信息"
+        />
+      </el-form-item>
+
+      <!-- 国际服显示Cookie信息 -->
+      <el-form-item
+        label="Cookie信息"
+        prop="cookie"
+        v-if="form.server !== 'cn'"
+      >
         <template v-if="isEdit && !showCookie">
           <el-card
             class="cookie-mask"
@@ -96,7 +110,7 @@
                 size="small"
                 class="cookie-days"
               >
-                Cookie剩余 {{ form.cookieExpireDays }} 天
+                {{ getCookieStatusText(form.cookieExpireDays) }}
               </el-tag>
             </div>
             <div class="cookie-expire-setting">
@@ -109,7 +123,7 @@
               />
               <span class="expire-days-label">天</span>
               <el-tooltip
-                content="设置 Cookie 的剩余有效期天数，用于计算到期时间"
+                content="系统已自动计算Cookie的剩余有效期天数，您也可以手动调整"
                 placement="top"
               >
                 <el-icon class="info-icon"><InfoFilled /></el-icon>
@@ -144,7 +158,7 @@
                   size="small"
                   class="cookie-days"
                 >
-                  Cookie剩余 {{ form.cookieExpireDays }} 天
+                  {{ getCookieStatusText(form.cookieExpireDays) }}
                 </el-tag>
               </div>
               <div class="cookie-expire-setting">
@@ -157,7 +171,7 @@
                 />
                 <span class="expire-days-label">天</span>
                 <el-tooltip
-                  content="设置 Cookie 的剩余有效期天数，用于计算到期时间"
+                  content="系统已自动计算Cookie的剩余有效期天数，您也可以手动调整"
                   placement="top"
                 >
                   <el-icon class="info-icon"><InfoFilled /></el-icon>
@@ -173,49 +187,93 @@
           :rows="10"
           :placeholder="cookiePlaceholder"
         />
-        <el-popover
-          v-if="showTutorial && currentTutorialField === 'cookie'"
-          :visible="true"
-          :title="tutorialSteps.cookie.title"
-          :placement="tutorialSteps.cookie.placement"
-          width="300"
-          trigger="manual"
-        >
-          <template #reference>
-            <div class="tutorial-target"></div>
-          </template>
-          <p class="tutorial-cookie-content">
-            {{ tutorialSteps.cookie.content }}
-          </p>
-          <div class="tutorial-cookie-actions">
-            <a
-              href="https://github.com/Small-tailqwq/Nikke-CDK-Tool?tab=readme-ov-file#cookie-%E8%8E%B7%E5%8F%96%E4%B8%8E%E5%AE%89%E5%85%A8"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="tutorial-link"
-            >
-              <el-button type="primary"> 查看详细教程 </el-button>
-            </a>
+      </el-form-item>
+
+      <!-- 国服显示角色信息 -->
+      <el-form-item
+        label="角色信息"
+        v-if="form.server === 'cn' && parsedGameInfo"
+      >
+        <div class="cn-game-info">
+          <div class="info-card">
+            <div class="info-row">
+              <span class="info-label">游戏服区:</span>
+              <el-tag
+                :type="parsedGameInfo.area_id === '1' ? 'success' : 'primary'"
+                size="small"
+              >
+                {{ parsedGameInfo.area_id === '1' ? '微信' : 'QQ' }}
+              </el-tag>
+            </div>
+            <div class="info-row">
+              <span class="info-label">角色名称:</span>
+              <span class="info-value">{{
+                parsedGameInfo.role_name_decoded
+              }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">角色ID:</span>
+              <span class="info-value">{{ parsedGameInfo.role_id }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Cookie状态:</span>
+              <el-tag type="info" size="small"> 国服不适用 </el-tag>
+            </div>
           </div>
-          <div class="tutorial-footer">
-            <el-button type="primary" size="small" @click="handleTutorialNext"
-              >完成</el-button
-            >
-            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
+        </div>
+      </el-form-item>
+
+      <!-- 国际服/港澳台服显示角色信息 -->
+      <el-form-item
+        label="角色信息"
+        v-if="
+          (form.server === 'global' || form.server === 'tw') &&
+          (parsedGlobalInfo || globalInfoLoading)
+        "
+      >
+        <div class="global-game-info" v-loading="globalInfoLoading">
+          <div class="info-card" v-if="parsedGlobalInfo">
+            <div class="info-row">
+              <span class="info-label">游戏服区:</span>
+              <el-tag type="primary" size="small">
+                {{ parsedGlobalInfo.region_name }}
+              </el-tag>
+            </div>
+            <div class="info-row">
+              <span class="info-label">角色名称:</span>
+              <span class="info-value">{{ parsedGlobalInfo.role_name }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">角色等级:</span>
+              <span class="info-value">{{
+                parsedGlobalInfo.player_level
+              }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">拥有角色数:</span>
+              <span class="info-value">{{
+                parsedGlobalInfo.own_nikke_cnt
+              }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">战力:</span>
+              <span class="info-value">{{
+                parsedGlobalInfo.team_combat?.toLocaleString()
+              }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Cookie状态:</span>
+              <el-tag
+                :type="getCookieStatusType(form.cookieExpireDays)"
+                size="small"
+              >
+                {{ getCookieStatusText(form.cookieExpireDays) }}
+              </el-tag>
+            </div>
           </div>
-        </el-popover>
-        <div class="form-tip">
-          <p>
-            提示：请从浏览器开发者工具中复制完整的Cookie信息，包含以下字段：
-          </p>
-          <ul>
-            <li>game_token</li>
-            <li>game_gameid</li>
-            <li>game_openid</li>
-            <li>game_uid</li>
-            <li>game_channelid</li>
-            <li>game_user_name</li>
-          </ul>
+          <div class="loading-placeholder" v-else-if="globalInfoLoading">
+            <span>正在获取角色信息...</span>
+          </div>
         </div>
       </el-form-item>
     </el-form>
@@ -232,23 +290,12 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  reactive,
-  defineProps,
-  defineEmits,
-  watch,
-  nextTick,
-  computed,
-} from 'vue'
+import { ref, reactive, watch, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  Lock,
-  InfoFilled,
-  ArrowRight,
-  ArrowLeft,
-} from '@element-plus/icons-vue'
+import { Lock, InfoFilled, ArrowLeft } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
+import { useExchangeStore } from '../stores/exchange'
+import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
 
 const props = defineProps({
   visible: {
@@ -268,63 +315,34 @@ const props = defineProps({
 const emit = defineEmits(['update:visible'])
 
 const userStore = useUserStore()
+const exchangeStore = useExchangeStore()
 const formRef = ref(null)
 const saving = ref(false)
 const dialogVisible = ref(false)
 const showCookie = ref(false)
 
-// 新增：新手教程相关
-const showTutorial = ref(!userStore.getTutorialShown())
-
-// 新增：教程步骤
-const tutorialSteps = computed(() => ({
+// 添加教程相关变量
+const showTutorial = ref(false)
+const currentTutorialField = ref('')
+const tutorialSteps = {
   name: {
-    title: '用户名说明',
-    content: isMobile.value
-      ? '用户名用于区分多个账号，可自由设置。'
-      : '用户名仅用于区分多个账号，方便您管理。这不是游戏登录名，可以自由设置。',
-    placement: isMobile.value ? 'bottom' : 'right',
+    title: '设置用户名',
+    content: '输入一个便于识别的用户名',
+    placement: 'bottom',
   },
   server: {
-    title: '服务器说明',
-    content: isMobile.value
-      ? '选择您的游戏服务器。'
-      : '选择您的游戏服务器。目前此选项仅用于区分不同服务器的账号，暂无实际业务作用。',
-    placement: isMobile.value ? 'bottom' : 'right',
+    title: '选择服务器',
+    content: '选择您游戏所在的服务器',
+    placement: 'bottom',
   },
-  cookie: {
-    title: 'Cookie信息说明',
-    content: isMobile.value
-      ? '请从游戏CDK兑换页面获取Cookie信息。'
-      : '您需要从游戏CDK兑换页面获取Cookie信息。为了确保您能正确获取Cookie，我们提供了详细的图文教程。',
-    placement: isMobile.value ? 'bottom' : 'left',
-  },
-}))
-
-// 新增：当前显示的教程步骤
-const currentTutorialField = ref(null)
-
-// 新增：处理教程显示
-const handleTutorialNext = () => {
-  const fields = ['name', 'server', 'cookie']
-  const currentIndex = fields.indexOf(currentTutorialField.value)
-
-  if (currentIndex === -1) {
-    currentTutorialField.value = fields[0]
-  } else if (currentIndex < fields.length - 1) {
-    currentTutorialField.value = fields[currentIndex + 1]
-  } else {
-    currentTutorialField.value = null
-    showTutorial.value = false
-    userStore.setTutorialShown(true)
-  }
 }
 
-// 新增：跳过教程
-const skipTutorial = () => {
-  showTutorial.value = false
-  userStore.setTutorialShown(true)
-}
+// 国服游戏信息解析
+const parsedGameInfo = ref(null)
+
+// 国际服角色信息解析
+const parsedGlobalInfo = ref(null)
+const globalInfoLoading = ref(false)
 
 // 服务器选项
 const serverOptions = [
@@ -338,28 +356,402 @@ const form = reactive({
   name: '',
   server: 'global',
   cookie: '',
-  cookieExpireDays: 365,
+  cookieExpireDays: 0, // 将由Cookie解析函数自动计算
   uid: '',
+  gameUrl: '',
 })
 
 // 临时存储编辑模式的数据
 const editFormData = ref(null)
 
-// Cookie输入框提示文本
-const cookiePlaceholder = `请粘贴完整的Cookie信息，支持以下两种格式：
+// 解析Cookie过期时间
+const parseCookieExpireDate = (cookieStr) => {
+  // 默认值：如果无法解析，返回365天
+  const defaultDays = 365
 
-1. 从Application面板复制的格式：
+  try {
+    // 首先尝试解析Application面板复制的格式（优先级最高）
+    if (cookieStr.includes('\t')) {
+      const cookieLines = cookieStr.split('\n').filter((line) => line.trim())
+      let latestExpireDate = null
+
+      for (const line of cookieLines) {
+        const parts = line.split('\t')
+        if (parts.length >= 5) {
+          const expireDateStr = parts[4]?.trim()
+          if (expireDateStr && expireDateStr !== 'Session') {
+            try {
+              const expireDate = new Date(expireDateStr)
+              if (!isNaN(expireDate.getTime())) {
+                // 找到最远的过期日期（而不是最近的）
+                if (!latestExpireDate || expireDate > latestExpireDate) {
+                  latestExpireDate = expireDate
+                }
+              }
+            } catch (e) {
+              console.warn('无法解析Application面板日期:', expireDateStr)
+            }
+          }
+        }
+      }
+
+      if (latestExpireDate) {
+        const now = new Date()
+        const diffTime = latestExpireDate - now
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        console.log(
+          '从Application面板解析到过期时间:',
+          latestExpireDate.toISOString(),
+          '剩余天数:',
+          diffDays
+        )
+        return Math.max(1, diffDays) // 至少返回1天
+      }
+    }
+
+    // 特别检查OptanonAlertBoxClosed这个常见的Cookie
+    const optanonMatch = cookieStr.match(/OptanonAlertBoxClosed=([^;]+)/i)
+    if (optanonMatch && optanonMatch[1]) {
+      try {
+        const dateStr = optanonMatch[1].trim()
+        console.log('找到OptanonAlertBoxClosed:', dateStr)
+
+        // 尝试直接解析ISO格式日期
+        const expireDate = new Date(dateStr)
+
+        // 检查日期是否有效
+        if (!isNaN(expireDate.getTime())) {
+          // 对于OptanonAlertBoxClosed，需要加一年作为实际过期时间
+          const actualExpireDate = new Date(expireDate)
+          actualExpireDate.setFullYear(actualExpireDate.getFullYear() + 1)
+
+          const now = new Date()
+          const diffTime = actualExpireDate - now
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          console.log(
+            '从OptanonAlertBoxClosed解析到过期时间(+1年):',
+            actualExpireDate.toISOString(),
+            '剩余天数:',
+            diffDays
+          )
+          return Math.max(1, diffDays) // 至少返回1天
+        } else {
+          console.log('OptanonAlertBoxClosed日期无效:', expireDate)
+        }
+      } catch (e) {
+        console.warn('解析OptanonAlertBoxClosed日期失败:', optanonMatch[1], e)
+      }
+    }
+
+    // 检查datestamp参数
+    const datestampMatch = cookieStr.match(/datestamp=([^&]+)/i)
+    if (datestampMatch && datestampMatch[1]) {
+      try {
+        // 解码URL编码的日期字符串
+        const dateStr = decodeURIComponent(datestampMatch[1].trim())
+        console.log('找到datestamp:', dateStr)
+
+        // 处理特殊格式 "Sun+Jun+08+2025+20:30:51+GMT+0800+(香港标准时间)"
+        let expireDate
+
+        // 尝试多种格式
+        if (dateStr.includes('+')) {
+          // 替换多个+为空格，尝试解析
+          const cleanDateStr = dateStr.replace(/\+/g, ' ')
+          expireDate = new Date(cleanDateStr)
+          console.log(
+            '尝试解析清理后的datestamp:',
+            cleanDateStr,
+            '结果:',
+            expireDate
+          )
+        } else {
+          expireDate = new Date(dateStr)
+        }
+
+        // 检查日期是否有效
+        if (!isNaN(expireDate.getTime())) {
+          // 对于datestamp，需要加一年作为实际过期时间
+          const actualExpireDate = new Date(expireDate)
+          actualExpireDate.setFullYear(actualExpireDate.getFullYear() + 1)
+
+          const now = new Date()
+          const diffTime = actualExpireDate - now
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          console.log(
+            '从datestamp解析到过期时间(+1年):',
+            actualExpireDate.toISOString(),
+            '剩余天数:',
+            diffDays
+          )
+          return Math.max(1, diffDays) // 至少返回1天
+        } else {
+          console.log('datestamp日期无效:', expireDate)
+        }
+      } catch (e) {
+        console.warn('解析datestamp日期失败:', datestampMatch[1], e)
+      }
+    }
+
+    // 检查是否包含多行（可能是从Application面板复制的格式，但不是制表符分隔的）
+    if (cookieStr.includes('\n') && !cookieStr.includes('\t')) {
+      const cookieLines = cookieStr.split('\n').filter((line) => line.trim())
+      let latestExpireDate = null
+
+      for (const line of cookieLines) {
+        // 支持空格分隔的格式
+        const parts = line.split(/\s{2,}/)
+
+        if (parts.length >= 5) {
+          // 第五列通常是过期时间
+          const expireDateStr = parts[4]?.trim()
+
+          if (expireDateStr && expireDateStr !== 'Session') {
+            try {
+              const expireDate = new Date(expireDateStr)
+
+              // 检查日期是否有效
+              if (!isNaN(expireDate.getTime())) {
+                // 找到最远的过期日期（而不是最早的）
+                if (!latestExpireDate || expireDate > latestExpireDate) {
+                  latestExpireDate = expireDate
+                }
+              }
+            } catch (e) {
+              console.warn('无法解析日期:', expireDateStr, e)
+            }
+          }
+        }
+      }
+
+      // 如果找到有效的过期日期，计算剩余天数
+      if (latestExpireDate) {
+        const now = new Date()
+        const diffTime = latestExpireDate - now
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        console.log(
+          '从多行格式解析到过期时间:',
+          latestExpireDate.toISOString(),
+          '剩余天数:',
+          diffDays
+        )
+        return Math.max(1, diffDays) // 至少返回1天
+      }
+    }
+
+    // 尝试从字符串中查找日期格式（ISO格式或标准日期格式）
+    const dateRegex =
+      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{4}|\d{4}-\d{2}-\d{2}/g
+    const matches = cookieStr.match(dateRegex)
+
+    if (matches && matches.length > 0) {
+      let latestExpireDate = null
+
+      for (const match of matches) {
+        try {
+          const expireDate = new Date(match)
+
+          // 检查日期是否有效（不一定要在未来）
+          if (!isNaN(expireDate.getTime())) {
+            // 如果日期在过去，尝试加一年（可能是Cookie创建日期）
+            let adjustedDate = new Date(expireDate)
+            if (adjustedDate < new Date()) {
+              adjustedDate.setFullYear(adjustedDate.getFullYear() + 1)
+              console.log(
+                '日期在过去，尝试加一年:',
+                match,
+                '调整为:',
+                adjustedDate
+              )
+            }
+
+            console.log('找到日期格式:', match, '解析为:', adjustedDate)
+
+            // 如果这是第一个有效日期，或者比之前找到的日期更远，则更新
+            if (!latestExpireDate || adjustedDate > latestExpireDate) {
+              latestExpireDate = adjustedDate
+            }
+          }
+        } catch (e) {
+          console.warn('无法解析日期:', match, e)
+        }
+      }
+
+      // 如果找到有效的过期日期，计算剩余天数
+      if (latestExpireDate) {
+        const now = new Date()
+        const diffTime = latestExpireDate - now
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        console.log(
+          '最终解析到的过期日期:',
+          latestExpireDate.toISOString(),
+          '剩余天数:',
+          diffDays
+        )
+        return Math.max(1, diffDays) // 至少返回1天
+      }
+    }
+
+    // 尝试从标准Cookie字符串中解析 expires 属性
+    if (cookieStr.includes('expires=')) {
+      const expiresMatches = cookieStr.match(/expires=([^;]+)/gi)
+      if (expiresMatches && expiresMatches.length > 0) {
+        let latestExpireDate = null
+
+        for (const match of expiresMatches) {
+          const dateStr = match.replace(/expires=/i, '').trim()
+          try {
+            const expireDate = new Date(dateStr)
+
+            // 检查日期是否有效
+            if (!isNaN(expireDate.getTime())) {
+              // 如果日期在过去，尝试加一年
+              let adjustedDate = new Date(expireDate)
+              if (adjustedDate < new Date()) {
+                adjustedDate.setFullYear(adjustedDate.getFullYear() + 1)
+                console.log(
+                  'expires日期在过去，尝试加一年:',
+                  dateStr,
+                  '调整为:',
+                  adjustedDate
+                )
+              }
+
+              // 找到最远的过期日期
+              if (!latestExpireDate || adjustedDate > latestExpireDate) {
+                latestExpireDate = adjustedDate
+              }
+            }
+          } catch (e) {
+            console.warn('无法解析expires日期:', dateStr, e)
+          }
+        }
+
+        // 如果找到有效的过期日期，计算剩余天数
+        if (latestExpireDate) {
+          const now = new Date()
+          const diffTime = latestExpireDate - now
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+          console.log(
+            '从expires解析到过期时间:',
+            latestExpireDate.toISOString(),
+            '剩余天数:',
+            diffDays
+          )
+          return Math.max(1, diffDays) // 至少返回1天
+        }
+      }
+    }
+
+    // 尝试从标准Cookie字符串中解析 max-age 属性（秒为单位）
+    if (cookieStr.includes('max-age=')) {
+      const maxAgeMatches = cookieStr.match(/max-age=(\d+)/gi)
+      if (maxAgeMatches && maxAgeMatches.length > 0) {
+        let minMaxAge = null
+
+        for (const match of maxAgeMatches) {
+          const maxAgeStr = match.replace(/max-age=/i, '').trim()
+          const maxAge = parseInt(maxAgeStr, 10)
+
+          // 检查max-age是否有效
+          if (!isNaN(maxAge)) {
+            // 如果这是第一个有效值，或者比之前找到的值更小，则更新
+            if (minMaxAge === null || maxAge < minMaxAge) {
+              minMaxAge = maxAge
+            }
+          }
+        }
+
+        // 如果找到有效的max-age，转换为天数
+        if (minMaxAge !== null) {
+          const diffDays = Math.ceil(minMaxAge / (60 * 60 * 24))
+          return Math.max(1, diffDays) // 至少返回1天
+        }
+      }
+    }
+
+    // 如果上述方法都失败，尝试直接从字符串中提取年份，并构造一个日期
+    const yearMatch = cookieStr.match(/\b(202[0-9])\b/g)
+    if (yearMatch && yearMatch.length > 0) {
+      // 找到所有年份
+      const years = yearMatch
+        .map((year) => parseInt(year, 10))
+        .filter((year) => !isNaN(year))
+        .sort((a, b) => b - a) // 降序排列，优先使用最远的年份
+
+      if (years.length > 0) {
+        const maxYear = years[0] // 获取最大年份
+        const currentYear = new Date().getFullYear()
+
+        // 如果年份是当前年份或过去年份，尝试加一年
+        let targetYear = maxYear
+        if (maxYear <= currentYear) {
+          targetYear = currentYear + 1
+          console.log('提取的年份不在未来，使用当前年份+1:', targetYear)
+        }
+
+        // 构造一个简单的日期：该年的1月1日
+        const futureDate = new Date(targetYear, 0, 1)
+        const now = new Date()
+        const diffTime = futureDate - now
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        console.log(
+          '从年份构造日期:',
+          futureDate.toISOString(),
+          '剩余天数:',
+          diffDays
+        )
+        return Math.max(1, diffDays) // 至少返回1天
+      }
+    }
+  } catch (error) {
+    console.warn('解析Cookie过期时间失败:', error)
+  }
+
+  // 如果无法解析，返回默认值
+  console.log('无法解析Cookie过期时间，使用默认值:', defaultDays)
+  return defaultDays
+}
+
+// Cookie输入框提示文本
+const cookiePlaceholder = computed(() => {
+  return `请粘贴完整的Cookie信息，支持以下两种格式：
+
+1. 从Application面板复制的格式（推荐，可自动解析过期时间）：
 game_token  abc123  .domain.com  /  2024-01-01
 game_uid    123456  .domain.com  /  2024-01-01
 
-2. 标准Cookie格式：
-game_token=abc123; game_uid=123456`
+2. 标准Cookie格式（如包含expires或max-age属性也可自动解析过期时间）：
+game_token=abc123; game_uid=123456; expires=Wed, 21 Oct 2023 07:28:00 GMT`
+})
 
 // 获取Cookie状态对应的标签类型
 const getCookieStatusType = (days) => {
   if (days > 180) return 'success'
   if (days > 30) return 'warning'
   return 'danger'
+}
+
+// 获取更友好的Cookie状态文本
+const getCookieStatusText = (days) => {
+  if (days > 365) return `Cookie有效期超过1年`
+  if (days > 180) return `Cookie有效期${days}天`
+  if (days > 30) return `Cookie有效期${days}天`
+  return `Cookie即将过期(${days}天)`
+}
+
+// 处理教程相关函数
+const handleTutorialNext = () => {
+  if (currentTutorialField.value === 'name') {
+    currentTutorialField.value = 'server'
+  } else {
+    skipTutorial()
+  }
+}
+
+const skipTutorial = () => {
+  showTutorial.value = false
+  currentTutorialField.value = ''
 }
 
 // 表单验证规则
@@ -370,14 +762,25 @@ const rules = {
   ],
   server: [{ required: true, message: '请选择服务器', trigger: 'change' }],
   cookie: [
-    { required: true, message: '请输入Cookie信息', trigger: 'blur' },
+    {
+      required: () => form.server !== 'cn',
+      message: '请输入Cookie信息',
+      trigger: 'blur',
+    },
     {
       validator: (rule, value, callback) => {
+        // 国服不验证cookie字段
+        if (form.server === 'cn') {
+          callback()
+          return
+        }
+
         if (!value) {
           callback(new Error('请输入Cookie信息'))
           return
         }
 
+        // 国际服使用原有的Cookie验证逻辑
         // 处理从Application面板复制的Cookie格式
         let cookieStr = value
 
@@ -417,6 +820,10 @@ const rules = {
           return
         }
 
+        // 解析Cookie过期时间
+        const expireDays = parseCookieExpireDate(value)
+        form.cookieExpireDays = expireDays
+
         // 更新表单中的Cookie值为处理后的格式
         form.cookie = cookieStr
         callback()
@@ -424,10 +831,50 @@ const rules = {
       trigger: 'blur',
     },
   ],
+  gameUrl: [
+    {
+      required: true,
+      message: '请输入游戏URL',
+      trigger: 'blur',
+      validator: (rule, value, callback) => {
+        if (form.server !== 'cn') {
+          callback()
+          return
+        }
+
+        if (!value) {
+          callback(new Error('请输入游戏URL'))
+          return
+        }
+
+        const result = parseGameUrlCN(value)
+        if (!result.isValid) {
+          const errorMsg =
+            result.missingParams?.length > 0
+              ? `游戏URL缺少必要参数: ${result.missingParams.join(', ')}`
+              : '游戏URL格式不正确'
+          callback(new Error(errorMsg))
+          return
+        }
+
+        callback()
+      },
+    },
+  ],
 }
 
 // 检测是否为移动端
 const isMobile = computed(() => window.innerWidth <= 768)
+
+// 监听Cookie值变化，自动更新过期时间
+watch(
+  () => form.cookie,
+  (newValue) => {
+    if (form.server !== 'cn' && newValue) {
+      form.cookieExpireDays = parseCookieExpireDate(newValue)
+    }
+  }
+)
 
 // 监听visible属性变化
 watch(
@@ -448,21 +895,44 @@ watch(
             name: userData.name,
             server: userData.server,
             cookie: userData.cookie,
-            cookieExpireDays: userData.cookieExpireDays || 365,
+            cookieExpireDays: userData.cookieExpireDays || 0,
             uid: userData.uid,
+            gameUrl: userData.gameUrl,
           })
+
+          // 如果是国际服或港澳台服，重新解析Cookie过期时间
+          if (userData.server !== 'cn' && userData.cookie) {
+            form.cookieExpireDays = parseCookieExpireDate(userData.cookie)
+          }
+
+          // 如果是国服，需要解析游戏信息
+          if (userData.server === 'cn' && userData.gameUrl) {
+            nextTick(() => {
+              handleGameUrlParse()
+            })
+          }
+
+          // 如果是国际服或港澳台服，需要加载角色信息
+          if (
+            (userData.server === 'global' || userData.server === 'tw') &&
+            userData.cookie
+          ) {
+            // 如果已有存储的角色信息，直接显示
+            if (userData.playerInfo) {
+              parsedGlobalInfo.value = userData.playerInfo
+            } else {
+              // 否则重新获取角色信息
+              nextTick(() => {
+                handleGlobalCookieParse()
+              })
+            }
+          }
         }
       } else {
         // 添加模式：重置表单
         resetForm()
         editFormData.value = null
-        // 初始化教程状态
-        showTutorial.value = !userStore.getTutorialShown()
-        if (showTutorial.value) {
-          nextTick(() => {
-            currentTutorialField.value = 'name'
-          })
-        }
+        parsedGameInfo.value = null
       }
     } else {
       // 对话框关闭时，如果是编辑模式且没有保存，恢复原始数据
@@ -475,9 +945,9 @@ watch(
       }
       // 清理临时数据
       editFormData.value = null
-      // 重置教程状态
-      showTutorial.value = false
-      currentTutorialField.value = null
+      parsedGameInfo.value = null
+      parsedGlobalInfo.value = null
+      clearTimeout(window.globalCookieParseTimer)
     }
   }
 )
@@ -500,8 +970,9 @@ const resetForm = () => {
     name: '',
     server: 'global',
     cookie: '',
-    cookieExpireDays: 365,
+    cookieExpireDays: 0, // 将由Cookie解析函数自动计算
     uid: '',
+    gameUrl: '',
   })
 }
 
@@ -509,6 +980,147 @@ const resetForm = () => {
 const handleClose = () => {
   dialogVisible.value = false
 }
+
+// 处理国服游戏URL解析
+const handleGameUrlParse = async () => {
+  if (!form.gameUrl || form.server !== 'cn') {
+    parsedGameInfo.value = null
+    return
+  }
+
+  try {
+    const result = parseGameUrlCN(form.gameUrl)
+
+    if (!result.isValid) {
+      parsedGameInfo.value = null
+      const errorMsg =
+        result.missingParams?.length > 0
+          ? `游戏URL缺少必要参数: ${result.missingParams.join(', ')}`
+          : '游戏URL格式不正确，请检查URL是否完整'
+      ElMessage.error(errorMsg)
+      return
+    }
+
+    // 解码角色名称
+    const roleNameDecoded = result.params.role_name
+      ? decodeURIComponent(result.params.role_name)
+      : ''
+
+    // 设置解析后的游戏信息
+    parsedGameInfo.value = {
+      ...result.params,
+      role_name_decoded: roleNameDecoded,
+    }
+
+    // 自动填充用户名和UID
+    if (roleNameDecoded && !form.name) {
+      form.name = roleNameDecoded
+    }
+
+    if (result.params.role_id) {
+      form.uid = result.params.role_id
+    }
+
+    // 将解析后的参数作为cookie存储（国服特殊处理）
+    form.cookie = JSON.stringify(result.params)
+  } catch (error) {
+    parsedGameInfo.value = null
+    console.error('解析游戏URL时出错:', error)
+  }
+}
+
+// 监听游戏URL变化
+watch(() => form.gameUrl, handleGameUrlParse)
+
+// 处理国际服Cookie解析，获取角色信息
+const handleGlobalCookieParse = async () => {
+  if (!form.cookie || form.server === 'cn') {
+    parsedGlobalInfo.value = null
+    return
+  }
+
+  // 只有国际服和港澳台服才需要获取角色信息
+  if (form.server !== 'global' && form.server !== 'tw') {
+    parsedGlobalInfo.value = null
+    return
+  }
+
+  try {
+    globalInfoLoading.value = true
+
+    // 验证Cookie格式是否正确
+    const requiredFields = [
+      'game_token',
+      'game_gameid',
+      'game_openid',
+      'game_uid',
+      'game_channelid',
+      'game_user_name',
+    ]
+
+    const missingFields = requiredFields.filter(
+      (field) => !form.cookie.includes(field)
+    )
+
+    if (missingFields.length > 0) {
+      console.warn('Cookie缺少必要字段，跳过角色信息获取:', missingFields)
+      parsedGlobalInfo.value = null
+      return
+    }
+
+    // 调用API获取角色信息
+    const result = await getGlobalUserCompleteInfo(form.cookie)
+
+    if (result.success && result.data) {
+      parsedGlobalInfo.value = result.data
+
+      // 如果用户名为空，自动填充角色名
+      if (!form.name && result.data.role_name) {
+        form.name = result.data.role_name
+      }
+
+      // 自动填充UID
+      if (result.data.role_name) {
+        form.uid = form.cookie.match(/game_uid=([^;]+)/)?.[1] || ''
+      }
+
+      console.log('成功获取国际服角色信息:', result.data)
+    } else {
+      console.warn('获取国际服角色信息失败:', result.message)
+      parsedGlobalInfo.value = null
+    }
+  } catch (error) {
+    console.error('解析国际服角色信息时出错:', error)
+    parsedGlobalInfo.value = null
+  } finally {
+    globalInfoLoading.value = false
+  }
+}
+
+// 监听Cookie变化，自动获取角色信息
+watch(
+  () => form.cookie,
+  (newCookie) => {
+    if (form.server !== 'cn' && newCookie) {
+      // 延迟一点时间执行，避免在表单验证过程中频繁调用
+      clearTimeout(window.globalCookieParseTimer)
+      window.globalCookieParseTimer = setTimeout(() => {
+        handleGlobalCookieParse()
+      }, 1000)
+    } else {
+      parsedGlobalInfo.value = null
+    }
+  }
+)
+
+// 监听服务器变化，清理角色信息
+watch(
+  () => form.server,
+  () => {
+    parsedGlobalInfo.value = null
+    clearTimeout(window.globalCookieParseTimer)
+  }
+)
 
 // 处理提交
 const handleSubmit = async () => {
@@ -519,21 +1131,97 @@ const handleSubmit = async () => {
 
     saving.value = true
 
-    // 解析Cookie中的用户信息
-    const uid = form.cookie.match(/game_uid=([^;]+)/)?.[1] || ''
-    const userName =
-      form.cookie.match(/game_user_name=([^;]+)/)?.[1] || form.name
+    let uid = ''
+    let userName = form.name
+
+    if (form.server === 'cn') {
+      // 国服：从解析的参数中获取信息
+      try {
+        const params = JSON.parse(form.cookie)
+        uid = params.role_id || ''
+        userName = decodeURIComponent(params.role_name || form.name)
+      } catch (error) {
+        console.warn('解析国服参数失败:', error)
+      }
+    } else {
+      // 国际服：从Cookie中解析用户信息
+      uid = form.cookie.match(/game_uid=([^;]+)/)?.[1] || ''
+      userName = form.cookie.match(/game_user_name=([^;]+)/)?.[1] || form.name
+    }
+
+    // 构建服务器显示名称
+    let serverName = serverOptions.find((s) => s.value === form.server)?.label
+    if (form.server === 'cn' && parsedGameInfo.value) {
+      serverName = `国服 | ${
+        parsedGameInfo.value.area_id === '1' ? '微信' : 'QQ'
+      }`
+    } else if (
+      (form.server === 'global' || form.server === 'tw') &&
+      parsedGlobalInfo.value
+    ) {
+      serverName = `${
+        serverOptions.find((s) => s.value === form.server)?.label
+      } | ${parsedGlobalInfo.value.region_name}`
+    }
 
     const userData = {
       name: form.name,
       server: form.server,
-      serverName: serverOptions.find((s) => s.value === form.server)?.label,
+      serverName,
       uid,
       userName,
       cookie: form.cookie,
       cookieExpireDays: Number(form.cookieExpireDays),
     }
 
+    // 如果是国服，额外保存原始游戏URL，并设置Cookie过期天数为0（表示不适用）
+    if (form.server === 'cn') {
+      userData.gameUrl = form.gameUrl
+      userData.cookieExpireDays = 0 // 国服不适用Cookie过期天数
+    } else if (
+      (form.server === 'global' || form.server === 'tw') &&
+      parsedGlobalInfo.value
+    ) {
+      // 国际服和港澳台服：保存角色详细信息
+      userData.playerInfo = {
+        player_level: parsedGlobalInfo.value.player_level,
+        own_nikke_cnt: parsedGlobalInfo.value.own_nikke_cnt,
+        team_combat: parsedGlobalInfo.value.team_combat,
+        region_name: parsedGlobalInfo.value.region_name,
+        region_id: parsedGlobalInfo.value.region_id,
+        area_id: parsedGlobalInfo.value.area_id,
+        role_name: parsedGlobalInfo.value.role_name,
+        // 可以保存更多信息
+        avatar_frame: parsedGlobalInfo.value.avatar_frame,
+        costume: parsedGlobalInfo.value.costume,
+        guild_name: parsedGlobalInfo.value.guild_name,
+        hard_progress: parsedGlobalInfo.value.hard_progress,
+        normal_progress: parsedGlobalInfo.value.normal_progress,
+        tower_floor: parsedGlobalInfo.value.tower_floor,
+        icon: parsedGlobalInfo.value.icon,
+      }
+    }
+
+    if (form.server !== 'cn') {
+      // 国际服和港澳台服：设置浏览器Cookie
+      try {
+        // 导入Cookie设置工具
+        const { setBlablaLinkCookies } = await import('../utils/browser-cookie')
+        // 设置浏览器Cookie
+        const success = setBlablaLinkCookies(form.cookie, form.cookieExpireDays)
+        if (success) {
+          console.log(
+            `[UserDialog] 成功设置浏览器Cookie，过期天数: ${form.cookieExpireDays}`
+          )
+        } else {
+          console.warn('[UserDialog] 设置浏览器Cookie失败')
+        }
+      } catch (error) {
+        console.error('[UserDialog] 设置浏览器Cookie出错:', error)
+      }
+    }
+
+    let savedUser
     if (props.isEdit && props.userId) {
       // 编辑模式：保留原有用户的 id 和创建时间
       const existingUser = userStore.getUserById(props.userId)
@@ -544,13 +1232,37 @@ const handleSubmit = async () => {
       await userStore.updateUser(props.userId, userData)
       // 更新成功后清理临时数据
       editFormData.value = null
+      savedUser = userStore.getUserById(props.userId)
     } else {
       // 添加模式：创建新用户
       userData.createTime = new Date().toLocaleString()
-      await userStore.addUser(userData)
+      savedUser = await userStore.addUser(userData)
     }
 
     ElMessage.success(props.isEdit ? '更新成功' : '添加成功')
+
+    // 如果是国际服或港澳台服用户，尝试同步历史记录
+    if (savedUser && savedUser.server !== 'cn') {
+      // 使用setTimeout确保对话框关闭后再同步，避免UI阻塞
+      setTimeout(() => {
+        try {
+          // 使用普通同步方法，只同步第一页
+          exchangeStore
+            .syncUserHistory(savedUser, { page: 1 })
+            .then((result) => {
+              if (result && result.success) {
+                console.log('自动同步历史记录成功:', result.message)
+              }
+            })
+            .catch((err) => {
+              console.warn('自动同步历史记录失败:', err)
+            })
+        } catch (error) {
+          console.warn('同步历史记录出错:', error)
+        }
+      }, 500)
+    }
+
     handleClose()
   } catch (error) {
     if (error.message) {
@@ -615,45 +1327,6 @@ const handleSubmit = async () => {
         }
       }
 
-      // 新增：移动端教程弹窗样式
-      .el-popover {
-        max-width: 85vw !important;
-        width: auto !important;
-        min-width: 200px !important;
-        position: fixed !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        margin: 8px 0 !important;
-        z-index: 2001 !important;
-
-        .tutorial-footer {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          margin-top: 12px;
-
-          .el-button {
-            width: 100%;
-            margin-left: 0;
-          }
-        }
-
-        .tutorial-cookie-actions {
-          margin: 12px 0;
-
-          .el-button {
-            width: 100%;
-          }
-        }
-
-        p {
-          font-size: 14px;
-          line-height: 1.5;
-          margin: 0;
-          padding: 0;
-        }
-      }
-
       // 优化表单在移动端的间距
       .el-form-item {
         margin-bottom: 20px;
@@ -661,15 +1334,6 @@ const handleSubmit = async () => {
 
         &:last-child {
           margin-bottom: 0;
-        }
-
-        .tutorial-target {
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 100%;
-          height: 1px;
-          z-index: 2000;
         }
 
         // 特别处理cookie字段的间距
@@ -1011,130 +1675,149 @@ const handleSubmit = async () => {
     }
   }
 
-  .form-tip {
-    margin-top: 12px;
-    padding: 12px;
-    background-color: var(--el-fill-color-light);
-    border-radius: 4px;
-    font-size: 12px;
-    color: var(--el-text-color-secondary);
-
-    @media screen and (max-width: 768px) {
-      margin-top: 8px;
-      padding: 8px;
-      font-size: 11px;
-    }
-
-    p {
-      margin: 0 0 8px 0;
-      font-weight: 500;
+  // 国服角色信息显示样式
+  .cn-game-info {
+    .info-card {
+      padding: 16px;
+      background-color: var(--el-fill-color-light);
+      border-radius: 8px;
+      border: 1px solid var(--el-border-color-lighter);
 
       @media screen and (max-width: 768px) {
-        margin-bottom: 6px;
-      }
-    }
-
-    ul {
-      margin: 0;
-      padding-left: 20px;
-
-      @media screen and (max-width: 768px) {
-        padding-left: 16px;
+        padding: 12px;
+        border-radius: 6px;
       }
 
-      li {
-        line-height: 1.8;
-        color: var(--el-text-color-regular);
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
 
         @media screen and (max-width: 768px) {
-          line-height: 1.6;
+          margin-bottom: 10px;
+          flex-direction: row;
+          gap: 8px;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .info-label {
+          font-size: 14px;
+          color: var(--el-text-color-regular);
+          font-weight: 500;
+          min-width: 80px;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+            min-width: 70px;
+          }
+        }
+
+        .info-value {
+          font-size: 14px;
+          color: var(--el-text-color-primary);
+          font-weight: 500;
+          text-align: right;
+          flex: 1;
+          word-break: break-all;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+            text-align: left;
+          }
+        }
+
+        .el-tag {
+          margin-left: auto;
+
+          @media screen and (max-width: 768px) {
+            margin-left: 0;
+          }
         }
       }
     }
   }
-}
 
-// 新增：教程相关样式
-.tutorial-target {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2000;
-}
-
-.tutorial-footer {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-
-  @media screen and (max-width: 768px) {
-    margin-top: 8px;
-    gap: 6px;
-  }
-}
-
-.tutorial-cookie-content {
-  white-space: pre-line;
-  line-height: 1.6;
-
-  @media screen and (max-width: 768px) {
-    line-height: 1.5;
-  }
-}
-
-.el-popover {
-  max-width: 320px;
-  padding: 16px;
-
-  @media screen and (max-width: 768px) {
-    max-width: 280px;
-    padding: 12px;
-  }
-
-  .el-popover__title {
-    font-size: 16px;
-    font-weight: 500;
-    margin-bottom: 8px;
-
-    @media screen and (max-width: 768px) {
-      font-size: 14px;
-      margin-bottom: 6px;
-    }
-  }
-
-  p {
-    margin: 0;
-    font-size: 14px;
-    color: var(--el-text-color-regular);
-
-    @media screen and (max-width: 768px) {
-      font-size: 12px;
-    }
-  }
-}
-
-.tutorial-cookie-actions {
-  margin: 12px 0;
-  display: flex;
-  justify-content: center;
-
-  @media screen and (max-width: 768px) {
-    margin: 8px 0;
-  }
-
-  .tutorial-link {
-    width: 100%;
-    text-decoration: none;
-
-    .el-button {
-      width: 100%;
+  // 国际服角色信息显示样式（复用国服样式）
+  .global-game-info {
+    .info-card {
+      padding: 16px;
+      background-color: var(--el-fill-color-light);
+      border-radius: 8px;
+      border: 1px solid var(--el-border-color-lighter);
 
       @media screen and (max-width: 768px) {
-        font-size: 12px;
-        padding: 6px 12px;
+        padding: 12px;
+        border-radius: 6px;
+      }
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+
+        @media screen and (max-width: 768px) {
+          margin-bottom: 10px;
+          flex-direction: row;
+          gap: 8px;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .info-label {
+          font-size: 14px;
+          color: var(--el-text-color-regular);
+          font-weight: 500;
+          min-width: 80px;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+            min-width: 70px;
+          }
+        }
+
+        .info-value {
+          font-size: 14px;
+          color: var(--el-text-color-primary);
+          font-weight: 500;
+          text-align: right;
+          flex: 1;
+          word-break: break-all;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+            text-align: left;
+          }
+        }
+
+        .el-tag {
+          margin-left: auto;
+
+          @media screen and (max-width: 768px) {
+            margin-left: 0;
+          }
+        }
+      }
+    }
+
+    .loading-placeholder {
+      padding: 24px;
+      text-align: center;
+      color: var(--el-text-color-secondary);
+      font-size: 14px;
+      background-color: var(--el-fill-color-light);
+      border-radius: 8px;
+      border: 1px solid var(--el-border-color-lighter);
+
+      @media screen and (max-width: 768px) {
+        padding: 16px;
+        font-size: 13px;
       }
     }
   }

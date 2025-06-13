@@ -1,6 +1,5 @@
 // 固定请求头
 const FIXED_HEADERS = {
-  'Content-Type': 'application/json',
   'x-channel-type': '2',
   'x-language': 'en',
   'x-common-params': '{"game_id":"16","area_id":"global","source":"pc_web","intl_game_id":"29080","language":"en","env":"prod"}'
@@ -10,7 +9,8 @@ const FIXED_HEADERS = {
 const corsHeaders = (origin) => ({
   'Access-Control-Allow-Origin': origin || '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Cookie, x-channel-type, x-language, x-common-params',
+  'Access-Control-Allow-Headers': 'Content-Type,x-channel-type,x-language,x-common-params',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '1728000'
 })
 
@@ -27,7 +27,7 @@ async function handlePost(request) {
   const origin = request.headers.get('Origin')
   const url = new URL(request.url)
   const targetUrl = `https://api.blablalink.com${url.pathname}${url.search}`
-  
+
   try {
     // 解析请求体
     const { cdkey, cookie } = await request.json()
@@ -86,7 +86,7 @@ export default {
     if (request.method === 'POST') {
       return handlePost(request)
     }
-    
+
     return new Response('Method Not Allowed', { status: 405 })
   }
 } 

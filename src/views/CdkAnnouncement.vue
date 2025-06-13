@@ -4,44 +4,86 @@
       <el-col :span="24">
         <el-card class="filter-card">
           <div class="filter-header">
-            <el-form :inline="true" :model="filterForm" class="filter-form">
-              <el-form-item label="服务器">
-                <el-select
-                  v-model="filterForm.server"
-                  placeholder="选择服务器"
-                  clearable
-                  size="small"
-                  style="width: 120px"
-                >
-                  <el-option label="国际服" :value="'global'" />
-                  <el-option label="港澳台服" :value="'tw'" />
-                  <el-option label="国服" :value="'cn'" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="状态">
-                <el-select
-                  v-model="filterForm.status"
-                  placeholder="选择状态"
-                  clearable
-                  size="small"
-                  style="width: 110px"
-                >
-                  <el-option label="可用" value="可用" />
-                  <el-option label="部分可用" value="部分可用" />
-                  <el-option label="已过期" value="已过期" />
-                </el-select>
-              </el-form-item>
+            <div class="filter-left">
+              <el-form :inline="true" :model="filterForm" class="filter-form">
+                <el-form-item label="服务器">
+                  <el-select
+                    v-model="filterForm.server"
+                    placeholder="选择服务器"
+                    clearable
+                    size="small"
+                    style="width: 120px"
+                  >
+                    <el-option label="国际服" :value="'global'" />
+                    <el-option label="港澳台服" :value="'tw'" />
+                    <el-option label="国服" :value="'cn'" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="状态">
+                  <el-select
+                    v-model="filterForm.status"
+                    placeholder="选择状态"
+                    clearable
+                    size="small"
+                    style="width: 110px"
+                  >
+                    <el-option label="可用" value="可用" />
+                    <el-option label="部分可用" value="部分可用" />
+                    <el-option label="已过期" value="已过期" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="角色">
+                  <el-select
+                    v-model="filterForm.character"
+                    placeholder="选择角色"
+                    clearable
+                    size="small"
+                    style="width: 140px"
+                    @change="handleCharacterChange"
+                  >
+                    <el-option
+                      v-for="user in userStore.users"
+                      :key="user.id"
+                      :label="user.name"
+                      :value="user.id"
+                    />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="排序">
+                  <el-select
+                    v-model="filterForm.sortOrder"
+                    placeholder="选择排序"
+                    size="small"
+                    style="width: 110px"
+                  >
+                    <el-option label="最新优先" value="desc" />
+                    <el-option label="最早优先" value="asc" />
+                  </el-select>
+                </el-form-item>
+              </el-form>
+            </div>
+            <div class="filter-right">
               <!-- 批量操作按钮 -->
-              <el-form-item v-if="selectedCdks.length > 0">
-                <el-button
-                  type="success"
-                  size="small"
-                  @click="handleBatchExchange"
-                >
-                  批量兑换 ({{ selectedCdks.length }})
-                </el-button>
-              </el-form-item>
-            </el-form>
+              <el-button
+                v-if="selectedCdks.length > 0"
+                type="success"
+                size="small"
+                @click="handleBatchExchange"
+                class="action-btn"
+              >
+                批量兑换 ({{ selectedCdks.length }})
+              </el-button>
+              <!-- CDK提交按钮 -->
+              <el-button
+                type="primary"
+                size="small"
+                @click="openSubmitCdk"
+                plain
+                class="action-btn"
+              >
+                提交 CDK 入口
+              </el-button>
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -63,6 +105,8 @@
           v-if="isCDKGroup(cdk)"
           :group="cdk"
           v-model:selectedCdks="selectedCdks"
+          :exchange-status="getCdkExchangeStatus(cdk)"
+          :selected-user-exchange-history="selectedUserExchangeHistory"
         />
 
         <!-- 单个CDK卡片 -->
@@ -99,8 +143,13 @@
               <span>暂无图片</span>
             </div>
 
-            <!-- 状态条 -->
+            <!-- 状态条（已兑换时隐藏可用状态） -->
             <div
+              v-if="
+                !(
+                  filterForm.character && getCdkExchangeStatus(cdk) === '已兑换'
+                )
+              "
               class="cdk-status"
               :class="
                 cdk.status === '可用'
@@ -109,6 +158,18 @@
               "
             >
               {{ cdk.status }}
+            </div>
+
+            <!-- 兑换状态条（仅在选中角色时显示） -->
+            <div
+              v-if="getCdkExchangeStatus(cdk)"
+              class="exchange-status"
+              :class="{
+                'exchange-not-redeemed': getCdkExchangeStatus(cdk) === '未兑换',
+                'exchange-redeemed': getCdkExchangeStatus(cdk) === '已兑换',
+              }"
+            >
+              {{ getCdkExchangeStatus(cdk) }}
             </div>
           </div>
 
@@ -144,6 +205,11 @@
               </el-tooltip>
             </div>
 
+            <!-- 收录时间 -->
+            <div v-if="cdk.created" class="cdk-created">
+              收录时间：{{ cdk.created }}
+            </div>
+
             <!-- Footer信息合并到content中 -->
             <div v-if="cdk.author" class="cdk-author">
               提供者：{{ cdk.author }}
@@ -172,20 +238,29 @@ import {
 import type { CDK, SingleCDK, CDKGroup } from '../utils/fetchCdk'
 import { useRouter } from 'vue-router'
 import CDKGroupCard from '../components/CDKGroupCard.vue'
+import { showCustomMessage } from '../utils/customMessage'
+import { useUserStore } from '../stores/user'
+import { useExchangeStore } from '../stores/exchange'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
   server: ServerType | null
   status: string
+  sortOrder: 'desc' | 'asc'
+  character: string | null // 新增角色筛选
 }
 
 const router = useRouter()
+const userStore = useUserStore()
+const exchangeStore = useExchangeStore()
 
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
 const filterForm = ref<FilterForm>({
   server: null,
   status: '',
+  sortOrder: 'desc',
+  character: null,
 })
 
 // 选中的CDK列表
@@ -193,6 +268,46 @@ const selectedCdks = ref<string[]>([])
 
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
+
+// 选中角色的兑换记录
+const selectedUserExchangeHistory = computed(() => {
+  if (!filterForm.value.character) return []
+  return exchangeStore.history.filter(
+    (record: any) => record.userId === filterForm.value.character
+  )
+})
+
+// 获取CDK的兑换状态（仅在选中角色时启用）
+const getCdkExchangeStatus = (
+  cdk: CDK
+): '未兑换' | '部分兑换' | '已兑换' | null => {
+  if (!filterForm.value.character) return null
+
+  if (isCDKGroup(cdk)) {
+    // CDK组合的兑换状态
+    const groupCodes = getGroupCodes(cdk)
+    // 使用Set去重，避免同一个CDK多次兑换导致重复计算
+    const exchangedCodes = new Set(
+      selectedUserExchangeHistory.value
+        .filter((record: any) => groupCodes.includes(record.cdk))
+        .map((record: any) => record.cdk)
+    )
+
+    if (exchangedCodes.size === 0) {
+      return '未兑换'
+    } else if (exchangedCodes.size === groupCodes.length) {
+      return '已兑换'
+    } else {
+      return '部分兑换'
+    }
+  } else {
+    // 单个CDK的兑换状态
+    const isExchanged = selectedUserExchangeHistory.value.some(
+      (record: any) => record.cdk === cdk.code
+    )
+    return isExchanged ? '已兑换' : '未兑换'
+  }
+}
 
 // 获取CDK的唯一标识
 const getCdkKey = (cdk: CDK): string => {
@@ -235,7 +350,7 @@ const loadCdkList = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('获取CDK列表失败')
+    showCustomMessage('获取CDK列表失败', 'error')
     console.error(error)
   }
 }
@@ -258,16 +373,52 @@ const getCdkServers = (cdk: CDK): Array<'global' | 'tw' | 'cn'> => {
   }
 }
 
+// 获取选中角色的服务器类型
+const getSelectedUserServer = (): ServerType | null => {
+  if (!filterForm.value.character) return null
+  const user = userStore.users.find((u) => u.id === filterForm.value.character)
+  return user ? (user.server as ServerType) : null
+}
+
 // 过滤CDK列表
 const filteredCdks = computed(() => {
   let result = [...cdkList.value]
 
-  // 优先显示可用的CDK，然后是部分可用，最后是已过期
+  // 如果选中了角色，先按服务器过滤
+  if (filterForm.value.character) {
+    const userServer = getSelectedUserServer()
+    if (userServer) {
+      result = result.filter((cdk) => {
+        const cdkServers = getCdkServers(cdk)
+        return cdkServers.includes(userServer)
+      })
+    }
+  }
+
+  // 如果选中了角色，按兑换状态排序：未兑换 > 部分兑换 > 已兑换
+  // 否则按可用性排序：可用 > 部分可用 > 已过期
   result.sort((a, b) => {
+    if (filterForm.value.character) {
+      // 角色筛选模式：按兑换状态排序
+      const exchangeStatusA = getCdkExchangeStatus(a)
+      const exchangeStatusB = getCdkExchangeStatus(b)
+
+      const getExchangePriority = (status: string | null) => {
+        if (status === '未兑换') return 3
+        if (status === '部分兑换') return 2
+        if (status === '已兑换') return 1
+        return 0
+      }
+
+      const exchangeDiff =
+        getExchangePriority(exchangeStatusB) -
+        getExchangePriority(exchangeStatusA)
+      if (exchangeDiff !== 0) return exchangeDiff
+    }
+
+    // 默认排序：按可用性
     const statusA = getCdkStatus(a)
     const statusB = getCdkStatus(b)
-
-    // 定义状态优先级：可用 > 部分可用 > 已过期
     const getPriority = (status: string) => {
       if (status === '可用') return 3
       if (status === '部分可用') return 2
@@ -275,7 +426,32 @@ const filteredCdks = computed(() => {
       return 0
     }
 
-    return getPriority(statusB) - getPriority(statusA)
+    const statusDiff = getPriority(statusB) - getPriority(statusA)
+    if (statusDiff !== 0) return statusDiff
+
+    // 最后按创建时间排序
+    const getCreated = (cdk: any) => {
+      if (isCDKGroup(cdk)) {
+        return cdk.cdks.reduce(
+          (max: string, sub: any) =>
+            sub.created && sub.created > max ? sub.created : max,
+          ''
+        )
+      } else {
+        return cdk.created || ''
+      }
+    }
+
+    const createdA = getCreated(a)
+    const createdB = getCreated(b)
+    if (createdA && createdB) {
+      if (filterForm.value.sortOrder === 'desc') {
+        return createdB.localeCompare(createdA)
+      } else {
+        return createdA.localeCompare(createdB)
+      }
+    }
+    return 0
   })
 
   // 应用过滤器
@@ -321,7 +497,7 @@ const fallbackCopyTextToClipboard = (code: string, e: MouseEvent) => {
     handleCopySuccess(code, e)
   } catch (err) {
     console.error('复制失败:', err)
-    ElMessage.error('复制失败，请手动复制')
+    showCustomMessage('复制失败，请手动复制', 'error')
   }
 
   document.body.removeChild(textArea)
@@ -340,7 +516,9 @@ const handleCopySuccess = (code: string, e: MouseEvent) => {
   tagElement.style.setProperty('--y', `${y}px`)
 
   copiedCode.value = code
-  ElMessage.success('CDK已复制到剪贴板')
+
+  // 使用统一的右上角自定义消息
+  showCustomMessage()
 
   setTimeout(() => {
     copiedCode.value = null
@@ -382,10 +560,43 @@ const handleBatchExchange = () => {
   selectedCdks.value = []
 }
 
+// 新增：提交CDK入口按钮方法
+const openSubmitCdk = () => {
+  window.open(
+    'https://chalk-quotation-b2d.notion.site/210563f728f1801ea74ec231b2359e79?pvs=105',
+    '_blank'
+  )
+}
+
+// 处理角色选择变化
+const handleCharacterChange = (userId: string | null) => {
+  if (!userId) return
+
+  const user = userStore.users.find((u) => u.id === userId)
+  if (!user) return
+
+  // 检查是否为国服账号且无兑换历史
+  if (user.server === 'cn') {
+    const userHistory = exchangeStore.history.filter(
+      (record: any) => record.userId === userId
+    )
+
+    if (userHistory.length === 0) {
+      showCustomMessage(
+        '国服账号此功能基本不可用，因为无法获取云端兑换历史，请慎用。',
+        'warning'
+      )
+    }
+  }
+}
+
 // 页面加载时获取CDK列表
 onMounted(() => {
   console.log('CDK公告组件已挂载')
   loadCdkList()
+  // 加载用户数据和兑换历史
+  userStore.fetchUsers()
+  exchangeStore.fetchHistory()
 })
 
 // 组件卸载时保存缓存
@@ -451,6 +662,9 @@ onBeforeUnmount(() => {
 
 .filter-card {
   margin-bottom: 20px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
 
   @media screen and (max-width: 768px) {
     margin-bottom: 12px;
@@ -581,6 +795,29 @@ onBeforeUnmount(() => {
   }
   &.status-unavailable {
     background: var(--el-color-danger);
+  }
+}
+
+.exchange-status {
+  position: absolute;
+  top: 35px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.9;
+
+  &.exchange-not-redeemed {
+    background: var(--el-color-primary);
+  }
+
+  &.exchange-redeemed {
+    background: var(--el-color-info);
   }
 }
 
@@ -985,5 +1222,97 @@ onBeforeUnmount(() => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  min-height: 60px;
+
+  @media screen and (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+    min-height: auto;
+  }
+}
+
+.filter-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.filter-form {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 0;
+
+  @media screen and (max-width: 768px) {
+    gap: 12px;
+    width: 100%;
+  }
+
+  .el-form-item {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-form-item__label {
+      font-size: 14px;
+      color: var(--el-text-color-regular);
+      font-weight: 500;
+      margin: 0;
+      padding: 0;
+      line-height: 32px;
+      white-space: nowrap;
+    }
+
+    .el-form-item__content {
+      margin: 0;
+    }
+  }
+}
+
+.filter-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+
+  @media screen and (max-width: 768px) {
+    justify-content: flex-end;
+    width: 100%;
+  }
+}
+
+.action-btn {
+  height: 32px;
+  padding: 0 16px;
+  font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  @media screen and (max-width: 768px) {
+    padding: 0 12px;
+    font-size: 13px;
+  }
+}
+
+.cdk-created {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
 }
 </style>

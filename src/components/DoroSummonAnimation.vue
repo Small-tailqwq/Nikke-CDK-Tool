@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, defineEmits } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import doroIcon from '@/assets/doro_icon.png'
 
 const emit = defineEmits(['summonEnd'])

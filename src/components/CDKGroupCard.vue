@@ -1,5 +1,9 @@
 <template>
   <div class="cdk-group-card-wrapper">
+    <!-- 卡片重叠效果的背景层 -->
+    <div class="card-stack-bg card-stack-1"></div>
+    <div class="card-stack-bg card-stack-2"></div>
+
     <!-- 主卡片 -->
     <el-card
       class="cdk-group-card"
@@ -7,6 +11,7 @@
         available: getGroupStatus(group) === '可用',
         unavailable: getGroupStatus(group) === '已过期',
         'partially-available': getGroupStatus(group) === '部分可用',
+        expanding: isExpanded,
       }"
       body-style="padding: 0; display: flex; flex-direction: column;"
     >
@@ -35,8 +40,9 @@
           <span>CDK组合</span>
         </div>
 
-        <!-- 状态条 -->
+        <!-- 状态条（已兑换时隐藏可用状态） -->
         <div
+          v-if="!(selectedUserExchangeHistory && exchangeStatus === '已兑换')"
           class="cdk-status"
           :class="{
             'status-available': getGroupStatus(group) === '可用',
@@ -45,6 +51,19 @@
           }"
         >
           {{ getGroupStatus(group) }}
+        </div>
+
+        <!-- 兑换状态条（仅在选中角色时显示） -->
+        <div
+          v-if="exchangeStatus"
+          class="exchange-status"
+          :class="{
+            'exchange-not-redeemed': exchangeStatus === '未兑换',
+            'exchange-partially-redeemed': exchangeStatus === '部分兑换',
+            'exchange-redeemed': exchangeStatus === '已兑换',
+          }"
+        >
+          {{ exchangeStatus }}
         </div>
 
         <!-- 组合标识 -->
@@ -109,21 +128,19 @@
         <!-- 备注信息 - 下移 -->
         <div v-if="group.note" class="cdk-note">
           <el-tooltip :content="group.note" placement="top">
-            <el-icon><InfoFilled /></el-icon>
+            <el-icon class="note-icon"><InfoFilled /></el-icon>
             <span>备注</span>
           </el-tooltip>
         </div>
 
         <!-- Footer信息合并到content中 -->
-        <div v-if="group.author" class="cdk-author">
-          提供者：{{ group.author }}
-        </div>
+        <!-- CDK组合没有author字段，移除此部分 -->
       </div>
     </el-card>
 
     <!-- 遮罩层和展开的子CDK卡片 -->
     <teleport to="body">
-      <transition name="overlay">
+      <transition name="card-expand" appear>
         <div
           v-if="isExpanded"
           class="overlay-backdrop"
@@ -158,19 +175,44 @@
                   available: subCdk.status === '可用',
                   unavailable: subCdk.status === '已过期',
                 }"
-                :style="{ '--delay': index * 100 + 'ms' }"
+                :style="{
+                  '--delay': index * 150 + 'ms',
+                  '--index': index,
+                }"
               >
                 <div class="sub-cdk-header">
                   <h4>{{ subCdk.name || subCdk.code }}</h4>
-                  <!-- 状态条 -->
-                  <div
-                    class="sub-cdk-status"
-                    :class="{
-                      'status-available': subCdk.status === '可用',
-                      'status-unavailable': subCdk.status === '已过期',
-                    }"
-                  >
-                    {{ subCdk.status }}
+                  <div class="sub-cdk-status-group">
+                    <!-- 状态条（已兑换时隐藏可用状态） -->
+                    <div
+                      v-if="
+                        !(
+                          selectedUserExchangeHistory &&
+                          getSubCdkExchangeStatus(subCdk.code) === '已兑换'
+                        )
+                      "
+                      class="sub-cdk-status"
+                      :class="{
+                        'status-available': subCdk.status === '可用',
+                        'status-unavailable': subCdk.status === '已过期',
+                      }"
+                    >
+                      {{ subCdk.status }}
+                    </div>
+
+                    <!-- 兑换状态条（仅在选中角色时显示） -->
+                    <div
+                      v-if="getSubCdkExchangeStatus(subCdk.code)"
+                      class="sub-cdk-exchange-status"
+                      :class="{
+                        'exchange-not-redeemed':
+                          getSubCdkExchangeStatus(subCdk.code) === '未兑换',
+                        'exchange-redeemed':
+                          getSubCdkExchangeStatus(subCdk.code) === '已兑换',
+                      }"
+                    >
+                      {{ getSubCdkExchangeStatus(subCdk.code) }}
+                    </div>
                   </div>
                 </div>
 
@@ -204,9 +246,25 @@
 
                 <div v-if="subCdk.note" class="sub-cdk-note">
                   <el-tooltip :content="subCdk.note" placement="top">
-                    <el-icon><InfoFilled /></el-icon>
+                    <el-icon class="note-icon"><InfoFilled /></el-icon>
                     <span>备注</span>
                   </el-tooltip>
+                </div>
+
+                <!-- 贡献者和收录时间 -->
+                <div
+                  v-if="subCdk.author || subCdk.created"
+                  class="sub-cdk-meta"
+                  :class="{
+                    'has-space-for-row': shouldUseRowLayout(subCdk.author),
+                  }"
+                >
+                  <span v-if="subCdk.author" class="sub-cdk-author"
+                    >贡献者：{{ subCdk.author }}</span
+                  >
+                  <span v-if="subCdk.created" class="sub-cdk-created"
+                    >收录时间：{{ subCdk.created }}</span
+                  >
                 </div>
               </div>
             </div>
@@ -235,10 +293,13 @@ import {
   getGroupStatus,
   getGroupServers,
 } from '../utils/fetchCdk'
+import { showCustomMessage } from '../utils/customMessage'
 
 interface Props {
   group: CDKGroup
   selectedCdks: string[]
+  exchangeStatus?: string | null // 新增兑换状态
+  selectedUserExchangeHistory?: any[] // 兑换历史记录
 }
 
 interface Emits {
@@ -375,7 +436,7 @@ const fallbackCopyTextToClipboard = (code: string, e: MouseEvent) => {
     handleCopySuccess(code, e)
   } catch (err) {
     console.error('复制失败:', err)
-    ElMessage.error('复制失败，请手动复制')
+    showCustomMessage('复制失败，请手动复制', 'error')
   }
 
   document.body.removeChild(textArea)
@@ -393,7 +454,9 @@ const handleCopySuccess = (code: string, e: MouseEvent) => {
   tagElement.style.setProperty('--y', `${y}px`)
 
   copiedCode.value = code
-  ElMessage.success('CDK已复制到剪贴板')
+
+  // 使用统一的右上角自定义消息
+  showCustomMessage()
 
   setTimeout(() => {
     copiedCode.value = null
@@ -430,11 +493,60 @@ const getDisplayCdkInfo = (): Array<{ code: string; status: string }> => {
 const hasMoreCodes = (): boolean => {
   return props.group.cdks.length > 8
 }
+
+// 判断是否应该使用行布局
+const shouldUseRowLayout = (author?: string): boolean => {
+  // 如果作者名称为空或者很短（小于10个字符），使用行布局
+  return !author || author.length < 10
+}
+
+// 获取单个子CDK的兑换状态
+const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
+  if (
+    !props.selectedUserExchangeHistory ||
+    props.selectedUserExchangeHistory.length === 0
+  ) {
+    return null
+  }
+
+  const isExchanged = props.selectedUserExchangeHistory.some(
+    (record: any) => record.cdk === cdkCode
+  )
+
+  return isExchanged ? '已兑换' : '未兑换'
+}
 </script>
 
 <style lang="scss" scoped>
 .cdk-group-card-wrapper {
   position: relative;
+  z-index: 1;
+}
+
+/* =============== 卡片重叠效果 =============== */
+.card-stack-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--el-bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--el-border-color-light);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+}
+
+.card-stack-1 {
+  transform: translate(2px, 2px) scale(0.98);
+  opacity: 0.8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.card-stack-2 {
+  transform: translate(4px, 4px) scale(0.96);
+  opacity: 0.6;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
 }
 
 .cdk-group-card {
@@ -443,26 +555,64 @@ const hasMoreCodes = (): boolean => {
   border-radius: 8px;
   border: none;
   height: 100%;
-  transition: all 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; /* 添加主题切换动画 */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--el-bg-color);
+  z-index: 2;
 
   &:hover {
     @media screen and (min-width: 769px) {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+
+      /* 悬停时背景卡片也有动画 */
+      ~ .card-stack-1 {
+        transform: translate(1px, 1px) scale(0.99);
+        opacity: 0.9;
+      }
+
+      ~ .card-stack-2 {
+        transform: translate(2px, 2px) scale(0.98);
+        opacity: 0.7;
+      }
+    }
+  }
+
+  &.expanding {
+    transform: scale(1.05);
+    z-index: 3000;
+
+    .card-stack-1,
+    .card-stack-2 {
+      opacity: 0;
+      transform: scale(0.8);
     }
   }
 
   &.available {
     border-top: 4px solid var(--el-color-success);
+
+    .card-stack-1,
+    .card-stack-2 {
+      border-top: 4px solid var(--el-color-success);
+    }
   }
 
   &.unavailable {
     border-top: 4px solid var(--el-color-danger);
+
+    .card-stack-1,
+    .card-stack-2 {
+      border-top: 4px solid var(--el-color-danger);
+    }
   }
 
   &.partially-available {
     border-top: 4px solid var(--el-color-warning);
+
+    .card-stack-1,
+    .card-stack-2 {
+      border-top: 4px solid var(--el-color-warning);
+    }
   }
 }
 
@@ -777,6 +927,33 @@ const hasMoreCodes = (): boolean => {
   }
 }
 
+.exchange-status {
+  position: absolute;
+  top: 35px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #fff;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.9;
+
+  &.exchange-not-redeemed {
+    background: var(--el-color-primary);
+  }
+
+  &.exchange-partially-redeemed {
+    background: var(--el-color-warning);
+  }
+
+  &.exchange-redeemed {
+    background: var(--el-color-info);
+  }
+}
+
 .group-badge {
   position: absolute;
   bottom: 10px;
@@ -887,12 +1064,24 @@ const hasMoreCodes = (): boolean => {
   align-items: center;
   gap: 6px;
   color: var(--el-text-color-secondary);
-  font-size: 12px; /* 与普通CDK卡片保持一致 */
+  font-size: 12px;
   cursor: pointer;
-  margin-top: 8px; /* 添加上边距 */
+  margin-top: 8px;
+  position: relative; /* 添加定位上下文 */
+  z-index: 10; /* 提高z-index确保悬浮事件正常工作 */
 
-  .el-icon {
-    font-size: 12px; /* 与普通CDK卡片保持一致的小图标 */
+  .note-icon {
+    font-size: 14px !important;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  span {
+    line-height: 1;
   }
 }
 
@@ -927,38 +1116,31 @@ const hasMoreCodes = (): boolean => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  z-index: 2000;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 2500;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   box-sizing: border-box;
-  will-change: opacity;
-  transform: translate3d(0, 0, 0); /* 触发硬件加速 */
+  will-change: opacity, backdrop-filter;
 
   @media screen and (max-width: 768px) {
     padding: 12px;
     align-items: flex-start;
-    padding-top: env(safe-area-inset-top, 12px); /* 支持刘海屏 */
+    padding-top: env(safe-area-inset-top, 12px);
   }
 
   @media screen and (max-width: 480px) {
     padding: 8px;
   }
-
-  /* 高分辨率屏幕优化 */
-  @media screen and (-webkit-min-device-pixel-ratio: 2),
-    screen and (min-resolution: 192dpi) {
-    backdrop-filter: blur(6px);
-  }
 }
 
 .overlay-container {
   background: var(--el-bg-color);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
   max-width: 1200px;
   max-height: 90vh;
   width: 100%;
@@ -966,15 +1148,16 @@ const hasMoreCodes = (): boolean => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  will-change: transform;
 
   @media screen and (max-width: 768px) {
-    border-radius: 8px;
+    border-radius: 12px;
     max-height: 95vh;
-    margin-top: auto; /* 在移动端推到顶部 */
+    margin-top: auto;
   }
 
   @media screen and (max-width: 480px) {
-    border-radius: 6px;
+    border-radius: 8px;
     margin: 0;
     max-height: 100vh;
     height: 100%;
@@ -1083,28 +1266,29 @@ const hasMoreCodes = (): boolean => {
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   padding: 16px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  animation: slideInCard 0.4s cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms)
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardFloatIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms)
     both;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   will-change: transform;
   position: relative;
+  transform-origin: center bottom;
 
   &:hover {
-    transform: translate3d(0, -2px, 0);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
 
   /* 子卡片状态边框 */
   &.available {
-    border-top: 3px solid var(--el-color-success);
+    border-left: 4px solid var(--el-color-success);
   }
 
   &.unavailable {
-    border-top: 3px solid var(--el-color-danger);
-    opacity: 0.8; /* 过期卡片略微透明 */
+    border-left: 4px solid var(--el-color-danger);
+    opacity: 0.8;
   }
 
   .sub-cdk-header {
@@ -1125,6 +1309,14 @@ const hasMoreCodes = (): boolean => {
     }
   }
 
+  .sub-cdk-status-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+
   .sub-cdk-status {
     padding: 2px 6px;
     border-radius: 3px;
@@ -1132,7 +1324,6 @@ const hasMoreCodes = (): boolean => {
     font-weight: bold;
     color: #fff;
     white-space: nowrap;
-    flex-shrink: 0;
 
     &.status-available {
       background: var(--el-color-success);
@@ -1140,6 +1331,24 @@ const hasMoreCodes = (): boolean => {
 
     &.status-unavailable {
       background: var(--el-color-danger);
+    }
+  }
+
+  .sub-cdk-exchange-status {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap;
+    opacity: 0.9;
+
+    &.exchange-not-redeemed {
+      background: var(--el-color-primary);
+    }
+
+    &.exchange-redeemed {
+      background: var(--el-color-info);
     }
   }
 
@@ -1254,10 +1463,20 @@ const hasMoreCodes = (): boolean => {
     color: var(--el-text-color-secondary);
     font-size: 12px;
     cursor: pointer;
-    margin-top: auto;
+    margin-top: 8px;
 
-    .el-icon {
-      font-size: 12px; /* 与普通CDK卡片保持一致 */
+    .note-icon {
+      font-size: 14px !important;
+      width: 14px;
+      height: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    span {
+      line-height: 1;
     }
   }
 }
@@ -1270,41 +1489,59 @@ const hasMoreCodes = (): boolean => {
  * 3. 分离 opacity 和 transform 动画避免重绘
  * 4. 使用 will-change 提示浏览器优化
  */
-.overlay-enter-active,
-.overlay-leave-active {
-  transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+.card-expand-enter-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.overlay-enter-active .overlay-container,
-.overlay-leave-active .overlay-container {
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: transform;
+.card-expand-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.overlay-enter-from,
-.overlay-leave-to {
+.card-expand-enter-from {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+}
+
+.card-expand-leave-to {
+  opacity: 0;
+  backdrop-filter: blur(0px);
+}
+
+.card-expand-enter-from .overlay-container {
+  transform: scale(0.8) translateY(50px);
   opacity: 0;
 }
 
-.overlay-enter-from .overlay-container,
-.overlay-leave-to .overlay-container {
-  transform: scale3d(0.95, 0.95, 1) translate3d(0, 16px, 0);
+.card-expand-leave-to .overlay-container {
+  transform: scale(0.9) translateY(20px);
+  opacity: 0;
 }
 
-/* 减少不必要的 will-change 声明 */
-.overlay-enter-to .overlay-container,
-.overlay-leave-from .overlay-container {
-  will-change: auto;
+.card-expand-enter-from .sub-cdk-card {
+  transform: translateY(30px) scale(0.9);
+  opacity: 0;
 }
 
-@keyframes slideInCard {
-  from {
+.card-expand-leave-to .sub-cdk-card {
+  transform: translateY(-20px) scale(0.95);
+  opacity: 0;
+}
+
+@keyframes cardFloatIn {
+  0% {
+    transform: translateY(60px) scale(0.8) rotateX(15deg);
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    filter: blur(4px);
   }
-  to {
+  50% {
+    transform: translateY(-10px) scale(1.05) rotateX(0deg);
+    opacity: 0.8;
+    filter: blur(1px);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotateX(0deg);
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    filter: blur(0px);
   }
 }
 
@@ -1319,5 +1556,38 @@ const hasMoreCodes = (): boolean => {
   to {
     transform: translateY(0);
   }
+}
+
+.sub-cdk-meta {
+  display: flex;
+  flex-direction: column; /* 默认为列布局，在空间足够时改为行布局 */
+  gap: 8px; /* 减小间距以适应列布局 */
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
+
+  @media screen and (min-width: 400px) {
+    /* 在宽度足够的情况下使用行布局 */
+    &.has-space-for-row {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+  }
+}
+
+.sub-cdk-author {
+  font-size: 12px;
+  color: #909399;
+  /* 移除溢出处理，允许完整显示 */
+  white-space: normal;
+  word-break: break-word;
+}
+
+.sub-cdk-created {
+  font-size: 12px;
+  color: #909399;
+  white-space: nowrap; /* 防止日期换行 */
 }
 </style>
