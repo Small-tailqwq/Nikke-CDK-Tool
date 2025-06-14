@@ -6,7 +6,7 @@
       "type": "group",
       "groupId": "STELLAR_BLADE_01",
       "groupName": "剑星联动活动奖励",
-      "note": "剑星联动相关CDK奖励",
+      "note": "国际服剑星联动期间的 CDK 集合",
       "cdks": [
         {
           "code": "NIKKESTELLARBLADE",
@@ -76,7 +76,7 @@
       "type": "group",
       "groupId": "CN_OVERZONE_01",
       "groupName": "OVER ZONE 活动奖励",
-      "note": "国服专属活动，三个CDK包含3个CDK",
+      "note": "国服 over zone 期间的 CDK 集合",
       "cdks": [
         {
           "code": "DORO888",
@@ -116,7 +116,7 @@
         },
         {
           "code": "SLNSZB11",
-          "name": "OVER ZONE 活动直播奖励 - 水晶",
+          "name": "国服直播奖励 - 水晶",
           "reward": "珠宝×300",
           "servers": [
             "cn"
@@ -128,7 +128,7 @@
         },
         {
           "code": "SLNSZB22",
-          "name": "OVER ZONE 活动直播奖励 - 水晶",
+          "name": "国服直播奖励 - 数据盒",
           "reward": "战斗数据辑盒：1H×3",
           "servers": [
             "cn"
@@ -140,7 +140,7 @@
         },
         {
           "code": "SLNSZB33",
-          "name": "OVER ZONE 活动直播奖励 - 水晶",
+          "name": "国服直播奖励 - 信用点盒",
           "reward": "信用点盒：1H×3",
           "servers": [
             "cn"
