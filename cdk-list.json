@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-14T04:06:00Z",
+  "lastUpdate": "2025-06-14T16:23:00Z",
   "cdks": [
     {
       "type": "group",
@@ -43,6 +43,18 @@
           "note": "剑星联动奖励",
           "author": "kelven666",
           "created": "2025-06-12"
+        },
+        {
+          "code": "SB06NK12EVETH",
+          "name": "剑星奖励",
+          "reward": "珠宝×100",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "剑星联动奖励",
+          "author": "匿名用户",
+          "created": "2025-06-14"
         }
       ],
       "image": "/announcement-images/STELLAR_BLADE_01.webp"
@@ -74,7 +86,7 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持",
+          "note": "仅国服可用",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
         },
@@ -86,7 +98,7 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持",
+          "note": "仅国服可用",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
         },
@@ -98,7 +110,7 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持",
+          "note": "活动奖励",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
         },
@@ -110,9 +122,33 @@
             "cn"
           ],
           "status": "可用",
-          "note": "仅国服可用，本网页不提供兑换支持",
+          "note": "国服直播奖励",
           "author": "Small-tailqwq",
           "created": "2025-06-11"
+        },
+        {
+          "code": "SLNSZB22",
+          "name": "OVER ZONE 活动直播奖励 - 水晶",
+          "reward": "战斗数据辑盒：1H×3",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "Small-tailqwq",
+          "created": "2025-06-14"
+        },
+        {
+          "code": "SLNSZB33",
+          "name": "OVER ZONE 活动直播奖励 - 水晶",
+          "reward": "信用点盒：1H×3",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "Small-tailqwq",
+          "created": "2025-06-14"
         }
       ],
       "image": "/announcement-images/CN_OVERZONE_01.webp"
