@@ -7,7 +7,7 @@
             <div class="header-spacer"></div>
             <div class="title-container">
               <h1>NIKKE CDK Tools</h1>
-              <div class="splash-text">That's no game!</div>
+              <div class="splash-text">Also try DoroHelper!</div>
             </div>
             <div class="header-actions">
               <el-button

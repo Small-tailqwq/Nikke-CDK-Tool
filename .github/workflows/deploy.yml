@@ -42,3 +42,39 @@ jobs:
           clean: true
           commit-message: |
             🚀 部署: ${{ github.workflow }} @ ${{ github.sha }}
+
+      - name: 清理老旧Deployment
+        run: |
+          echo "正在检查需要清理的deployments..."
+
+          # 获取所有deployments，按创建时间倒序排列，跳过前5个
+          deployments=$(gh api repos/${{ github.repository }}/deployments --jq '.[5:] | .[] | .id' 2>/dev/null || echo "")
+
+          if [ -z "$deployments" ]; then
+            echo "没有需要清理的deployments（总数小于等于5个）"
+            exit 0
+          fi
+
+          echo "发现需要清理的deployments，开始处理..."
+
+          for deployment_id in $deployments; do
+            echo "处理deployment: $deployment_id"
+            
+            # 先将deployment状态设置为inactive
+            gh api repos/${{ github.repository }}/deployments/$deployment_id/statuses \
+              -f state=inactive \
+              -f description="由CI自动清理" \
+              --silent || echo "设置inactive状态失败，继续尝试删除"
+            
+            # 删除deployment
+            if gh api -X DELETE repos/${{ github.repository }}/deployments/$deployment_id --silent; then
+              echo "✅ 成功删除deployment: $deployment_id"
+            else
+              echo "❌ 删除deployment失败: $deployment_id"
+            fi
+          done
+
+          echo "✨ Deployment清理完成，已保留最近5个deployment"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
