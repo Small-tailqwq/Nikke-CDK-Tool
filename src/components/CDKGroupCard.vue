@@ -91,15 +91,13 @@
             >
               {{ cdkInfo.code }}
             </el-tag>
-            <span v-if="hasMoreCodes()" class="more-indicator">
-              +{{ group.cdks.length - getDisplayCdkInfo().length }}个...
-            </span>
+            <span v-if="hasMoreCodes()" class="more-indicator"> …… </span>
           </div>
         </div>
 
         <div class="group-total-reward">
           <h4>总奖励：</h4>
-          <p>{{ getTotalReward() }}</p>
+          <p class="reward-text">{{ getTotalReward() }}</p>
         </div>
 
         <div class="cdk-servers">
@@ -480,10 +478,17 @@ const copyCdk = async (code: string, e: MouseEvent) => {
   }
 }
 
-// 获取要显示的CDK信息（2行显示）
+// 获取要显示的CDK信息（最多显示2行）
 const getDisplayCdkInfo = (): Array<{ code: string; status: string }> => {
-  // 假设每行大约可以显示4个标签，2行就是8个
-  return props.group.cdks.slice(0, 8).map((c) => ({
+  // 计算每个CDK标签的大概字符长度，动态决定每行能显示几个
+  const maxPerRow = 3 // 更保守的估算，每行最多3个CDK标签
+  const maxTotal = maxPerRow * 2 // 2行最多6个
+
+  // 如果有超出的，预留位置给省略号
+  const displayCount =
+    props.group.cdks.length > maxTotal ? maxTotal - 1 : maxTotal
+
+  return props.group.cdks.slice(0, displayCount).map((c) => ({
     code: c.code,
     status: c.status,
   }))
@@ -491,7 +496,9 @@ const getDisplayCdkInfo = (): Array<{ code: string; status: string }> => {
 
 // 是否有更多CDK代码
 const hasMoreCodes = (): boolean => {
-  return props.group.cdks.length > 8
+  const maxPerRow = 3
+  const maxTotal = maxPerRow * 2
+  return props.group.cdks.length > maxTotal
 }
 
 // 判断是否应该使用行布局
@@ -1020,12 +1027,16 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     gap: 6px;
     align-items: center;
     margin-top: 6px;
-    /* 移除高度限制，允许完整显示2行 */
     line-height: 1.4;
+    /* 限制最多显示2行 */
+    max-height: calc(1.4em * 2 + 6px); /* 2行文字高度 + gap */
+    overflow: hidden;
 
     .code-preview-tag {
       font-family: monospace;
       font-size: 12px;
+      line-height: 1.4;
+      height: 1.4em; /* 固定标签高度 */
 
       &.expired {
         background-color: var(--el-color-danger) !important;
@@ -1040,16 +1051,25 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
       font-size: 12px;
       color: var(--el-text-color-secondary);
       font-style: italic;
+      font-weight: bold;
     }
   }
 }
 
 .group-total-reward {
-  p {
+  .reward-text {
     margin: 0;
     font-size: 14px;
     color: var(--el-text-color-primary);
     line-height: 1.4;
+    /* 限制显示2行，超出显示省略号 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    max-height: calc(1.4em * 2); /* 2行文字高度 */
   }
 }
 

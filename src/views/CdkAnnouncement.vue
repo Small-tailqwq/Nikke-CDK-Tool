@@ -122,11 +122,11 @@
           <!-- 复选框 -->
           <div class="cdk-checkbox-wrapper">
             <el-checkbox
-              v-model="selectedCdks"
-              :label="cdk.code"
+              :model-value="selectedCdks.includes(cdk.code)"
               :disabled="cdk.status !== '可用'"
               class="cdk-checkbox"
               :show-label="false"
+              @change="handleCdkSelection(cdk.code, $event)"
             />
           </div>
 
@@ -542,6 +542,22 @@ const copyCdk = async (code: string, e: MouseEvent) => {
   } catch (err) {
     console.error('Clipboard API失败，使用回退方法:', err)
     fallbackCopyTextToClipboard(code, e)
+  }
+}
+
+// 处理单个CDK的选择/取消选择
+const handleCdkSelection = (cdkCode: string, checked: boolean) => {
+  if (checked) {
+    // 选中：如果不在数组中，则添加
+    if (!selectedCdks.value.includes(cdkCode)) {
+      selectedCdks.value.push(cdkCode)
+    }
+  } else {
+    // 取消选中：从数组中移除
+    const index = selectedCdks.value.indexOf(cdkCode)
+    if (index > -1) {
+      selectedCdks.value.splice(index, 1)
+    }
   }
 }
 

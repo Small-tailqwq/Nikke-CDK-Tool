@@ -1,5 +1,33 @@
 <template>
   <div class="about-container">
+    <pre id="tiresult" class="ascii-art">
+    <b style="color:#000000">10000101110010000011010111100010010111011000001000</b>
+<b style="color:#000000">01000111111101000100000001010110101000100110100011</b>
+<b style="color:#000000">01000100110000101110010001110001111011011001101110</b>
+<b style="color:#000000">00100111011001011000000010101111001</b><b style="color:#090909">0</b><b style="color:#828282">0</b><b style="color:#7E7E7E">1</b><b style="color:#8E8E8E">0</b><b style="color:#888888">0</b><b style="color:#868686">0</b><b style="color:#696969">1</b><b style="color:#000000">0000</b><b style="color:#020202">0</b><b style="color:#4F4F4F">0</b><b style="color:#686868">1</b><b style="color:#656565">1</b>
+<b style="color:#000000">101111001111111100000</b><b style="color:#090909">1</b><b style="color:#000000">1</b><b style="color:#131313">0</b><b style="color:#020202">0</b><b style="color:#000000">11110010011</b><b style="color:#868686">1</b><b style="color:#C5C5C5">1</b><b style="color:#C7C7C7">1</b><b style="color:#CDCDCD">01</b><b style="color:#ABABAB">0</b><b style="color:#232323">0</b><b style="color:#000000">0100</b><b style="color:#252525">1</b><b style="color:#959595">0</b><b style="color:#9A9A9A">0</b>
+<b style="color:#000000">001111010100000101000</b><b style="color:#464646">1</b><b style="color:#5B5B5B">1</b><b style="color:#111111">1</b><b style="color:#363636">0</b><b style="color:#222222">0</b><b style="color:#000000">1000111001</b><b style="color:#353535">1</b><b style="color:#A5A5A5">0</b><b style="color:#B7B7B7">0</b><b style="color:#D4D4D4">1</b><b style="color:#C8C8C8">0</b><b style="color:#CFCFCF">1</b><b style="color:#343434">1</b><b style="color:#000000">00010</b><b style="color:#646464">1</b><b style="color:#999999">0</b>
+<b style="color:#000000">10110000011110111100</b><b style="color:#010101">0</b><b style="color:#303030">0</b><b style="color:#B4B4B4">1</b><b style="color:#9B9B9B">1</b><b style="color:#4E4E4E">1</b><b style="color:#4A4A4A">0</b><b style="color:#434343">0</b><b style="color:#171717">1</b><b style="color:#000000">00110111</b><b style="color:#070707">1</b><b style="color:#858585">0</b><b style="color:#C6C6C6">0</b><b style="color:#D5D5D5">1</b><b style="color:#CECECE">1</b><b style="color:#6E6E6E">0</b><b style="color:#000000">100</b><b style="color:#010101">1</b><b style="color:#000000">1</b><b style="color:#030303">0</b><b style="color:#696969">1</b><b style="color:#979797">1</b>
+<b style="color:#000000">11000010010010111110</b><b style="color:#010101">0</b><b style="color:#252525">0</b><b style="color:#909090">0</b><b style="color:#E0E0E0">0</b><b style="color:#D9D9D9">1</b><b style="color:#A8A8A8">0</b><b style="color:#5F5F5F">1</b><b style="color:#303030">1</b><b style="color:#151515">0</b><b style="color:#000000">00100110</b><b style="color:#5C5C5C">1</b><b style="color:#D5D5D5">0</b><b style="color:#D6D6D6">1</b><b style="color:#BEBEBE">1</b><b style="color:#A4A4A4">1</b><b style="color:#525252">1</b><b style="color:#000000">10</b><b style="color:#010101">0</b><b style="color:#1D1D1D">1</b><b style="color:#6E6E6E">1</b><b style="color:#959595">1</b><b style="color:#949494">0</b>
+<b style="color:#000000">001010101111010011011</b><b style="color:#3B3B3B">1</b><b style="color:#979797">0</b><b style="color:#DADADA">1</b><b style="color:#C3C3C3">1</b><b style="color:#B7B7B7">0</b><b style="color:#AEAEAE">0</b><b style="color:#727272">1</b><b style="color:#454545">1</b><b style="color:#0C0C0C">0</b><b style="color:#000000">0100001</b><b style="color:#171717">1</b><b style="color:#BCBCBC">1</b><b style="color:#D8D8D8">1</b><b style="color:#D3D3D3">1</b><b style="color:#BABABA">1</b><b style="color:#D2D2D2">1</b><b style="color:#393939">1</b><b style="color:#000000">00</b><b style="color:#030303">0</b><b style="color:#555555">1</b><b style="color:#989898">0</b><b style="color:#949494">1</b>
+<b style="color:#000000">0000000110110</b><b style="color:#070707">0</b><b style="color:#010101">0</b><b style="color:#000000">011011</b><b style="color:#2C2C2C">1</b><b style="color:#9B9B9B">1</b><b style="color:#989898">1</b><b style="color:#646464">1</b><b style="color:#6A6A6A">1</b><b style="color:#7A7A7A">0</b><b style="color:#8B8B8B">0</b><b style="color:#C8C8C8">0</b><b style="color:#A4A4A4">0</b><b style="color:#1D1D1D">0</b><b style="color:#000000">101000</b><b style="color:#191919">0</b><b style="color:#949494">0</b><b style="color:#DADADA">0</b><b style="color:#D5D5D5">1</b><b style="color:#C8C8C8">1</b><b style="color:#D3D3D3">0</b><b style="color:#B2B2B2">1</b><b style="color:#070707">0</b><b style="color:#000000">110</b><b style="color:#575757">0</b><b style="color:#9C9B9C">1</b>
+<b style="color:#000000">111111001000</b><b style="color:#030303">1</b><b style="color:#232323">0</b><b style="color:#000000">1110000</b><b style="color:#2C2C2C">0</b><b style="color:#9E9E9E">1</b><b style="color:#6A6A6A">1</b><b style="color:#8B8B8B">0</b><b style="color:#909090">1</b><b style="color:#A7A7A7">0</b><b style="color:#C8C8C8">1</b><b style="color:#D4D4D4">1</b><b style="color:#CACACA">1</b><b style="color:#747474">0</b><b style="color:#090909">1</b><b style="color:#000000">10001</b><b style="color:#161616">1</b><b style="color:#888888">0</b><b style="color:#D9D9D9">0</b><b style="color:#D4D4D4">1</b><b style="color:#D5D5D5">1</b><b style="color:#D4D4D4">0</b><b style="color:#DCDCDC">0</b><b style="color:#4B4B4B">1</b><b style="color:#000000">001</b><b style="color:#050505">1</b><b style="color:#595959">0</b>
+<b style="color:#050505">0</b><b style="color:#000000">11010100001</b><b style="color:#1B1B1B">0</b><b style="color:#1F1F1F">1</b><b style="color:#232323">0</b><b style="color:#000000">000101</b><b style="color:#6C6C6C">0</b><b style="color:#6E6E6E">1</b><b style="color:#C8C8C8">1</b><b style="color:#BBBBBB">0</b><b style="color:#C2C2C2">1</b><b style="color:#D4D4D4">1</b><b style="color:#D1D1D1">0</b><b style="color:#B9B9B9">0</b><b style="color:#B1B1B1">1</b><b style="color:#B4B4B4">1</b><b style="color:#4B4B4B">0</b><b style="color:#000000">100010</b><b style="color:#5F5F5F">0</b><b style="color:#DADADA">0</b><b style="color:#D4D4D4">10</b><b style="color:#D3D3D3">1</b><b style="color:#DBDBDB">0</b><b style="color:#8D8D8D">1</b><b style="color:#000000">001</b><b style="color:#171717">10</b>
+<b style="color:#686868">0</b><b style="color:#101010">0</b><b style="color:#000000">1010101100</b><b style="color:#1F1F1F">0</b><b style="color:#4F4F4F">1</b><b style="color:#595959">1</b><b style="color:#2B2B2B">0</b><b style="color:#000000">1010</b><b style="color:#0F0F0F">0</b><b style="color:#A9A9A9">1</b><b style="color:#CDCDCD">1</b><b style="color:#CACACA">1</b><b style="color:#D0D0D0">1</b><b style="color:#D2D2D2">1</b><b style="color:#C1C1C1">1</b><b style="color:#B8B8B8">0</b><b style="color:#BDBDBD">1</b><b style="color:#C2C2C2">1</b><b style="color:#D6D6D6">1</b><b style="color:#9F9F9F">1</b><b style="color:#131313">0</b><b style="color:#000000">10100</b><b style="color:#343434">1</b><b style="color:#D9D9D9">1</b><b style="color:#D5D5D5">0</b><b style="color:#D4D4D4">11</b><b style="color:#D8D8D8">1</b><b style="color:#B3B3B3">1</b><b style="color:#030303">0</b><b style="color:#000000">10</b><b style="color:#070707">0</b><b style="color:#202020">1</b>
+<b style="color:#999999">1</b><b style="color:#717171">0</b><b style="color:#151515">0</b><b style="color:#000000">110010010</b><b style="color:#343434">0</b><b style="color:#B6B6B6">0</b><b style="color:#6F6F6F">0</b><b style="color:#5F5F5F">0</b><b style="color:#111111">0</b><b style="color:#000000">111</b><b style="color:#282828">0</b><b style="color:#BEBEBE">1</b><b style="color:#D9D9D9">0</b><b style="color:#D5D5D5">01</b><b style="color:#CFCFCF">1</b><b style="color:#CACACA">0</b><b style="color:#CBCBCB">1</b><b style="color:#CECECE">0</b><b style="color:#D1D1D1">1</b><b style="color:#D6D6D6">0</b><b style="color:#D3D3D3">1</b><b style="color:#616161">0</b><b style="color:#010101">1</b><b style="color:#000000">00</b><b style="color:#020202">0</b><b style="color:#0D0D0D">1</b><b style="color:#000000">0</b><b style="color:#909090">0</b><b style="color:#D3D3D3">1</b><b style="color:#D5D5D5">11</b><b style="color:#DCDCDC">1</b><b style="color:#C5C5C5">1</b><b style="color:#202020">1</b><b style="color:#494949">1</b><b style="color:#020202">1</b><b style="color:#1D1D1D">1</b><b style="color:#090909">1</b>
+<b style="color:#949494">1</b><b style="color:#999999">0</b><b style="color:#545454">0</b><b style="color:#141414">0</b><b style="color:#000000">1110111</b><b style="color:#0D0D0D">1</b><b style="color:#646464">0</b><b style="color:#8C8C8C">1</b><b style="color:#555555">1</b><b style="color:#393939">0</b><b style="color:#343434">0</b><b style="color:#000000">000</b><b style="color:#383838">1</b><b style="color:#CDCDCD">1</b><b style="color:#D6D6D6">1</b><b style="color:#D4D4D4">11100101</b><b style="color:#D9D9D9">1</b><b style="color:#B8B8B8">1</b><b style="color:#383838">0</b><b style="color:#000000">000</b><b style="color:#515151">0</b><b style="color:#363636">1</b><b style="color:#131313">0</b><b style="color:#BBBBBB">0</b><b style="color:#DEDEDE">1</b><b style="color:#CECECE">1</b><b style="color:#B2B2B2">0</b><b style="color:#767676">0</b><b style="color:#181818">1</b><b style="color:#1C1C1C">0</b><b style="color:#000000">0</b><b style="color:#0C0C0C">1</b><b style="color:#1B1B1B">0</b>
+<b style="color:#939393">1</b><b style="color:#959595">1</b><b style="color:#8F8F8F">0</b><b style="color:#5C5C5C">1</b><b style="color:#0E0E0E">0</b><b style="color:#000000">110010</b><b style="color:#171717">0</b><b style="color:#474747">1</b><b style="color:#838383">0</b><b style="color:#ACACAC">0</b><b style="color:#5B5B5B">0</b><b style="color:#9F9F9F">0</b><b style="color:#171717">1</b><b style="color:#000000">11</b><b style="color:#3E3E3E">1</b><b style="color:#D9D9D9">0</b><b style="color:#D4D4D4">00</b><b style="color:#D5D5D5">1</b><b style="color:#D4D4D4">111100</b><b style="color:#D6D6D6">0</b><b style="color:#D4D4D4">0</b><b style="color:#909090">1</b><b style="color:#0A0A0A">0</b><b style="color:#000000">01</b><b style="color:#858585">0</b><b style="color:#B4B4B4">0</b><b style="color:#121212">1</b><b style="color:#2C2C2C">0</b><b style="color:#494949">1</b><b style="color:#1D1D1D">0</b><b style="color:#060606">0</b><b style="color:#0C0C0C">1</b><b style="color:#5B5B5B">1</b><b style="color:#343434">1</b><b style="color:#000000">0</b><b style="color:#0F0F0F">0</b><b style="color:#646464">0</b>
+<b style="color:#929292">1</b><b style="color:#939393">1</b><b style="color:#969696">1</b><b style="color:#8A8A8A">0</b><b style="color:#333333">1</b><b style="color:#000000">01100</b><b style="color:#090909">0</b><b style="color:#151515">1</b><b style="color:#6C6C6C">1</b><b style="color:#6E6E6E">1</b><b style="color:#505050">1</b><b style="color:#737373">1</b><b style="color:#949494">1</b><b style="color:#656565">0</b><b style="color:#000000">11</b><b style="color:#505050">0</b><b style="color:#D1D1D1">0</b><b style="color:#D5D5D5">1</b><b style="color:#D3D3D3">0</b><b style="color:#BEBEBE">1</b><b style="color:#C0C0C0">1</b><b style="color:#D4D4D4">0110</b><b style="color:#D5D5D5">0</b><b style="color:#A9A9A9">01</b><b style="color:#D8D8D8">1</b><b style="color:#656565">0</b><b style="color:#000000">11</b><b style="color:#606060">0</b><b style="color:#777777">1</b><b style="color:#000000">000</b><b style="color:#050505">1</b><b style="color:#3B3B3B">0</b><b style="color:#656565">1</b><b style="color:#828282">0</b><b style="color:#919191">1</b><b style="color:#BEBEBE">1</b><b style="color:#AFAFAF">1</b><b style="color:#8B8B8B">1</b>
+<b style="color:#929292">0</b><b style="color:#949494">1</b><b style="color:#939393">1</b><b style="color:#969696">1</b><b style="color:#808080">1</b><b style="color:#1D1D1D">1</b><b style="color:#000000">0000</b><b style="color:#010101">1</b><b style="color:#000000">1</b><b style="color:#595959">1</b><b style="color:#6F6F6F">1</b><b style="color:#292929">1</b><b style="color:#888888">1</b><b style="color:#686868">1</b><b style="color:#505050">1</b><b style="color:#000000">00</b><b style="color:#6B6B6B">1</b><b style="color:#D1D1D1">1</b><b style="color:#BFBFBF">1</b><b style="color:#B9B9B9">0</b><b style="color:#C5C5C5">1</b><b style="color:#D4D4D4">1</b><b style="color:#D5D5D5">01</b><b style="color:#D2D2D2">1</b><b style="color:#CFCFCF">0</b><b style="color:#D0D0D0">1</b><b style="color:#BFBFBF">1</b><b style="color:#D5D5D5">1</b><b style="color:#D7D7D7">1</b><b style="color:#CCCCCC">0</b><b style="color:#292929">0</b><b style="color:#000000">1</b><b style="color:#151515">0</b><b style="color:#0F0F0F">1</b><b style="color:#050505">0</b><b style="color:#1C1C1C">0</b><b style="color:#494949">1</b><b style="color:#676767">1</b><b style="color:#8E8E8E">1</b><b style="color:#AFAFAF">1</b><b style="color:#CBCBCB">1</b><b style="color:#EDEDED">0</b><b style="color:#FFFFFF">1</b><b style="color:#EEEEEE">0</b><b style="color:#9B9B9B">0</b>
+<b style="color:#929292">0</b><b style="color:#949494">1</b><b style="color:#939393">10</b><b style="color:#969696">1</b><b style="color:#5C5C5C">1</b><b style="color:#040404">1</b><b style="color:#000000">11111</b><b style="color:#2F2F2F">1</b><b style="color:#4C4C4C">0</b><b style="color:#252525">1</b><b style="color:#6A6A6A">1</b><b style="color:#9B9B9B">0</b><b style="color:#757575">0</b><b style="color:#0D0D0D">1</b><b style="color:#000000">0</b><b style="color:#636363">0</b><b style="color:#BEBEBE">1</b><b style="color:#C4C4C4">0</b><b style="color:#CECECE">0</b><b style="color:#D4D4D4">1</b><b style="color:#D8D8D8">0</b><b style="color:#C6C6C6">1</b><b style="color:#B8B8B8">1</b><b style="color:#C6C6C6">0</b><b style="color:#D0D0D0">1</b><b style="color:#D5D5D5">0</b><b style="color:#D6D6D6">1</b><b style="color:#D4D4D4">01</b><b style="color:#DEDEDE">1</b><b style="color:#7E7E7E">0</b><b style="color:#111111">0</b><b style="color:#121212">1</b><b style="color:#898989">1</b><b style="color:#BEBEBE">0</b><b style="color:#C7C7C7">0</b><b style="color:#D4D4D4">0</b><b style="color:#DADADA">01</b><b style="color:#D7D7D7">1</b><b style="color:#D3D3D3">0</b><b style="color:#E7E7E7">1</b><b style="color:#FFFFFF">01</b><b style="color:#FCFCFC">1</b>
+<b style="color:#939393">1</b><b style="color:#949494">0</b><b style="color:#939393">01</b><b style="color:#959595">1</b><b style="color:#8A8A8A">1</b><b style="color:#1C1C1C">0</b><b style="color:#000000">11010</b><b style="color:#060606">0</b><b style="color:#3C3C3C">0</b><b style="color:#3F3F3F">1</b><b style="color:#434343">1</b><b style="color:#979797">0</b><b style="color:#9B9B9B">1</b><b style="color:#3D3D3D">1</b><b style="color:#000000">0</b><b style="color:#616161">1</b><b style="color:#919191">0</b><b style="color:#8D8D8D">0</b><b style="color:#8F8F8F">0</b><b style="color:#939393">1</b><b style="color:#9A9A9A">1</b><b style="color:#A0A0A0">0</b><b style="color:#AFAFAF">1</b><b style="color:#C3C3C3">1</b><b style="color:#CACACA">1</b><b style="color:#CECECE">0</b><b style="color:#D3D3D3">0</b><b style="color:#D5D5D5">10</b><b style="color:#D7D7D7">0</b><b style="color:#B9B9B9">0</b><b style="color:#232323">1</b><b style="color:#777777">1</b><b style="color:#696969">1</b><b style="color:#DADADA">0</b><b style="color:#D7D7D7">0</b><b style="color:#D5D5D5">1</b><b style="color:#D4D4D4">1101</b><b style="color:#D5D5D5">0</b><b style="color:#DBDBDB">0</b><b style="color:#E1E1E1">0</b><b style="color:#E9E9E9">1</b>
+<b style="color:#989898">11</b><b style="color:#979797">00</b><b style="color:#989898">0</b><b style="color:#9E9D9E">0</b><b style="color:#6A6A6A">0</b><b style="color:#000000">0</b><b style="color:#020202">0</b><b style="color:#171717">1</b><b style="color:#000000">0</b><b style="color:#151515">0</b><b style="color:#0E0E0E">0</b><b style="color:#070707">1</b><b style="color:#676767">1</b><b style="color:#444444">0</b><b style="color:#6B6B6B">1</b><b style="color:#A1A1A1">1</b><b style="color:#7D7D7D">0</b><b style="color:#070707">0</b><b style="color:#5F5F5F">1</b><b style="color:#AAAAAA">1</b><b style="color:#A9A9A9">0</b><b style="color:#AAAAAA">0</b><b style="color:#ABABAB">0</b><b style="color:#B1B1B1">0</b><b style="color:#B8B8B8">0</b><b style="color:#C1C1C1">1</b><b style="color:#CDCDCD">0</b><b style="color:#C8C8C8">1</b><b style="color:#C0C0C0">11</b><b style="color:#C1C1C1">1</b><b style="color:#C7C7C7">0</b><b style="color:#C6C6C6">1</b><b style="color:#D4D4D4">0</b><b style="color:#6B6B6B">0</b><b style="color:#797979">0</b><b style="color:#BABABA">1</b><b style="color:#A6A6A6">0</b><b style="color:#D6D6D6">1</b><b style="color:#DBDBDB">1</b><b style="color:#DADADA">10</b><b style="color:#DBDBDB">11</b><b style="color:#DADADA">10</b><b style="color:#D9D9D9">00</b>
+<b style="color:#6C6C6C">0</b><b style="color:#6D6D6D">1</b><b style="color:#6C6C6C">0</b><b style="color:#6B6B6B">0</b><b style="color:#6C6C6C">1</b><b style="color:#6E6E6E">0</b><b style="color:#626262">0</b><b style="color:#070707">0</b><b style="color:#000000">0</b><b style="color:#414141">1</b><b style="color:#030303">0</b><b style="color:#282828">0</b><b style="color:#575757">1</b><b style="color:#000000">0</b><b style="color:#474747">0</b><b style="color:#929292">1</b><b style="color:#404040">0</b><b style="color:#8E8D8E">0</b><b style="color:#8A8A8A">0</b><b style="color:#4B4B4B">1</b><b style="color:#3E3E3E">0</b><b style="color:#A5A5A5">0</b><b style="color:#A0A0A0">0</b><b style="color:#9F9F9F">00</b><b style="color:#A0A0A0">11</b><b style="color:#9F9F9F">0</b><b style="color:#9D9D9D">1</b><b style="color:#9E9E9E">00</b><b style="color:#9C9C9C">1</b><b style="color:#9A9A9A">1</b><b style="color:#999999">0</b><b style="color:#9B9B9B">1</b><b style="color:#A0A0A0">1</b><b style="color:#919191">1</b><b style="color:#333333">1</b><b style="color:#989898">0</b><b style="color:#999999">1</b><b style="color:#989898">1</b><b style="color:#9D9D9D">1</b><b style="color:#9C9C9C">1001000</b><b style="color:#9D9D9D">0</b>
+<b style="color:#000000">011101010</b><b style="color:#020202">0</b><b style="color:#000000">10</b><b style="color:#020202">1</b><b style="color:#000000">000010</b><b style="color:#010101">0</b><b style="color:#000000">100111111110110001001000010000</b>
+<b style="color:#000000">10010010100001111100000010001001001110110101100000</b>
+<b style="color:#000000">11100111011001010101101001110100100110000111011101</b>
+
+</pre>
     <el-card class="about-card">
       <h2>关于本工具</h2>
       <p>
@@ -7,17 +35,41 @@
         <b>Small-tailqwq</b>
         利用
         <b>Cursor</b>
-        开发，主要为了解决CDK获取途径复杂，CDK兑换流程缓慢繁琐，CDK兑换每次都要登录等诸多问题产生的一个不成熟的解决方案。<br />本项目仅供学习交流使用，禁止用于任何商业用途。
+        开发，主要为了解决 CDK 获取途径复杂，CDK 兑换流程缓慢繁琐，CDK
+        兑换每次都要登录等诸多问题产生的一个不成熟的解决方案。<br />
+        本项目仅供学习交流使用，禁止用于任何商业用途。
       </p>
       <p></p>
       <el-divider>作者寄语</el-divider>
       <blockquote>
-        预购剑星喵，预购剑星豪华版谢谢喵<br />
-        在网站放了不少小彩蛋，欢迎玩玩看。<br />
-        有任何建议或问题欢迎GitHub或者任何可以联系到我的地方反馈。积极修。
+        跳过网页的 About，就是跳过你自己的人生！<br />
+        现在发现这个 About 的你，就是发现了哥伦布的新大陆！<br />
+        没有在网站放了不少小彩蛋，不欢迎不玩玩看。<br />
+        对网站有意见可以去 Notion 提，入口在底栏使用手册中。<br />
       </blockquote>
       <el-divider>更新日志</el-divider>
       <ul class="changelog">
+        <li>
+          2025-06-14：<br />
+          最近一周在忙工作上的事情，也在研究 NCT（这么简称真的好吗？）
+          的国服兑换相关功能，所以更新纯度大大降低了。<br />
+          国服 CDK 的兑换真的是搞死我了，因为包括接口的解析啥的都是 AI
+          大神弄的，前后调试大概花了两天，这里非常感谢小黑盒的热心盒友
+          @哥谭下小雪 同志，愿意提供国服的 CDK
+          兑换参数供我调试分析，虽然这哥们第一天参数漏给一段导致我排查了半天，但是最后结果还是美好的。再次向你表示感谢。<br />
+          然后就是收到了 DoroHelper 现任开发者的很多建议，例如 CDK
+          公告部分和兑换部分差太远了，使用起来比较割裂，不能同步云端记录，不能根据账号兑换记录智能筛选未兑换的
+          CDK
+          啥的一大堆的建议。现在也是将这些功能成功落地了，可喜可贺可口可乐~<br />
+          然后还收到了B站网友 @奈何明月不独照我 的一个需求，添加 CDK
+          的获取时间，现在也是加上了，但是这个时间只能算是我收集到 CDK
+          的时间，不能说是 CDK 实际流传到网上的时间，如果你是为了补全历史
+          CDK，请在调查问卷里注明，且 CDK 当前必须可以兑换（不能兑换的历史 CDK
+          没有收集的必要，这里不是博物馆）。<br />
+          最后就是在 Notion 里加了一些待办事项清单、使用教程、意见收集、CDK
+          填报啥的。其中工作量最大的应该是使用教程了，估计得慢慢写，昨天为了让上面那些改动落地也是熬到4点多了，累趴ORZ<br />
+          其他东西以后再说吧，祝 NCT 能够帮到大家。<br />
+        </li>
         <li>
           2025-06-10：<br />
           凌晨：<br />
@@ -298,6 +350,60 @@ blockquote {
 
   @media screen and (max-width: 768px) {
     margin: 16px 0;
+  }
+}
+
+/* 字符画样式 */
+.ascii-art {
+  font-size: 9px;
+  background-color: #000000;
+  font-weight: bold;
+  padding: 16px;
+  --fs: 9px;
+
+  /* 居中显示 */
+  text-align: center;
+  margin: 20px auto;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+
+  /* 保持正常长宽比 */
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  line-height: 1;
+  letter-spacing: 0;
+  word-spacing: 0;
+
+  /* 边框和阴影 */
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* 防止换行 */
+  white-space: pre;
+  overflow-x: auto;
+
+  /* 移动端适配 */
+  @media screen and (max-width: 768px) {
+    font-size: 6px;
+    padding: 12px;
+    margin: 16px auto;
+    border-radius: 6px;
+  }
+
+  @media screen and (max-width: 480px) {
+    font-size: 4px;
+    padding: 8px;
+    margin: 12px auto;
+    border-radius: 4px;
+  }
+
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  }
+
+  html.dark & {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   }
 }
 </style>
