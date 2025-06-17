@@ -152,6 +152,20 @@
         }
       ],
       "image": "/announcement-images/CN_OVERZONE_01.webp"
+    },
+    {
+      "code": "BECOMMANDERNOW",
+      "name": "指挥官新手奖励",
+      "reward": "珠宝×300",
+      "servers": [
+        "global",
+        "tw"
+      ],
+      "status": "可用",
+      "note": "疑似Become Commander Now(现在就成为指挥官）",
+      "author": "藤田琴音",
+      "created": "2025-06-17",
+      "image": "/announcement-images/default.webp"
     }
   ]
 }
