@@ -279,12 +279,20 @@
     </el-form>
 
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
-        <el-button type="primary" @click="handleSubmit" :loading="saving">
-          保存
-        </el-button>
-      </span>
+      <div class="dialog-footer">
+        <div class="dialog-footer-left">
+          <el-button type="info" link @click="openHelpLink" class="help-button">
+            <el-icon><QuestionFilled /></el-icon>
+            获取帮助
+          </el-button>
+        </div>
+        <div class="dialog-footer-right">
+          <el-button @click="handleClose">取消</el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="saving">
+            保存
+          </el-button>
+        </div>
+      </div>
     </template>
   </el-dialog>
 </template>
@@ -292,7 +300,12 @@
 <script setup>
 import { ref, reactive, watch, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Lock, InfoFilled, ArrowLeft } from '@element-plus/icons-vue'
+import {
+  Lock,
+  InfoFilled,
+  ArrowLeft,
+  QuestionFilled,
+} from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
@@ -979,6 +992,14 @@ const resetForm = () => {
 // 处理关闭
 const handleClose = () => {
   dialogVisible.value = false
+}
+
+// 打开帮助链接
+const openHelpLink = () => {
+  window.open(
+    'https://chalk-quotation-b2d.notion.site/20f563f728f180d9a526ccbc8a278d60#213563f728f18056ad62dc32552a50bb',
+    '_blank'
+  )
 }
 
 // 处理国服游戏URL解析
@@ -1818,6 +1839,72 @@ const handleSubmit = async () => {
       @media screen and (max-width: 768px) {
         padding: 16px;
         font-size: 13px;
+      }
+    }
+  }
+
+  // Dialog footer样式
+  .dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+
+    @media screen and (max-width: 768px) {
+      flex-direction: column;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .dialog-footer-left {
+      display: flex;
+      align-items: center;
+
+      @media screen and (max-width: 768px) {
+        justify-content: center;
+        order: 2;
+      }
+
+      .help-button {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--el-color-info);
+        padding: 8px 12px;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+          padding: 6px 10px;
+        }
+
+        &:hover {
+          background-color: var(--el-color-info-light-9);
+          color: var(--el-color-info-dark-2);
+        }
+
+        .el-icon {
+          font-size: 14px;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+          }
+        }
+      }
+    }
+
+    .dialog-footer-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      @media screen and (max-width: 768px) {
+        order: 1;
+        width: 100%;
+        justify-content: flex-end;
+        gap: 10px;
       }
     }
   }
