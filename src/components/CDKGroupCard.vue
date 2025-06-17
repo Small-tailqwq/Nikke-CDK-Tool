@@ -125,7 +125,11 @@
 
         <!-- 备注信息 - 下移 -->
         <div v-if="group.note" class="cdk-note">
-          <el-tooltip :content="group.note" placement="top">
+          <el-tooltip
+            :content="group.note"
+            placement="top"
+            popper-class="cdk-note-tooltip"
+          >
             <el-icon class="note-icon"><InfoFilled /></el-icon>
             <span>备注</span>
           </el-tooltip>
@@ -243,7 +247,11 @@
                 </div>
 
                 <div v-if="subCdk.note" class="sub-cdk-note">
-                  <el-tooltip :content="subCdk.note" placement="top">
+                  <el-tooltip
+                    :content="subCdk.note"
+                    placement="top"
+                    popper-class="cdk-note-tooltip"
+                  >
                     <el-icon class="note-icon"><InfoFilled /></el-icon>
                     <span>备注</span>
                   </el-tooltip>
@@ -1609,5 +1617,10 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   font-size: 12px;
   color: #909399;
   white-space: nowrap; /* 防止日期换行 */
+}
+
+/* =============== 修复 note tooltip 层级问题 =============== */
+:global(.cdk-note-tooltip) {
+  z-index: 4000 !important; /* 确保高于所有卡片层级 */
 }
 </style>
