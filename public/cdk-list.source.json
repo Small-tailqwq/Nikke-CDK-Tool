@@ -155,7 +155,8 @@
       "name": "指挥官新手奖励",
       "reward": "珠宝×300",
       "servers": [
-        "global,tw"
+        "global",
+        "tw"
       ],
       "status": "可用",
       "note": "疑似Become Commander Now(现在就成为指挥官）",
