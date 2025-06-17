@@ -382,6 +382,7 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
     const page = options.page || 1
     const pageSize = options.pageSize || 20
     const syncAll = options.syncAll || false
+    const user = options.user // 传入用户对象以获取详细服务器信息
 
     // 获取指定页的历史记录
     const result = await getExchangeHistory(cookie, page, pageSize)
@@ -403,13 +404,21 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
       }
     }
 
+    // 动态导入服务器工具函数
+    const { generateHistoryServerInfo } = await import('./serverUtils.js')
+
+    // 生成服务器信息
+    const serverInfo = user ? generateHistoryServerInfo(user) : {
+      server: 'global',
+      serverName: '国际服'
+    }
+
     // 处理当前页数据
     const records = result.data.map(item => ({
       ...item,
       userId,
       userName,
-      server: 'global', // 目前只支持国际服
-      serverName: '国际服'
+      ...serverInfo
     }))
 
     // 获取总记录数和当前页数

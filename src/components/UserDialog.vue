@@ -1269,7 +1269,7 @@ const handleSubmit = async () => {
         try {
           // 使用普通同步方法，只同步第一页
           exchangeStore
-            .syncUserHistory(savedUser, { page: 1 })
+            .syncUserHistory(savedUser, { page: 1, user: savedUser })
             .then((result) => {
               if (result && result.success) {
                 console.log('自动同步历史记录成功:', result.message)

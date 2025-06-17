@@ -235,6 +235,11 @@ import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { ElMessage } from 'element-plus'
 import { ArrowDown, InfoFilled } from '@element-plus/icons-vue'
+import {
+  serverOptions,
+  getServerName,
+  getServerTagType,
+} from '../utils/serverUtils'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -264,39 +269,11 @@ const hasGlobalUsers = computed(() => {
   return userStore.users.some((user) => user.server !== 'cn')
 })
 
-// 服务器选项
-const serverOptions = [
-  { label: '国际服', value: 'global' },
-  { label: '港澳台服', value: 'tw' },
-  { label: '国服', value: 'cn' },
-  { label: '未知', value: 'unknown' },
-]
-
 // 来源选项
 const sourceOptions = [
   { label: '本地兑换', value: 'local' },
   { label: '云端同步', value: 'cloud' },
 ]
-
-// 获取服务器名称
-const getServerName = (server) => {
-  const option = serverOptions.find((opt) => opt.value === server)
-  return option ? option.label : '未知'
-}
-
-// 获取服务器标签类型
-const getServerTagType = (server) => {
-  switch (server) {
-    case 'global':
-      return 'primary'
-    case 'tw':
-      return 'warning'
-    case 'cn':
-      return 'success'
-    default:
-      return 'info'
-  }
-}
 
 // 获取当前筛选条件下的所有记录
 const getFilteredRecords = () => {

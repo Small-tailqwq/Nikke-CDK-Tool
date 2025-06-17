@@ -574,6 +574,12 @@ const handleExchange = async () => {
             result = await exchangeCDK(user.cookie, cdk)
           }
 
+          // 动态导入服务器工具函数
+          const { generateHistoryServerInfo } = await import(
+            '../utils/serverUtils.js'
+          )
+          const serverInfo = generateHistoryServerInfo(user)
+
           // 使用兑换开始时间作为记录时间
           results.push({
             userId: user.id,
@@ -581,8 +587,7 @@ const handleExchange = async () => {
             cdk: cdk,
             success: result.success,
             message: result.message,
-            server: user.server,
-            serverName: user.serverName,
+            ...serverInfo,
             date: exchangeStartTime
               .toLocaleString('zh-CN', {
                 year: 'numeric',
@@ -596,6 +601,12 @@ const handleExchange = async () => {
               .replace(/\//g, '-'),
           })
         } catch (error) {
+          // 动态导入服务器工具函数
+          const { generateHistoryServerInfo } = await import(
+            '../utils/serverUtils.js'
+          )
+          const serverInfo = generateHistoryServerInfo(user)
+
           // 使用兑换开始时间作为记录时间
           results.push({
             userId: user.id,
@@ -603,8 +614,7 @@ const handleExchange = async () => {
             cdk: cdk,
             success: false,
             message: error.message || '兑换失败',
-            server: user.server,
-            serverName: user.serverName,
+            ...serverInfo,
             date: exchangeStartTime
               .toLocaleString('zh-CN', {
                 year: 'numeric',
