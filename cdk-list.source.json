@@ -152,14 +152,14 @@
     },
     {
       "code": "BECOMMANDERNOW",
-      "name": "指挥官新手奖励",
+      "name": "Padres X Nikke 门票奖励",
       "reward": "珠宝×300",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
-      "note": "疑似Become Commander Now(现在就成为指挥官）",
+      "note": "棒球队联动买票给的，还有一个白兔小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17"
     }
