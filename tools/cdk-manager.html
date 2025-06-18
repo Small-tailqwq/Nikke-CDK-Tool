@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDK 管理工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #409EFF;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .toolbar {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background: #409EFF;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #337ecc;
+        }
+
+        .btn-success {
+            background: #67C23A;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #529b2e;
+        }
+
+        .btn-warning {
+            background: #E6A23C;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #b88230;
+        }
+
+        .btn-danger {
+            background: #F56C6C;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c45656;
+        }
+
+        .content {
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .cdk-list {
+            margin-bottom: 20px;
+        }
+
+        .cdk-item {
+            border: 1px solid #eee;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .cdk-header {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cdk-title {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .cdk-type {
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: white;
+        }
+
+        .type-normal {
+            background: #409EFF;
+        }
+
+        .type-group {
+            background: #67C23A;
+        }
+
+        .cdk-body {
+            padding: 12px 16px;
+        }
+
+        .cdk-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .info-item {
+            display: flex;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            min-width: 80px;
+        }
+
+        .info-value {
+            color: #333;
+        }
+
+        .group-cdks {
+            margin-top: 10px;
+            padding-left: 20px;
+            border-left: 3px solid #67C23A;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .close {
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #409EFF;
+            box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+        }
+
+        textarea.form-control {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .file-input {
+            margin-bottom: 20px;
+        }
+
+        .status-available { color: #67C23A; }
+        .status-expired { color: #F56C6C; }
+        .status-partial { color: #E6A23C; }
+
+        @media (max-width: 768px) {
+            .toolbar {
+                flex-direction: column;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 20px;
+            }
+            
+            .cdk-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CDK 管理工具</h1>
+            <p>快速添加、修改和管理 CDK 数据</p>
+        </div>
+
+        <div class="toolbar">
+            <input type="file" id="fileInput" accept=".json" class="file-input" style="display: none;">
+            <button class="btn btn-primary" onclick="loadFileAdvanced()">📂 加载 JSON 文件</button>
+            <button class="btn btn-success" onclick="addNormalCDK()">➕ 添加普通 CDK</button>
+            <button class="btn btn-warning" onclick="addGroupCDK()">📦 添加 CDK 组合</button>
+            <button class="btn btn-primary" onclick="saveFileAdvanced()">💾 保存文件</button>
+            <button class="btn btn-primary" onclick="exportJSON()">📥 导出 JSON</button>
+            <button class="btn btn-danger" onclick="clearData()">🗑️ 清空数据</button>
+            <div style="margin-top: 10px; font-size: 12px; color: #666;">
+                <span id="fileStatus">未加载文件</span>
+                <span id="browserSupport" style="margin-left: 20px;"></span>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="cdkList" class="cdk-list">
+                <p style="text-align: center; color: #999; padding: 40px;">请加载 JSON 文件开始管理</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑普通CDK模态框 -->
+    <div id="normalCDKModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="normalModalTitle">添加普通 CDK</h3>
+                <span class="close" onclick="closeModal('normalCDKModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="normalCDKForm">
+                    <div class="form-group">
+                        <label class="form-label">CDK 代码 *</label>
+                        <input type="text" name="code" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CDK 名称 *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">奖励内容 *</label>
+                        <input type="text" name="reward" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">适用服务器 *</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="servers" value="global" id="server-global">
+                                <label for="server-global">国际服</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="servers" value="cn" id="server-cn">
+                                <label for="server-cn">国服</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" name="servers" value="tw" id="server-tw">
+                                <label for="server-tw">港澳台服</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">状态 *</label>
+                        <select name="status" class="form-control" required>
+                            <option value="可用">可用</option>
+                            <option value="已过期">已过期</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">备注</label>
+                        <textarea name="note" class="form-control"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">贡献者</label>
+                        <input type="text" name="author" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">创建日期 *</label>
+                        <input type="date" name="created" class="form-control" required>
+                    </div>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button type="button" class="btn btn-primary" onclick="saveNormalCDK()">保存</button>
+                        <button type="button" class="btn" onclick="closeModal('normalCDKModal')" style="margin-left: 10px;">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑CDK组合模态框 -->
+    <div id="groupCDKModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="groupModalTitle">添加 CDK 组合</h3>
+                <span class="close" onclick="closeModal('groupCDKModal')">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="groupCDKForm">
+                    <div class="form-group">
+                        <label class="form-label">组合 ID *</label>
+                        <input type="text" name="groupId" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">组合名称 *</label>
+                        <input type="text" name="groupName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">组合描述</label>
+                        <textarea name="note" class="form-control"></textarea>
+                    </div>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button type="button" class="btn btn-primary" onclick="saveGroupCDK()">保存</button>
+                        <button type="button" class="btn" onclick="closeModal('groupCDKModal')" style="margin-left: 10px;">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cdkData = {
+            version: 2.5,
+            lastUpdate: new Date().toISOString(),
+            cdks: []
+        };
+        let editingIndex = -1;
+        let editingGroupIndex = -1;
+        let currentFileHandle = null; // 存储当前文件句柄
+        let supportsFileSystemAccess = false;
+
+        // 检查浏览器支持
+        function checkBrowserSupport() {
+            supportsFileSystemAccess = 'showOpenFilePicker' in window;
+            const supportElement = document.getElementById('browserSupport');
+            if (supportsFileSystemAccess) {
+                supportElement.innerHTML = '✅ 支持直接文件读写';
+                supportElement.style.color = '#67C23A';
+            } else {
+                supportElement.innerHTML = '⚠️ 当前浏览器不支持直接文件读写，将使用传统模式';
+                supportElement.style.color = '#E6A23C';
+            }
+        }
+
+        // 更新文件状态显示
+        function updateFileStatus(filename) {
+            const statusElement = document.getElementById('fileStatus');
+            if (filename) {
+                statusElement.innerHTML = `📄 当前文件: ${filename}`;
+                statusElement.style.color = '#67C23A';
+            } else {
+                statusElement.innerHTML = '未加载文件';
+                statusElement.style.color = '#999';
+            }
+        }
+
+        // 高级文件加载（优先使用File System Access API）
+        async function loadFileAdvanced() {
+            if (supportsFileSystemAccess) {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'JSON 文件',
+                            accept: {
+                                'application/json': ['.json']
+                            }
+                        }],
+                        excludeAcceptAllOption: true,
+                        multiple: false
+                    });
+
+                    currentFileHandle = fileHandle;
+                    const file = await fileHandle.getFile();
+                    const text = await file.text();
+                    
+                    try {
+                        cdkData = JSON.parse(text);
+                        renderCDKList();
+                        updateFileStatus(file.name);
+                        alert('✅ 文件加载成功！现在可以直接保存修改到原文件。');
+                    } catch (error) {
+                        alert('❌ JSON 文件格式错误：' + error.message);
+                    }
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        console.error('文件加载失败:', error);
+                        alert('❌ 文件加载失败：' + error.message);
+                    }
+                }
+            } else {
+                // 回退到传统方式
+                document.getElementById('fileInput').click();
+            }
+        }
+
+        // 传统文件加载方式
+        function loadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择一个 JSON 文件');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    cdkData = JSON.parse(e.target.result);
+                    renderCDKList();
+                    updateFileStatus(file.name + ' (只读模式)');
+                    alert('文件加载成功！注意：传统模式下只能导出文件，无法直接保存。');
+                } catch (error) {
+                    alert('JSON 文件格式错误：' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 高级文件保存（直接写入原文件）
+        async function saveFileAdvanced() {
+            if (!currentFileHandle) {
+                alert('⚠️ 没有打开的文件句柄。请先使用"加载 JSON 文件"功能加载文件。');
+                return;
+            }
+
+            if (!supportsFileSystemAccess) {
+                alert('⚠️ 当前浏览器不支持直接文件写入，请使用"导出 JSON"功能。');
+                return;
+            }
+
+            try {
+                // 更新时间戳
+                cdkData.lastUpdate = new Date().toISOString();
+                
+                // 写入文件
+                const writable = await currentFileHandle.createWritable();
+                await writable.write(JSON.stringify(cdkData, null, 2));
+                await writable.close();
+
+                alert('✅ 文件保存成功！已直接写入到原文件。');
+            } catch (error) {
+                console.error('文件保存失败:', error);
+                alert('❌ 文件保存失败：' + error.message + '\n\n请尝试使用"导出 JSON"功能。');
+            }
+        }
+
+        // 渲染CDK列表
+        function renderCDKList() {
+            const listContainer = document.getElementById('cdkList');
+            if (!cdkData.cdks || cdkData.cdks.length === 0) {
+                listContainer.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">暂无 CDK 数据</p>';
+                return;
+            }
+
+            let html = '';
+            cdkData.cdks.forEach((item, index) => {
+                if (item.type === 'group') {
+                    html += renderGroupCDK(item, index);
+                } else {
+                    html += renderNormalCDK(item, index);
+                }
+            });
+
+            listContainer.innerHTML = html;
+        }
+
+        // 渲染普通CDK
+        function renderNormalCDK(cdk, index) {
+            const statusClass = cdk.status === '可用' ? 'status-available' : 'status-expired';
+            return `
+                <div class="cdk-item">
+                    <div class="cdk-header">
+                        <div>
+                            <span class="cdk-title">${cdk.name || cdk.code}</span>
+                            <span class="cdk-type type-normal">普通CDK</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-warning" onclick="editNormalCDK(${index})">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteCDK(${index})">删除</button>
+                        </div>
+                    </div>
+                    <div class="cdk-body">
+                        <div class="cdk-info">
+                            <div class="info-item">
+                                <span class="info-label">代码：</span>
+                                <span class="info-value">${cdk.code}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">奖励：</span>
+                                <span class="info-value">${cdk.reward}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">服务器：</span>
+                                <span class="info-value">${cdk.servers ? cdk.servers.join(', ') : ''}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">状态：</span>
+                                <span class="info-value ${statusClass}">${cdk.status}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">贡献者：</span>
+                                <span class="info-value">${cdk.author || '未知'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">创建日期：</span>
+                                <span class="info-value">${cdk.created}</span>
+                            </div>
+                        </div>
+                        ${cdk.note ? `<div style="margin-top: 8px;"><span class="info-label">备注：</span>${cdk.note}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 渲染CDK组合
+        function renderGroupCDK(group, index) {
+            let groupCDKsHtml = '';
+            if (group.cdks && group.cdks.length > 0) {
+                group.cdks.forEach((cdk, cdkIndex) => {
+                    const statusClass = cdk.status === '可用' ? 'status-available' : 'status-expired';
+                    groupCDKsHtml += `
+                        <div style="margin-bottom: 10px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                                <strong>${cdk.name || cdk.code}</strong>
+                                <div>
+                                    <button class="btn btn-warning" style="font-size: 12px; padding: 4px 8px;" onclick="editGroupCDKItem(${index}, ${cdkIndex})">编辑</button>
+                                    <button class="btn btn-danger" style="font-size: 12px; padding: 4px 8px;" onclick="deleteGroupCDKItem(${index}, ${cdkIndex})">删除</button>
+                                </div>
+                            </div>
+                            <div style="font-size: 13px; color: #666;">
+                                <div>代码：${cdk.code} | 奖励：${cdk.reward}</div>
+                                <div>服务器：${cdk.servers ? cdk.servers.join(', ') : ''} | 状态：<span class="${statusClass}">${cdk.status}</span></div>
+                                ${cdk.note ? `<div>备注：${cdk.note}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            return `
+                <div class="cdk-item">
+                    <div class="cdk-header">
+                        <div>
+                            <span class="cdk-title">${group.groupName}</span>
+                            <span class="cdk-type type-group">CDK组合</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-success" onclick="addCDKToGroup(${index})">添加CDK</button>
+                            <button class="btn btn-warning" onclick="editGroupCDK(${index})">编辑</button>
+                            <button class="btn btn-danger" onclick="deleteCDK(${index})">删除</button>
+                        </div>
+                    </div>
+                    <div class="cdk-body">
+                        <div class="cdk-info">
+                            <div class="info-item">
+                                <span class="info-label">组合ID：</span>
+                                <span class="info-value">${group.groupId}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">CDK数量：</span>
+                                <span class="info-value">${group.cdks ? group.cdks.length : 0}</span>
+                            </div>
+                        </div>
+                        ${group.note ? `<div style="margin-top: 8px;"><span class="info-label">描述：</span>${group.note}</div>` : ''}
+                        ${group.cdks && group.cdks.length > 0 ? `<div class="group-cdks">${groupCDKsHtml}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // 添加普通CDK
+        function addNormalCDK() {
+            editingIndex = -1;
+            document.getElementById('normalModalTitle').textContent = '添加普通 CDK';
+            document.getElementById('normalCDKForm').reset();
+            // 设置默认创建日期为今天
+            document.querySelector('[name="created"]').value = new Date().toISOString().split('T')[0];
+            showModal('normalCDKModal');
+        }
+
+        // 编辑普通CDK
+        function editNormalCDK(index) {
+            editingIndex = index;
+            const cdk = cdkData.cdks[index];
+            document.getElementById('normalModalTitle').textContent = '编辑普通 CDK';
+            
+            const form = document.getElementById('normalCDKForm');
+            form.code.value = cdk.code || '';
+            form.name.value = cdk.name || '';
+            form.reward.value = cdk.reward || '';
+            form.status.value = cdk.status || '可用';
+            form.note.value = cdk.note || '';
+            form.author.value = cdk.author || '';
+            form.created.value = cdk.created || '';
+
+            // 设置服务器复选框
+            const serverCheckboxes = form.querySelectorAll('[name="servers"]');
+            serverCheckboxes.forEach(checkbox => {
+                checkbox.checked = cdk.servers && cdk.servers.includes(checkbox.value);
+            });
+
+            showModal('normalCDKModal');
+        }
+
+        // 保存普通CDK
+        function saveNormalCDK() {
+            const form = document.getElementById('normalCDKForm');
+            const formData = new FormData(form);
+            
+            const servers = [];
+            form.querySelectorAll('[name="servers"]:checked').forEach(checkbox => {
+                servers.push(checkbox.value);
+            });
+
+            if (servers.length === 0) {
+                alert('请至少选择一个适用服务器');
+                return;
+            }
+
+            const cdkData_new = {
+                code: formData.get('code'),
+                name: formData.get('name'),
+                reward: formData.get('reward'),
+                servers: servers,
+                status: formData.get('status'),
+                note: formData.get('note'),
+                author: formData.get('author'),
+                created: formData.get('created')
+            };
+
+            if (editingIndex >= 0) {
+                cdkData.cdks[editingIndex] = cdkData_new;
+            } else {
+                cdkData.cdks.push(cdkData_new);
+            }
+
+            cdkData.lastUpdate = new Date().toISOString();
+            renderCDKList();
+            closeModal('normalCDKModal');
+            alert('保存成功！');
+        }
+
+        // 添加CDK组合
+        function addGroupCDK() {
+            editingGroupIndex = -1;
+            document.getElementById('groupModalTitle').textContent = '添加 CDK 组合';
+            document.getElementById('groupCDKForm').reset();
+            showModal('groupCDKModal');
+        }
+
+        // 编辑CDK组合
+        function editGroupCDK(index) {
+            editingGroupIndex = index;
+            const group = cdkData.cdks[index];
+            document.getElementById('groupModalTitle').textContent = '编辑 CDK 组合';
+            
+            const form = document.getElementById('groupCDKForm');
+            form.groupId.value = group.groupId || '';
+            form.groupName.value = group.groupName || '';
+            form.note.value = group.note || '';
+
+            showModal('groupCDKModal');
+        }
+
+        // 保存CDK组合
+        function saveGroupCDK() {
+            const form = document.getElementById('groupCDKForm');
+            const formData = new FormData(form);
+
+            const groupData = {
+                type: 'group',
+                groupId: formData.get('groupId'),
+                groupName: formData.get('groupName'),
+                note: formData.get('note'),
+                cdks: editingGroupIndex >= 0 ? cdkData.cdks[editingGroupIndex].cdks || [] : []
+            };
+
+            if (editingGroupIndex >= 0) {
+                cdkData.cdks[editingGroupIndex] = groupData;
+            } else {
+                cdkData.cdks.push(groupData);
+            }
+
+            cdkData.lastUpdate = new Date().toISOString();
+            renderCDKList();
+            closeModal('groupCDKModal');
+            alert('保存成功！');
+        }
+
+        // 向组合中添加CDK
+        function addCDKToGroup(groupIndex) {
+            editingIndex = -1;
+            editingGroupIndex = groupIndex;
+            document.getElementById('normalModalTitle').textContent = '向组合中添加 CDK';
+            document.getElementById('normalCDKForm').reset();
+            document.querySelector('[name="created"]').value = new Date().toISOString().split('T')[0];
+            showModal('normalCDKModal');
+        }
+
+        // 编辑组合中的CDK
+        function editGroupCDKItem(groupIndex, cdkIndex) {
+            editingIndex = cdkIndex;
+            editingGroupIndex = groupIndex;
+            const cdk = cdkData.cdks[groupIndex].cdks[cdkIndex];
+            document.getElementById('normalModalTitle').textContent = '编辑组合中的 CDK';
+            
+            const form = document.getElementById('normalCDKForm');
+            form.code.value = cdk.code || '';
+            form.name.value = cdk.name || '';
+            form.reward.value = cdk.reward || '';
+            form.status.value = cdk.status || '可用';
+            form.note.value = cdk.note || '';
+            form.author.value = cdk.author || '';
+            form.created.value = cdk.created || '';
+
+            const serverCheckboxes = form.querySelectorAll('[name="servers"]');
+            serverCheckboxes.forEach(checkbox => {
+                checkbox.checked = cdk.servers && cdk.servers.includes(checkbox.value);
+            });
+
+            showModal('normalCDKModal');
+        }
+
+        // 修改保存普通CDK函数以支持组合
+        const originalSaveNormalCDK = saveNormalCDK;
+        saveNormalCDK = function() {
+            const form = document.getElementById('normalCDKForm');
+            const formData = new FormData(form);
+            
+            const servers = [];
+            form.querySelectorAll('[name="servers"]:checked').forEach(checkbox => {
+                servers.push(checkbox.value);
+            });
+
+            if (servers.length === 0) {
+                alert('请至少选择一个适用服务器');
+                return;
+            }
+
+            const cdkData_new = {
+                code: formData.get('code'),
+                name: formData.get('name'),
+                reward: formData.get('reward'),
+                servers: servers,
+                status: formData.get('status'),
+                note: formData.get('note'),
+                author: formData.get('author'),
+                created: formData.get('created')
+            };
+
+            if (editingGroupIndex >= 0) {
+                // 操作组合中的CDK
+                if (!cdkData.cdks[editingGroupIndex].cdks) {
+                    cdkData.cdks[editingGroupIndex].cdks = [];
+                }
+                
+                if (editingIndex >= 0) {
+                    cdkData.cdks[editingGroupIndex].cdks[editingIndex] = cdkData_new;
+                } else {
+                    cdkData.cdks[editingGroupIndex].cdks.push(cdkData_new);
+                }
+            } else {
+                // 操作普通CDK
+                if (editingIndex >= 0) {
+                    cdkData.cdks[editingIndex] = cdkData_new;
+                } else {
+                    cdkData.cdks.push(cdkData_new);
+                }
+            }
+
+            cdkData.lastUpdate = new Date().toISOString();
+            renderCDKList();
+            closeModal('normalCDKModal');
+            alert('保存成功！');
+        };
+
+        // 删除CDK
+        function deleteCDK(index) {
+            if (confirm('确定要删除这个 CDK 吗？')) {
+                cdkData.cdks.splice(index, 1);
+                cdkData.lastUpdate = new Date().toISOString();
+                renderCDKList();
+            }
+        }
+
+        // 删除组合中的CDK
+        function deleteGroupCDKItem(groupIndex, cdkIndex) {
+            if (confirm('确定要删除这个 CDK 吗？')) {
+                cdkData.cdks[groupIndex].cdks.splice(cdkIndex, 1);
+                cdkData.lastUpdate = new Date().toISOString();
+                renderCDKList();
+            }
+        }
+
+        // 导出JSON
+        function exportJSON() {
+            const jsonStr = JSON.stringify(cdkData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cdk-list.source.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 清空数据
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？此操作不可恢复！')) {
+                cdkData = {
+                    version: 2.5,
+                    lastUpdate: new Date().toISOString(),
+                    cdks: []
+                };
+                renderCDKList();
+            }
+        }
+
+        // 模态框管理
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            editingIndex = -1;
+            editingGroupIndex = -1;
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                    editingIndex = -1;
+                    editingGroupIndex = -1;
+                }
+            });
+        };
+
+        // 绑定传统文件输入事件
+        document.getElementById('fileInput').addEventListener('change', loadFile);
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkBrowserSupport();
+            renderCDKList();
+        });
+    </script>
+</body>
+</html> 
