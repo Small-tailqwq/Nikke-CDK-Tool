@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-14T16:23:00Z",
+  "lastUpdate": "2025-06-18T14:10:34.082Z",
   "cdks": [
     {
       "type": "group",
@@ -149,6 +149,18 @@
           "note": "国服直播奖励",
           "author": "Small-tailqwq",
           "created": "2025-06-14"
+        },
+        {
+          "code": "SLNSZB44",
+          "name": "国服直播奖励 - 珠宝",
+          "reward": "珠宝×300",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "匿名",
+          "created": "2025-06-18"
         }
       ],
       "image": "/announcement-images/CN_OVERZONE_01.webp"
@@ -162,7 +174,7 @@
         "tw"
       ],
       "status": "可用",
-      "note": "棒球队联动买票给的，还有一个白兔小胸针",
+      "note": "棒球队联动买票给的，还有一个布兰儿小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17",
       "image": "/announcement-images/BECOMMANDERNOW.webp"
