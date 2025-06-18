@@ -102,7 +102,24 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户信息
   const getUserById = (id) => {
-    return users.value.find(u => u.id === id)
+    // 确保类型匹配，支持字符串和数字类型的ID
+    if (id === null || id === undefined) {
+      console.log('getUserById: 无效的ID，为null或undefined');
+      return null;
+    }
+
+    // 将id转换为字符串进行比较，确保能匹配
+    const idStr = String(id);
+    console.log(`getUserById: 尝试查找ID=${idStr} (类型: ${typeof id})`);
+
+    const user = users.value.find(u => String(u.id) === idStr);
+    if (user) {
+      console.log(`getUserById: 找到用户 ${user.name}, ID=${user.id}`);
+      return user;
+    } else {
+      console.log(`getUserById: 未找到ID为${idStr}的用户`);
+      return null;
+    }
   }
 
   // 设置教程显示状态

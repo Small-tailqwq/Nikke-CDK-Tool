@@ -567,9 +567,23 @@ const handleBatchExchange = () => {
 
   // 将选中的CDK通过路由参数传递到兑换页面
   const cdkString = selectedCdks.value.join('\n')
+
+  // 添加当前选中角色的ID到路由查询参数
+  const query: Record<string, string> = { cdks: cdkString }
+
+  if (filterForm.value.character) {
+    // 确保是有效的用户ID并以字符串形式传递
+    const userId = String(filterForm.value.character)
+    const user = userStore.getUserById(userId)
+    if (user) {
+      console.log('传递用户ID到兑换页面:', userId, user.name)
+      query.userId = userId
+    }
+  }
+
   router.push({
     path: '/cdk',
-    query: { cdks: cdkString },
+    query: query,
   })
 
   // 清空选择
@@ -586,7 +600,11 @@ const openSubmitCdk = () => {
 
 // 处理角色选择变化
 const handleCharacterChange = (userId: string | null) => {
-  if (!userId) return
+  if (!userId) {
+    // 清空选择的CDK
+    selectedCdks.value = []
+    return
+  }
 
   const user = userStore.users.find((u) => u.id === userId)
   if (!user) return
@@ -603,6 +621,51 @@ const handleCharacterChange = (userId: string | null) => {
         'warning'
       )
     }
+
+    // 国服账号不自动勾选CDK
+    return
+  }
+
+  // 非国服角色，自动勾选未兑换的CDK
+  selectedCdks.value = [] // 先清空选中状态
+  // 获取所有可用且未兑换的CDK
+  filteredCdks.value.forEach((cdk) => {
+    const status = getCdkStatus(cdk)
+    const exchangeStatus = getCdkExchangeStatus(cdk)
+
+    // 对单个CDK，如果可用且未兑换，则勾选
+    if (isSingleCDK(cdk) && status === '可用' && exchangeStatus === '未兑换') {
+      selectedCdks.value.push(cdk.code)
+    }
+    // 对CDK组合，如果整组未兑换且状态为可用或部分可用，则勾选可用的子CDK
+    else if (
+      isCDKGroup(cdk) &&
+      (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
+      (status === '可用' || status === '部分可用')
+    ) {
+      // 获取组合中可用且未兑换的子CDK
+      const groupCodes = getGroupCodes(cdk)
+      const redeemed = new Set(
+        selectedUserExchangeHistory.value
+          .filter((record: any) => groupCodes.includes(record.cdk))
+          .map((record: any) => record.cdk)
+      )
+
+      // 只添加未兑换的CDK
+      cdk.cdks.forEach((subCdk: SingleCDK) => {
+        if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
+          selectedCdks.value.push(subCdk.code)
+        }
+      })
+    }
+  })
+
+  // 如果有选中的CDK，提示用户
+  if (selectedCdks.value.length > 0) {
+    showCustomMessage(
+      `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,
+      'success'
+    )
   }
 }
 

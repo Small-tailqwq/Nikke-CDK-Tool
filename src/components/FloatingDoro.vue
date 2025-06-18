@@ -35,7 +35,7 @@
     }"
     @click.stop="doroStore.handleInteractionClick"
     @mousedown.stop="doroStore.handleDragStart"
-    @touchstart.stop="doroStore.handleDragStart"
+    @touchstart.stop.passive="doroStore.handleDragStart"
   >
     <img :src="doroIcon" alt="Doro" class="doro-icon" />
   </div>

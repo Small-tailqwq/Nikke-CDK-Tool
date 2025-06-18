@@ -563,14 +563,14 @@ export const useDoroStore = defineStore('doro', () => {
     }, 3000)
 
     // 记录初始拖动位置
-    const startX = event.clientX || event.touches[0].clientX
-    const startY = event.clientY || event.touches[0].clientY
+    const startX = event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : 0)
+    const startY = event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : 0)
     const startPos = { ...position.value }
     let hasMovedSignificantly = false
 
     function onDrag(moveEvent) {
-      const currentX = moveEvent.clientX || moveEvent.touches[0].clientX
-      const currentY = moveEvent.clientY || moveEvent.touches[0].clientY
+      const currentX = moveEvent.clientX || (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientX : 0)
+      const currentY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientY : 0)
       const deltaX = Math.abs(currentX - startX)
       const deltaY = Math.abs(currentY - startY)
 
@@ -622,7 +622,7 @@ export const useDoroStore = defineStore('doro', () => {
 
     window.addEventListener('mousemove', onDrag)
     window.addEventListener('mouseup', onDragEnd)
-    window.addEventListener('touchmove', onDrag)
+    window.addEventListener('touchmove', onDrag, { passive: true })
     window.addEventListener('touchend', onDragEnd)
   }
 

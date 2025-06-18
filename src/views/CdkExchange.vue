@@ -18,7 +18,7 @@
             v-for="user in userStore.users"
             :key="user.id"
             class="user-card"
-            :class="{ 'is-selected': selectedUserIds.includes(user.id) }"
+            :class="{ 'is-selected': isUserSelected(user.id) }"
             @click="toggleUserSelection(user)"
           >
             <div class="user-card-content">
@@ -57,7 +57,7 @@
               </div>
 
               <div class="selection-indicator">
-                <el-icon v-if="selectedUserIds.includes(user.id)">
+                <el-icon v-if="isUserSelected(user.id)">
                   <Check />
                 </el-icon>
               </div>
@@ -160,7 +160,7 @@
       <template #header>
         <div class="card-header">
           <span>最近兑换记录</span>
-          <el-button type="text" @click="$router.push('/history')">
+          <el-button link @click="$router.push('/history')">
             查看全部
           </el-button>
         </div>
@@ -231,7 +231,7 @@
                   @keyup.enter="submitCnExchange"
                 />
                 <el-button
-                  text
+                  link
                   type="primary"
                   @click="refreshCaptcha"
                   :loading="captchaLoading"
@@ -305,6 +305,55 @@ const form = reactive({
   cdk: '',
 })
 
+// 从参数中选择用户
+const selectUserFromParam = (userId) => {
+  if (!userId) return
+
+  // 日志记录所有用户，帮助调试
+  console.log('当前用户列表:', userStore.users)
+
+  // 首先检查用户是否已加载
+  const user = userStore.getUserById(userId)
+  if (user) {
+    console.log(
+      '找到用户，自动选择:',
+      user.name,
+      '用户ID:',
+      user.id,
+      '类型:',
+      typeof user.id
+    )
+    // 直接设置选中状态，不使用nextTick
+    selectedUserIds.value = [Number(user.id)]
+    console.log('已设置选中用户:', selectedUserIds.value)
+  } else {
+    console.warn('未找到ID为', userId, '的用户', '类型:', typeof userId)
+    // 尝试重新加载用户列表
+    userStore
+      .fetchUsers()
+      .then(() => {
+        console.log('重新加载后的用户列表:', userStore.users)
+        const refreshedUser = userStore.getUserById(userId)
+        if (refreshedUser) {
+          console.log(
+            '重新加载后找到用户:',
+            refreshedUser.name,
+            '用户ID:',
+            refreshedUser.id
+          )
+          // 直接设置选中状态
+          selectedUserIds.value = [Number(refreshedUser.id)]
+          console.log('重新加载后已设置选中用户:', selectedUserIds.value)
+        } else {
+          console.error('即使重新加载也未找到用户:', userId)
+        }
+      })
+      .catch((err) => {
+        console.error('加载用户数据失败:', err)
+      })
+  }
+}
+
 // 计算属性
 const globalUsers = computed(() => {
   return userStore.users.filter((user) => user.server !== 'cn')
@@ -320,12 +369,51 @@ const hasUsers = computed(() => userStore.users.length > 0)
 
 // 监听路由参数变化
 watch(
-  () => route.query.cdks,
-  (newCdks) => {
-    if (newCdks) {
-      form.cdk = decodeURIComponent(newCdks)
-      // 清除路由参数，避免刷新页面时重复填充
-      window.history.replaceState({}, '', '/cdk')
+  () => route.query,
+  (newQuery) => {
+    try {
+      console.log('路由参数变化:', newQuery)
+
+      // 防止循环触发，检查是否已清除参数
+      if (Object.keys(newQuery).length === 0) {
+        console.log('路由参数已被清除，跳过处理')
+        return
+      }
+
+      // 处理CDKs参数
+      if (newQuery.cdks) {
+        form.cdk = decodeURIComponent(newQuery.cdks)
+      }
+
+      // 处理userId参数，自动选择用户
+      if (newQuery.userId) {
+        const userId = String(newQuery.userId)
+        console.log('从URL参数获取到用户ID:', userId)
+
+        // 确保用户数据已加载
+        if (userStore.users.length === 0) {
+          console.log('用户列表为空，加载用户数据')
+          userStore.fetchUsers().then(() => {
+            selectUserFromParam(userId)
+          })
+        } else {
+          selectUserFromParam(userId)
+        }
+      }
+
+      // 延迟清除路由参数，确保视图更新完成
+      setTimeout(() => {
+        try {
+          if (Object.keys(route.query).length > 0) {
+            console.log('清除路由参数...')
+            window.history.replaceState({}, '', '/cdk')
+          }
+        } catch (e) {
+          console.error('清除路由参数错误:', e)
+        }
+      }, 1000)
+    } catch (error) {
+      console.error('处理路由参数错误:', error)
     }
   },
   { immediate: true }
@@ -488,10 +576,34 @@ const getSubRegionBadgeClass = (user) => {
 const toggleUserSelection = (user) => {
   const index = selectedUserIds.value.indexOf(user.id)
   if (index === -1) {
-    selectedUserIds.value.push(user.id)
+    // 选中：确保添加数字类型ID
+    selectedUserIds.value.push(Number(user.id))
+    console.log(
+      '手动选中用户:',
+      user.name,
+      'ID:',
+      user.id,
+      '当前已选:',
+      selectedUserIds.value
+    )
   } else {
+    // 取消选中
     selectedUserIds.value.splice(index, 1)
+    console.log(
+      '取消选中用户:',
+      user.name,
+      'ID:',
+      user.id,
+      '当前已选:',
+      selectedUserIds.value
+    )
   }
+}
+
+// 检查用户是否被选中
+const isUserSelected = (userId) => {
+  // 确保类型一致，使用数字比较
+  return selectedUserIds.value.includes(Number(userId))
 }
 
 // 显示添加用户对话框

@@ -55,8 +55,6 @@ async function handleBlablaLinkProxy(request) {
   // 构建目标URL
   const targetUrl = `https://api.blablalink.com${endpoint}`
 
-  console.log(`处理BlablaLink API代理请求: ${targetUrl}`)
-
   try {
     // 获取原始请求的内容
     const contentType = request.headers.get('Content-Type')
@@ -72,8 +70,6 @@ async function handleBlablaLinkProxy(request) {
     const forwardedCookie = request.headers.get('X-Forwarded-Cookie') || ''
     const originalCookie = request.headers.get('Cookie') || ''
     const cookie = forwardedCookie || originalCookie
-
-    console.log(`BlablaLink代理: Cookie长度=${cookie.length}`)
 
     // 构建代理请求
     const proxyRequest = new Request(targetUrl, {
@@ -138,8 +134,6 @@ async function handleGlobalPlayerInfo(request) {
       })
     }
 
-    console.log('获取角色信息请求:', payload)
-
     // 构建代理请求
     const proxyRequest = new Request(targetUrl, {
       method: 'POST',
@@ -156,8 +150,6 @@ async function handleGlobalPlayerInfo(request) {
     // 发送请求并获取响应
     const response = await fetch(proxyRequest)
     const data = await response.text()
-
-    console.log('角色信息响应:', data)
 
     // 返回响应
     return new Response(data, {
@@ -203,8 +195,6 @@ async function handleGlobalRegionList(request) {
       })
     }
 
-    console.log('获取区域列表请求, game_id:', game_id)
-
     // 构建目标URL（使用GET请求）
     const finalUrl = `${targetUrl}?game_id=${game_id}`
 
@@ -222,8 +212,6 @@ async function handleGlobalRegionList(request) {
     // 发送请求并获取响应
     const response = await fetch(proxyRequest)
     const data = await response.text()
-
-    console.log('区域列表响应:', data)
 
     // 返回响应
     return new Response(data, {
@@ -338,8 +326,6 @@ async function handleGlobalHistory(request) {
       page_num: page_num || 1,
       page_size: page_size || 20
     }
-
-    console.log(`处理历史记录请求，页码: ${requestBody.page_num}, 每页条数: ${requestBody.page_size}`)
 
     // 构建代理请求
     const proxyRequest = new Request(targetUrl, {
@@ -458,8 +444,6 @@ async function handleCnGetCaptcha(request) {
 // 🎯 获取当前活动配置参数 (新增)
 async function getCurrentActivityConfig() {
   try {
-    console.log('开始获取当前活动配置...')
-
     // 尝试访问CDK活动页面获取最新配置
     const activityPageUrl = 'https://nikke.qq.com/act/a20250217nikkecdk/index.html'
 
@@ -481,7 +465,6 @@ async function getCurrentActivityConfig() {
       const sIdeTokenMatch = pageHtml.match(/sIdeToken['"]\s*:\s*['"]([^'"]+)['"]/i)
 
       if (iChartIdMatch || iSubChartIdMatch || sIdeTokenMatch) {
-        console.log('成功获取活动配置参数')
         return {
           success: true,
           iChartId: iChartIdMatch ? iChartIdMatch[1] : "372756",
@@ -492,11 +475,10 @@ async function getCurrentActivityConfig() {
       }
     }
   } catch (error) {
-    console.log('获取活动配置失败:', error.message)
+    // 获取活动配置失败时静默处理
   }
 
   // 回退到默认配置
-  console.log('使用默认活动配置')
   return {
     success: false,
     iChartId: "372756",
@@ -509,8 +491,6 @@ async function getCurrentActivityConfig() {
 // 🔐 获取国服认证Token (新增 - 解决itopencodeparam不完整问题)
 async function getCNAuthToken(gameParams) {
   try {
-    console.log('开始获取国服认证Token...')
-
     // 方法1: 尝试通过AMS权限检查接口获取完整认证信息
     try {
       const authCheckUrl = `https://comm.ams.game.qq.com/ide/v2/auth/check?gameid=${gameParams.gameid || '28063'}&area_id=${gameParams.area_id}&role_id=${gameParams.role_id}&zone_id=${gameParams.zone_id}`
@@ -528,7 +508,6 @@ async function getCNAuthToken(gameParams) {
       if (authResponse.ok) {
         const authData = await authResponse.json()
         if (authData.ret === 0 && authData.data && authData.data.sIdeToken) {
-          console.log('通过AMS接口获取认证成功')
           return {
             success: true,
             sIdeToken: authData.data.sIdeToken,
@@ -538,7 +517,7 @@ async function getCNAuthToken(gameParams) {
         }
       }
     } catch (error) {
-      console.log('AMS认证方法失败:', error.message)
+      // AMS认证方法失败时静默处理
     }
 
     // 方法2: 尝试访问CDK页面获取初始化认证信息
@@ -566,7 +545,6 @@ async function getCNAuthToken(gameParams) {
         const iSubChartIdMatch = pageHtml.match(/iSubChartId['"]\s*:\s*['"]?([^'",\s]+)['"]?/i)
 
         if (sIdeTokenMatch && itopencodeMatch) {
-          console.log('通过页面解析获取认证成功')
           return {
             success: true,
             sIdeToken: sIdeTokenMatch[1],
@@ -578,7 +556,7 @@ async function getCNAuthToken(gameParams) {
         }
       }
     } catch (error) {
-      console.log('页面解析方法失败:', error.message)
+      // 页面解析方法失败时静默处理
     }
 
     // 方法3: 基于用户参数动态生成稳定的认证token
@@ -597,7 +575,6 @@ async function getCNAuthToken(gameParams) {
         const hash3 = btoa(`${hash2}-${gameParams.gameid}-${gameParams.os}`).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
 
         enhancedItopencodeparam = (hash1 + hash2 + hash3).substring(0, 200)
-        console.log(`增强itopencodeparam: ${gameParams.itopencodeparam?.length || 0} -> ${enhancedItopencodeparam.length}`)
       }
 
       // 🆕 动态生成活动参数（基于当前时间和用户信息）
@@ -617,11 +594,10 @@ async function getCNAuthToken(gameParams) {
         method: 'enhanced_param'
       }
     } catch (error) {
-      console.log('参数增强方法失败:', error.message)
+      // 参数增强方法失败时静默处理
     }
 
     // 所有方法都失败，返回原始参数
-    console.log('所有认证获取方法失败，使用原始参数')
     return {
       success: false,
       sIdeToken: "0HzkLt",
@@ -721,7 +697,6 @@ async function handleCnCdkExchange(request) {
 
     // 🎯 获取当前活动配置（确保使用最新的活动参数）
     const activityConfig = await getCurrentActivityConfig()
-    console.log(`活动配置获取: ${activityConfig.method}, Chart ID: ${activityConfig.iChartId}`)
 
     // 使用最新的活动配置更新请求参数
     exchangeData.iChartId = activityConfig.iChartId
@@ -740,14 +715,11 @@ async function handleCnCdkExchange(request) {
 
     // 检查itopencodeparam是否需要增强
     const needsAuth = !exchangeData.itopencodeparam || exchangeData.itopencodeparam.length < 100
-    console.log(`认证检查: itopencodeparam长度=${exchangeData.itopencodeparam?.length || 0}, 需要增强=${needsAuth}`)
 
     if (needsAuth) {
-      console.log('检测到认证参数不完整，开始获取完整认证...')
       const authResult = await getCNAuthToken(gameParams)
 
       if (authResult.success) {
-        console.log(`认证获取成功，方法: ${authResult.method}`)
         // 更新认证参数
         exchangeData.sIdeToken = authResult.sIdeToken
         exchangeData.itopencodeparam = authResult.itopencodeparam
@@ -756,20 +728,14 @@ async function handleCnCdkExchange(request) {
         // 🆕 更新活动配置参数（如果获取到了）
         if (authResult.iChartId) {
           exchangeData.iChartId = authResult.iChartId
-          console.log(`使用动态Chart ID: ${authResult.iChartId}`)
         }
         if (authResult.iSubChartId) {
           exchangeData.iSubChartId = authResult.iSubChartId
-          console.log(`使用动态SubChart ID: ${authResult.iSubChartId}`)
         }
 
         // 更新cookie中的游戏参数
         exchangeData.cookie = JSON.stringify(gameParams)
-      } else {
-        console.log(`认证获取失败，使用原始参数，方法: ${authResult.method}`)
       }
-    } else {
-      console.log('认证参数完整，直接使用')
     }
 
     // 构建表单数据 - 确保参数顺序和格式与成功请求一致
@@ -877,13 +843,6 @@ async function handleCnCdkExchange(request) {
     }
 
     // 发送CDK兑换请求 - 模拟完整的浏览器请求
-    console.log('请求参数调试:', {
-      role_id: exchangeData.role_id,
-      itopencodeparam_length: exchangeData.itopencodeparam?.length,
-      verifysession_length: exchangeData.verifysession?.length,
-      has_cookie: !!exchangeData.cookie
-    })
-
     const exchangeResponse = await fetch(CN_ENDPOINTS.CDK_EXCHANGE, {
       method: 'POST',
       headers: {

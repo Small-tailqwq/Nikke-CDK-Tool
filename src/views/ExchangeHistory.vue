@@ -164,7 +164,7 @@
           "
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
-          small
+          size="small"
         />
       </div>
     </el-card>
