@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-19T14:22:41.736Z",
+  "lastUpdate": "2025-06-19T16:58:37.431Z",
   "cdks": [
     {
       "type": "group",
@@ -227,9 +227,21 @@
         "global"
       ],
       "status": "已过期",
-      "note": "油管主播的打榜粉丝奖励，想看管人的[点这里](https://www.youtube.com/@SoukaKANAE)。",
+      "note": "油管直播活动第二名，官方给的CDK，虽然换完了，但是可以继续去看看管人。\n点此跳转管人主页：[創可の、のんびり日和。-Vlog Souka-](https://www.youtube.com/@SoukaKANAE)。",
       "author": "GME",
       "created": "2025-06-19"
+    },
+    {
+      "code": "FuranLilithVol9WZLY",
+      "name": "VTB“孵卵リリス”直播奖励",
+      "reward": "珠宝×300",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "依旧是管人直播CDK，这次300水应该是第一名，同样欢迎大家支持管人。\n点此跳转管人主页：[Lilith ch. 孵卵リリス -REPLAY LIVE-](https://www.youtube.com/@lilith1117mt)",
+      "author": "GME",
+      "created": "2025-06-20"
     }
   ]
 }
