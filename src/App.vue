@@ -7,7 +7,7 @@
             <div class="header-spacer"></div>
             <div class="title-container">
               <h1>NIKKE CDK Tools</h1>
-              <div class="splash-text">Also try DoroHelper!</div>
+              <div class="splash-text">{{ currentSplashText }}</div>
             </div>
             <div class="header-actions">
               <el-button
@@ -215,6 +215,63 @@ const navStore = useNavStore()
 const doroStore = useDoroStore()
 const userStore = useUserStore()
 
+// 闪烁标题数组 - 像Minecraft一样的随机展示
+const splashTexts = [
+  'Also try DoroHelper!',
+  '100% Pure AI Code!',
+  'Fresh squeezed algorithms!',
+  'Contains 0% human bugs!',
+  'Organically grown by Cursor!',
+  'Hand-picked by robots!',
+  'Farm fresh code!',
+  'Vitamin C(ode) enriched!',
+  'All natural syntax!',
+  'From AI concentrate!',
+  'Powered by electric sheep!',
+  'Now with 50% more tokens!',
+  'Debugged by digital dreams!',
+  'Compiled with love.exe!',
+  'No CDKs were harmed!',
+  'Warning: May cause addiction!',
+  'Tested on 0 humans!',
+  'Now with extra RAM!',
+  'Locally sourced pixels!',
+  'Cage-free variables!',
+  'Gluten-free code!',
+  '99.99% bug-free*!',
+  '*bugs sold separately',
+  'Now java-free!',
+  'Made in Cloudflare!',
+  'GitHub approved!',
+  'Works on my machine!™',
+  'No electrons were harmed!',
+  'Definitely not skynet!',
+  'Made by robots for humans!',
+  '人工智能，天然呆萌！',
+  'Cursor大法好！',
+  'Ctrl+C, Ctrl+V免费！',
+  '代码农场直供！',
+  'Digital DNA certified!',
+  '比人类更人性化！',
+  'CDK已抵达事件视界！',
+  '用爱发电2.0！',
+  '机器人也会梦见CDK！',
+  'Silicon Valley批准！',
+  '算法炼金术！',
+  'Contains artificial emotions!',
+  '这代码有灵魂！',
+  '免费但不廉价！',
+]
+
+// 当前显示的闪烁标题
+const currentSplashText = ref('')
+
+// 随机选择闪烁标题
+const getRandomSplashText = () => {
+  const randomIndex = Math.floor(Math.random() * splashTexts.length)
+  return splashTexts[randomIndex]
+}
+
 // 定义菜单项
 const menuItems = [
   { path: '/announcement', name: 'CDK公告' },
@@ -298,6 +355,9 @@ watch(route, (to, from) => {
 // 初始化当前页面索引和BlablaLink认证管理器
 onMounted(async () => {
   currentPageIndex.value = getPageIndex(route.path)
+
+  // 随机选择闪烁标题
+  currentSplashText.value = getRandomSplashText()
 
   // 初始化BlablaLink认证管理器
   try {
@@ -435,21 +495,29 @@ body {
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-20%, 20%) scale(1) rotate(-15deg);
+            transform: translate(-5%, 20%) scale(1) rotate(-15deg);
             font-size: 14px;
             color: #ffff55;
-            font-weight: 500;
-            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.25);
+            font-weight: 600;
             transform-origin: center center;
             animation: minecraft-splash 1s ease-in-out infinite alternate;
             user-select: none;
             cursor: default;
             white-space: nowrap;
 
+            // 文字描边效果提高辨识度
+            -webkit-text-stroke: 1px rgba(0, 0, 0, 0.8);
+            text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8),
+              -1px 1px 0px rgba(0, 0, 0, 0.8), 1px -1px 0px rgba(0, 0, 0, 0.8),
+              -1px -1px 0px rgba(0, 0, 0, 0.8), 2px 2px 2px rgba(0, 0, 0, 0.3);
+
             // 在暗色模式下调整颜色
             html.dark & {
               color: #ffff77;
-              text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5);
+              -webkit-text-stroke: 1px rgba(0, 0, 0, 0.9);
+              text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9),
+                -1px 1px 0px rgba(0, 0, 0, 0.9), 1px -1px 0px rgba(0, 0, 0, 0.9),
+                -1px -1px 0px rgba(0, 0, 0, 0.9), 2px 2px 2px rgba(0, 0, 0, 0.5);
             }
           }
         }
@@ -493,7 +561,7 @@ body {
 
           .splash-text {
             font-size: 12px;
-            transform: translate(-15%, 25%) scale(1) rotate(-15deg);
+            transform: translate(-2%, 25%) scale(1) rotate(-15deg);
           }
 
           .header-actions {
@@ -518,15 +586,15 @@ body {
 
           .splash-text {
             font-size: 11px;
-            transform: translate(-10%, 30%) scale(1) rotate(-15deg);
+            transform: translate(2%, 30%) scale(1) rotate(-15deg);
           }
 
           @keyframes minecraft-splash {
             0% {
-              transform: translate(-10%, 30%) scale(1) rotate(-15deg);
+              transform: translate(2%, 30%) scale(1) rotate(-15deg);
             }
             100% {
-              transform: translate(-10%, 30%) scale(1.05) rotate(-13deg);
+              transform: translate(2%, 30%) scale(1.05) rotate(-13deg);
             }
           }
 
