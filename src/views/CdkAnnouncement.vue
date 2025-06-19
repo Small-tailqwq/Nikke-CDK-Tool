@@ -199,9 +199,24 @@
             </div>
 
             <div v-if="cdk.note" class="cdk-note">
-              <el-tooltip :content="cdk.note" placement="top">
-                <el-icon><InfoFilled /></el-icon>
-                <span>备注</span>
+              <el-tooltip
+                placement="top"
+                :show-after="500"
+                :teleported="true"
+                popper-class="cdk-note-tooltip"
+                :append-to-body="true"
+                raw-content
+              >
+                <template #content>
+                  <div
+                    class="note-content"
+                    v-html="formatNoteContent(cdk.note)"
+                  ></div>
+                </template>
+                <div class="note-trigger">
+                  <el-icon><InfoFilled /></el-icon>
+                  <span>备注</span>
+                </div>
               </el-tooltip>
             </div>
 
@@ -241,6 +256,7 @@ import CDKGroupCard from '../components/CDKGroupCard.vue'
 import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
+import { formatNoteContent } from '../utils/noteUtils'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
@@ -1393,5 +1409,74 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
+}
+
+/* =============== Note 样式 =============== */
+:deep(.cdk-note-tooltip) {
+  z-index: 9999 !important; /* 提高z-index确保在最上层 */
+  max-width: 400px !important;
+  background: var(--el-bg-color-overlay, #ffffff) !important;
+  border: 1px solid var(--el-border-color, #dcdfe6) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 12px !important;
+  /* 智能宽度调整 */
+  min-width: 150px !important;
+  word-wrap: break-word !important;
+
+  .note-content {
+    line-height: 1.6 !important;
+    font-size: 14px !important;
+    color: var(--el-text-color-primary, #303133) !important;
+    word-break: break-word !important;
+
+    a {
+      color: var(--el-color-primary, #409eff) !important;
+      text-decoration: underline !important;
+      transition: color 0.3s ease !important;
+
+      &:hover {
+        color: var(--el-color-primary-light-3, #79bbff) !important;
+        text-decoration: none !important;
+      }
+    }
+
+    /* 避免链接在tooltip中被截断 */
+    a[href] {
+      word-break: break-all !important;
+    }
+  }
+
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+    background: var(--el-bg-color-overlay, #1a1a1a) !important;
+    border: 1px solid var(--el-border-color, #4c4d4f) !important;
+
+    .note-content {
+      color: var(--el-text-color-primary, #e5eaf3) !important;
+    }
+  }
+
+  /* Element Plus 暗色模式 */
+  html.dark & {
+    background: var(--el-bg-color-overlay, #1a1a1a) !important;
+    border: 1px solid var(--el-border-color, #4c4d4f) !important;
+
+    .note-content {
+      color: var(--el-text-color-primary, #e5eaf3) !important;
+    }
+  }
+}
+
+.note-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: var(--el-color-primary);
+  }
 }
 </style>

@@ -552,6 +552,36 @@
             listContainer.innerHTML = html;
         }
 
+        // 格式化note内容，支持换行和Markdown链接
+        function formatNoteContent(note) {
+            if (!note) return '';
+            
+            let formattedNote = note;
+            
+            // 转义HTML特殊字符（除了我们要处理的换行和链接）
+            formattedNote = formattedNote
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+            
+            // 处理换行符
+            formattedNote = formattedNote.replace(/\n/g, '<br>');
+            
+            // 处理Markdown格式的链接 [文本](URL)
+            const markdownLinkRegex = /\[([^\]]*)\]\(([^)]+)\)/g;
+            formattedNote = formattedNote.replace(markdownLinkRegex, (match, text, url) => {
+                // 清理URL，去掉可能的引号
+                const cleanUrl = url.trim();
+                const linkText = text || cleanUrl; // 如果没有文本，使用URL作为显示文本
+                
+                return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: #409EFF; text-decoration: underline;">${linkText}</a>`;
+            });
+            
+            return formattedNote;
+        }
+
         // 渲染普通CDK
         function renderNormalCDK(cdk, index) {
             const statusClass = cdk.status === '可用' ? 'status-available' : 'status-expired';
@@ -594,7 +624,7 @@
                                 <span class="info-value">${cdk.created}</span>
                             </div>
                         </div>
-                        ${cdk.note ? `<div style="margin-top: 8px;"><span class="info-label">备注：</span>${cdk.note}</div>` : ''}
+                        ${cdk.note ? `<div style="margin-top: 8px; max-width: 100%; word-break: break-word;"><span class="info-label">备注：</span><span style="line-height: 1.6;">${formatNoteContent(cdk.note)}</span></div>` : ''}
                     </div>
                 </div>
             `;
@@ -604,7 +634,7 @@
         function renderGroupCDK(group, index) {
             let groupCDKsHtml = '';
             if (group.cdks && group.cdks.length > 0) {
-                group.cdks.forEach((cdk, cdkIndex) => {
+                                    group.cdks.forEach((cdk, cdkIndex) => {
                     const statusClass = cdk.status === '可用' ? 'status-available' : 'status-expired';
                     groupCDKsHtml += `
                         <div style="margin-bottom: 10px; padding: 8px; background: #f9f9f9; border-radius: 4px;">
@@ -618,7 +648,7 @@
                             <div style="font-size: 13px; color: #666;">
                                 <div>代码：${cdk.code} | 奖励：${cdk.reward}</div>
                                 <div>服务器：${cdk.servers ? cdk.servers.join(', ') : ''} | 状态：<span class="${statusClass}">${cdk.status}</span></div>
-                                ${cdk.note ? `<div>备注：${cdk.note}</div>` : ''}
+                                ${cdk.note ? `<div style="max-width: 100%; word-break: break-word; line-height: 1.6;">备注：${formatNoteContent(cdk.note)}</div>` : ''}
                             </div>
                         </div>
                     `;
@@ -649,7 +679,7 @@
                                 <span class="info-value">${group.cdks ? group.cdks.length : 0}</span>
                             </div>
                         </div>
-                        ${group.note ? `<div style="margin-top: 8px;"><span class="info-label">描述：</span>${group.note}</div>` : ''}
+                        ${group.note ? `<div style="margin-top: 8px; max-width: 100%; word-break: break-word;"><span class="info-label">描述：</span><span style="line-height: 1.6;">${formatNoteContent(group.note)}</span></div>` : ''}
                         ${group.cdks && group.cdks.length > 0 ? `<div class="group-cdks">${groupCDKsHtml}</div>` : ''}
                     </div>
                 </div>
@@ -664,6 +694,9 @@
             // 设置默认创建日期为今天
             document.querySelector('[name="created"]').value = new Date().toISOString().split('T')[0];
             showModal('normalCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('normalCDKForm');
+            setupFormChangeListeners('normalCDKForm');
         }
 
         // 编辑普通CDK
@@ -688,6 +721,9 @@
             });
 
             showModal('normalCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('normalCDKForm');
+            setupFormChangeListeners('normalCDKForm');
         }
 
         // 保存普通CDK
@@ -724,6 +760,7 @@
 
             cdkData.lastUpdate = new Date().toISOString();
             renderCDKList();
+            clearUnsavedFlag();
             closeModal('normalCDKModal');
             alert('保存成功！');
         }
@@ -734,6 +771,9 @@
             document.getElementById('groupModalTitle').textContent = '添加 CDK 组合';
             document.getElementById('groupCDKForm').reset();
             showModal('groupCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('groupCDKForm');
+            setupFormChangeListeners('groupCDKForm');
         }
 
         // 编辑CDK组合
@@ -748,6 +788,9 @@
             form.note.value = group.note || '';
 
             showModal('groupCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('groupCDKForm');
+            setupFormChangeListeners('groupCDKForm');
         }
 
         // 保存CDK组合
@@ -771,6 +814,7 @@
 
             cdkData.lastUpdate = new Date().toISOString();
             renderCDKList();
+            clearUnsavedFlag();
             closeModal('groupCDKModal');
             alert('保存成功！');
         }
@@ -783,6 +827,9 @@
             document.getElementById('normalCDKForm').reset();
             document.querySelector('[name="created"]').value = new Date().toISOString().split('T')[0];
             showModal('normalCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('normalCDKForm');
+            setupFormChangeListeners('normalCDKForm');
         }
 
         // 编辑组合中的CDK
@@ -807,6 +854,9 @@
             });
 
             showModal('normalCDKModal');
+            clearUnsavedFlag();
+            saveOriginalFormData('normalCDKForm');
+            setupFormChangeListeners('normalCDKForm');
         }
 
         // 修改保存普通CDK函数以支持组合
@@ -858,6 +908,7 @@
 
             cdkData.lastUpdate = new Date().toISOString();
             renderCDKList();
+            clearUnsavedFlag();
             closeModal('normalCDKModal');
             alert('保存成功！');
         };
@@ -906,28 +957,142 @@
             }
         }
 
+        // 设置表单变化监听器
+        function setupFormChangeListeners(formId) {
+            const form = document.getElementById(formId);
+            const inputs = form.querySelectorAll('input, select, textarea');
+            
+            inputs.forEach(input => {
+                // 移除可能存在的旧监听器
+                input.removeEventListener('input', checkFormChanges);
+                input.removeEventListener('change', checkFormChanges);
+                
+                // 添加新监听器
+                input.addEventListener('input', () => checkFormChanges(formId));
+                input.addEventListener('change', () => checkFormChanges(formId));
+            });
+        }
+
         // 模态框管理
         function showModal(modalId) {
             document.getElementById(modalId).style.display = 'block';
         }
 
         function closeModal(modalId) {
+            // 检查是否有未保存的修改
+            if (hasUnsavedChanges()) {
+                if (!confirm('你有未保存的修改，确定要关闭编辑窗口吗？')) {
+                    return; // 用户取消关闭
+                }
+            }
+            
             document.getElementById(modalId).style.display = 'none';
             editingIndex = -1;
             editingGroupIndex = -1;
+            clearUnsavedFlag();
         }
 
-        // 点击模态框外部关闭
+        // 点击模态框外部关闭（但要避免误操作）
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
                 if (event.target === modal) {
-                    modal.style.display = 'none';
-                    editingIndex = -1;
-                    editingGroupIndex = -1;
+                    // 检查是否有未保存的修改
+                    if (hasUnsavedChanges()) {
+                        if (confirm('你有未保存的修改，确定要关闭编辑窗口吗？')) {
+                            modal.style.display = 'none';
+                            editingIndex = -1;
+                            editingGroupIndex = -1;
+                            clearUnsavedFlag();
+                        }
+                    } else {
+                        modal.style.display = 'none';
+                        editingIndex = -1;
+                        editingGroupIndex = -1;
+                    }
                 }
             });
         };
+
+        // 跟踪未保存的修改状态
+        let hasUnsavedChanges_flag = false;
+        let originalFormData = {};
+
+        function hasUnsavedChanges() {
+            return hasUnsavedChanges_flag;
+        }
+
+        function clearUnsavedFlag() {
+            hasUnsavedChanges_flag = false;
+            originalFormData = {};
+        }
+
+        function setUnsavedFlag() {
+            hasUnsavedChanges_flag = true;
+        }
+
+        // 保存表单的原始数据
+        function saveOriginalFormData(formId) {
+            const form = document.getElementById(formId);
+            originalFormData = {};
+            
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    originalFormData[input.name] = originalFormData[input.name] || [];
+                    if (input.checked) {
+                        originalFormData[input.name].push(input.value);
+                    }
+                } else {
+                    originalFormData[input.name] = input.value || '';
+                }
+            });
+        }
+
+        // 检查表单数据是否有变化
+        function checkFormChanges(formId) {
+            const form = document.getElementById(formId);
+            const currentData = {};
+            
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    currentData[input.name] = currentData[input.name] || [];
+                    if (input.checked) {
+                        currentData[input.name].push(input.value);
+                    }
+                } else {
+                    currentData[input.name] = input.value || '';
+                }
+            });
+
+            // 比较原始数据和当前数据
+            for (const key in originalFormData) {
+                if (Array.isArray(originalFormData[key])) {
+                    const orig = originalFormData[key].sort().join(',');
+                    const curr = (currentData[key] || []).sort().join(',');
+                    if (orig !== curr) {
+                        setUnsavedFlag();
+                        return;
+                    }
+                } else {
+                    if (originalFormData[key] !== (currentData[key] || '')) {
+                        setUnsavedFlag();
+                        return;
+                    }
+                }
+            }
+            
+            // 检查是否有新增的字段
+            for (const key in currentData) {
+                if (!(key in originalFormData)) {
+                    if (Array.isArray(currentData[key]) ? currentData[key].length > 0 : currentData[key] !== '') {
+                        setUnsavedFlag();
+                        return;
+                    }
+                }
+            }
+        }
 
         // 绑定传统文件输入事件
         document.getElementById('fileInput').addEventListener('change', loadFile);

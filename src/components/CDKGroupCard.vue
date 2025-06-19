@@ -126,12 +126,22 @@
         <!-- 备注信息 - 下移 -->
         <div v-if="group.note" class="cdk-note">
           <el-tooltip
-            :content="group.note"
             placement="top"
+            :show-after="500"
+            :teleported="true"
             popper-class="cdk-note-tooltip"
+            :append-to-body="true"
           >
-            <el-icon class="note-icon"><InfoFilled /></el-icon>
-            <span>备注</span>
+            <template #content>
+              <div
+                class="note-content"
+                v-html="formatNoteContent(group.note)"
+              ></div>
+            </template>
+            <div class="note-trigger">
+              <el-icon class="note-icon"><InfoFilled /></el-icon>
+              <span>备注</span>
+            </div>
           </el-tooltip>
         </div>
 
@@ -248,12 +258,22 @@
 
                 <div v-if="subCdk.note" class="sub-cdk-note">
                   <el-tooltip
-                    :content="subCdk.note"
                     placement="top"
+                    :show-after="500"
+                    :teleported="true"
                     popper-class="cdk-note-tooltip"
+                    :append-to-body="true"
                   >
-                    <el-icon class="note-icon"><InfoFilled /></el-icon>
-                    <span>备注</span>
+                    <template #content>
+                      <div
+                        class="note-content"
+                        v-html="formatNoteContent(subCdk.note)"
+                      ></div>
+                    </template>
+                    <div class="note-trigger">
+                      <el-icon class="note-icon"><InfoFilled /></el-icon>
+                      <span>备注</span>
+                    </div>
                   </el-tooltip>
                 </div>
 
@@ -300,6 +320,7 @@ import {
   getGroupServers,
 } from '../utils/fetchCdk'
 import { showCustomMessage } from '../utils/customMessage'
+import { formatNoteContent } from '../utils/noteUtils'
 
 interface Props {
   group: CDKGroup
@@ -1619,8 +1640,72 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   white-space: nowrap; /* 防止日期换行 */
 }
 
-/* =============== 修复 note tooltip 层级问题 =============== */
+/* =============== 修复 note tooltip 层级和颜色问题 =============== */
 :global(.cdk-note-tooltip) {
-  z-index: 4000 !important; /* 确保高于所有卡片层级 */
+  z-index: 9999 !important; /* 提高z-index确保在最上层 */
+  max-width: 400px !important;
+  background: var(--el-bg-color-overlay, #ffffff) !important;
+  border: 1px solid var(--el-border-color, #dcdfe6) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  padding: 12px !important;
+  /* 智能宽度调整 */
+  min-width: 150px !important;
+  word-wrap: break-word !important;
+
+  .note-content {
+    line-height: 1.6 !important;
+    font-size: 14px !important;
+    color: var(--el-text-color-primary, #303133) !important;
+    word-break: break-word !important;
+
+    a {
+      color: var(--el-color-primary, #409eff) !important;
+      text-decoration: underline !important;
+      transition: color 0.3s ease !important;
+
+      &:hover {
+        color: var(--el-color-primary-light-3, #79bbff) !important;
+        text-decoration: none !important;
+      }
+    }
+
+    /* 避免链接在tooltip中被截断 */
+    a[href] {
+      word-break: break-all !important;
+    }
+  }
+
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+    background: var(--el-bg-color-overlay, #1a1a1a) !important;
+    border: 1px solid var(--el-border-color, #4c4d4f) !important;
+
+    .note-content {
+      color: var(--el-text-color-primary, #e5eaf3) !important;
+    }
+  }
+
+  /* Element Plus 暗色模式 */
+  html.dark & {
+    background: var(--el-bg-color-overlay, #1a1a1a) !important;
+    border: 1px solid var(--el-border-color, #4c4d4f) !important;
+
+    .note-content {
+      color: var(--el-text-color-primary, #e5eaf3) !important;
+    }
+  }
+}
+
+.note-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: var(--el-color-primary);
+  }
 }
 </style>
