@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-19T13:42:48.054Z",
+  "lastUpdate": "2025-06-19T14:13:34.279Z",
   "cdks": [
     {
       "type": "group",
@@ -191,6 +191,18 @@
           "note": "国服直播奖励",
           "author": "匿名",
           "created": "2025-06-18"
+        },
+        {
+          "code": "SLNSZB55",
+          "name": "国服直播奖励 - 装备狗粮",
+          "reward": "模组高级增强器×15",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "SUMMER",
+          "created": "2025-06-19"
         }
       ]
     },
