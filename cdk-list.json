@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-19T06:23:37.420Z",
+  "lastUpdate": "2025-06-19T14:13:34.279Z",
   "cdks": [
     {
       "type": "group",
@@ -66,7 +66,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "蚊子腿也是肉",
       "author": "Small-tailqwq",
       "created": "2025-06-05",
@@ -113,6 +113,39 @@
           "note": "活动奖励",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
+        }
+      ],
+      "image": "/announcement-images/CN_OVERZONE_01.webp"
+    },
+    {
+      "type": "group",
+      "groupId": "CN_LIVE_STREAM",
+      "groupName": "直播组合",
+      "note": "国服直播奖励 CDK 集合",
+      "cdks": [
+        {
+          "code": "SLNSZB1",
+          "name": "国服直播奖励 - 红球",
+          "reward": "芯尘盒：1H×3",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "匿名",
+          "created": "2025-06-19"
+        },
+        {
+          "code": "SLNSZB2",
+          "name": "国服直播奖励 - 三选一盒",
+          "reward": "成长套组：1H×1",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "匿名",
+          "created": "2025-06-19"
         },
         {
           "code": "SLNSZB11",
@@ -161,9 +194,21 @@
           "note": "国服直播奖励",
           "author": "匿名",
           "created": "2025-06-18"
+        },
+        {
+          "code": "SLNSZB55",
+          "name": "国服直播奖励 - 装备狗粮",
+          "reward": "模组高级增强器×15",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "国服直播奖励",
+          "author": "SUMMER",
+          "created": "2025-06-19"
         }
       ],
-      "image": "/announcement-images/CN_OVERZONE_01.webp"
+      "image": "/announcement-images/CN_LIVE_STREAM.webp"
     },
     {
       "code": "BECOMMANDERNOW",
@@ -186,8 +231,8 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
-      "note": "油管主播的打榜粉丝奖励，[想看原主点这里](https://www.youtube.com/@SoukaKANAE)。CDK月底过期，有次数限制",
+      "status": "已过期",
+      "note": "油管主播的打榜粉丝奖励，想看管人的[点这里](https://www.youtube.com/@SoukaKANAE)。",
       "author": "GME",
       "created": "2025-06-19",
       "image": "/announcement-images/KanaeSoukaVol9RUXZ.webp"
