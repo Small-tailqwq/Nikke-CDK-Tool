@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-19T14:13:34.279Z",
+  "lastUpdate": "2025-06-19T14:22:41.736Z",
   "cdks": [
     {
       "type": "group",
@@ -117,8 +117,8 @@
     {
       "type": "group",
       "groupId": "CN_LIVE_STREAM",
-      "groupName": "直播组合",
-      "note": "国服直播奖励 CDK 集合",
+      "groupName": "国服直播 CDK 组合",
+      "note": "胜利女神新的希望相关直播的 CDK，官方账户[点我](https://space.bilibili.com/3546733590087876)",
       "cdks": [
         {
           "code": "SLNSZB1",
@@ -182,7 +182,7 @@
         },
         {
           "code": "SLNSZB44",
-          "name": "国服直播奖励 - 珠宝",
+          "name": "国服直播奖励 - 水晶",
           "reward": "珠宝×300",
           "servers": [
             "cn"
