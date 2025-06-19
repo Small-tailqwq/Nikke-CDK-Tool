@@ -137,7 +137,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { ElMessageBox, ElLoading } from 'element-plus'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import UserDialog from '../components/UserDialog.vue'

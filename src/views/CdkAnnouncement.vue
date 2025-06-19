@@ -240,7 +240,6 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { ElMessage } from 'element-plus'
 import { Document, InfoFilled, Loading, Picture } from '@element-plus/icons-vue'
 import {
   fetchCdkList,

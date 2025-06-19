@@ -3,6 +3,12 @@
  * 适用于Vue + GitHub Pages纯前端架构
  */
 
+// 统一的API基础地址配置
+const getApiBaseUrl = () => import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
+
+// 导入axios（用于续签函数）
+import axios from 'axios'
+
 class BlablaLinkAuthManager {
   constructor() {
     this.isInitialized = false
@@ -128,7 +134,7 @@ class BlablaLinkAuthManager {
 
     try {
       // 使用代理服务器地址替代直接访问BlablaLink API
-      const baseUrl = 'https://nikke-cdk.hayasa.org'
+      const baseUrl = getApiBaseUrl()
       const proxyUrl = `${baseUrl}/blablalink${endpoint}`
 
       // 获取当前存储的所有Cookie
@@ -298,8 +304,9 @@ export async function renewBlablaLinkSession(user) {
     // 1. 设置当前用户Cookie
     await setBlablaLinkCookies(user.cookie);
 
-    // 2. 模拟访问CDK页面触发续签
-    const response = await axios.get('/blablalink/proxy/cdk-page', {
+    // 2. 模拟访问CDK页面触发续签 - 使用统一的API地址
+    const baseUrl = getApiBaseUrl()
+    const response = await axios.get(`${baseUrl}/blablalink/proxy/cdk-page`, {
       headers: {
         'X-Proxy-Target': 'https://www.blablalink.com/cdk',
         'X-Original-Referer': 'https://www.blablalink.com/'

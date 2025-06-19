@@ -299,7 +299,6 @@
 
 <script setup>
 import { ref, reactive, watch, nextTick, computed } from 'vue'
-import { ElMessage } from 'element-plus'
 import {
   Lock,
   InfoFilled,
@@ -309,6 +308,7 @@ import {
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
+import { showCustomMessage } from '../utils/customMessage'
 
 const props = defineProps({
   visible: {
@@ -1018,7 +1018,7 @@ const handleGameUrlParse = async () => {
         result.missingParams?.length > 0
           ? `游戏URL缺少必要参数: ${result.missingParams.join(', ')}`
           : '游戏URL格式不正确，请检查URL是否完整'
-      ElMessage.error(errorMsg)
+      showCustomMessage(errorMsg, 'error')
       return
     }
 
@@ -1260,7 +1260,7 @@ const handleSubmit = async () => {
       savedUser = await userStore.addUser(userData)
     }
 
-    ElMessage.success(props.isEdit ? '更新成功' : '添加成功')
+    showCustomMessage(props.isEdit ? '更新成功' : '添加成功', 'success')
 
     // 如果是国际服或港澳台服用户，尝试同步历史记录
     if (savedUser && savedUser.server !== 'cn') {
@@ -1287,7 +1287,7 @@ const handleSubmit = async () => {
     handleClose()
   } catch (error) {
     if (error.message) {
-      ElMessage.error(error.message)
+      showCustomMessage(error.message, 'error')
     }
   } finally {
     saving.value = false

@@ -391,8 +391,9 @@ async function handleCnGetCaptcha(request) {
     // 获取验证码图片
     const captchaResponse = await fetch(`${CN_ENDPOINTS.CAPTCHA}?aid=${aid}`, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
-        'Referer': 'https://nikke.qq.com/'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Referer': 'https://nikke.qq.com/',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
       }
     })
 
@@ -400,19 +401,22 @@ async function handleCnGetCaptcha(request) {
       throw new Error(`验证码获取失败: ${captchaResponse.status}`)
     }
 
-    // 获取验证码图片数据
+    // 🚀 优化图片处理：使用更高效的Base64转换
     const captchaData = await captchaResponse.arrayBuffer()
-    const captchaBase64 = btoa(String.fromCharCode(...new Uint8Array(captchaData)))
+    const uint8Array = new Uint8Array(captchaData)
 
-    // 提取verifysession cookie
-    const setCookieHeader = captchaResponse.headers.get('set-cookie')
-    let verifysession = null
-    if (setCookieHeader && setCookieHeader.includes('verifysession=')) {
-      const match = setCookieHeader.match(/verifysession=([^;]+)/)
-      if (match) {
-        verifysession = match[1]
-      }
+    // 使用更高效的Base64转换方法
+    let binaryString = ''
+    const chunkSize = 1024
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, i + chunkSize)
+      binaryString += String.fromCharCode.apply(null, chunk)
     }
+    const captchaBase64 = btoa(binaryString)
+
+    // 🚀 优化Cookie提取：使用更简洁的正则表达式
+    const setCookieHeader = captchaResponse.headers.get('set-cookie')
+    const verifysession = setCookieHeader?.match(/verifysession=([^;]+)/)?.[1] || null
 
     return new Response(JSON.stringify({
       success: true,
@@ -695,46 +699,18 @@ async function handleCnCdkExchange(request) {
       }
     }
 
-    // 🎯 获取当前活动配置（确保使用最新的活动参数）
-    const activityConfig = await getCurrentActivityConfig()
+    // 🚀 性能优化：使用固定的已知有效参数，避免每次动态获取
+    exchangeData.iChartId = exchangeData.iChartId || "372756"
+    exchangeData.iSubChartId = exchangeData.iSubChartId || "372756"
+    exchangeData.sIdeToken = exchangeData.sIdeToken || "0HzkLt"
 
-    // 使用最新的活动配置更新请求参数
-    exchangeData.iChartId = activityConfig.iChartId
-    exchangeData.iSubChartId = activityConfig.iSubChartId
-    exchangeData.sIdeToken = activityConfig.sIdeToken
-
-    // 🔐 动态获取认证Token（解决itopencodeparam不完整问题）
+    // 解析游戏参数
     let gameParams = {}
     if (exchangeData.cookie) {
       try {
         gameParams = JSON.parse(exchangeData.cookie)
       } catch (error) {
         console.error('解析游戏参数失败:', error)
-      }
-    }
-
-    // 检查itopencodeparam是否需要增强
-    const needsAuth = !exchangeData.itopencodeparam || exchangeData.itopencodeparam.length < 100
-
-    if (needsAuth) {
-      const authResult = await getCNAuthToken(gameParams)
-
-      if (authResult.success) {
-        // 更新认证参数
-        exchangeData.sIdeToken = authResult.sIdeToken
-        exchangeData.itopencodeparam = authResult.itopencodeparam
-        gameParams.itopencodeparam = authResult.itopencodeparam
-
-        // 🆕 更新活动配置参数（如果获取到了）
-        if (authResult.iChartId) {
-          exchangeData.iChartId = authResult.iChartId
-        }
-        if (authResult.iSubChartId) {
-          exchangeData.iSubChartId = authResult.iSubChartId
-        }
-
-        // 更新cookie中的游戏参数
-        exchangeData.cookie = JSON.stringify(gameParams)
       }
     }
 
@@ -764,81 +740,9 @@ async function handleCnCdkExchange(request) {
       }
     })
 
-    // 构建完整的Cookie字符串
+    // 🚀 简化Cookie构建 - 只使用必要的验证信息
     let cookieHeader = ''
-
-    // 从用户的cookie字段（实际是完整的游戏参数）中提取必要信息
-    if (exchangeData.cookie) {
-      try {
-        const gameParams = JSON.parse(exchangeData.cookie)
-
-        // 验证关键游戏参数是否完整
-        const criticalParams = ['role_id', 'area_id', 'zone_id', 'sig', 'itopencodeparam']
-        for (const param of criticalParams) {
-          if (!gameParams[param]) {
-            console.warn(`游戏参数缺失: ${param}`)
-          }
-        }
-
-        // 重建必要的Cookie参数
-        const cookieParts = []
-
-        // 添加基础Cookie（使用真实值模拟浏览器会话）
-        cookieParts.push('eas_sid=01y7h41926Y453k7K6U6U8B8m0')
-        cookieParts.push('pgv_pvid=9331955668') // 使用固定值而非时间戳
-        cookieParts.push('pgv_info=ssid=s5304475609')
-        cookieParts.push('nikkeqqcomrouteLine=a20250217nikkecdk')
-
-        // 添加其他必要的Cookie
-        cookieParts.push('isActDate=20250')
-        cookieParts.push('isHostDate=20250')
-        cookieParts.push('PTTactFirstTime=1749600000000')
-        cookieParts.push('PTTuserFirstTime=1749600000000')
-        cookieParts.push('ts_last=nikke.qq.com/act/a20250217nikkecdk/index.html')
-        cookieParts.push('ts_uid=8257828071')
-        cookieParts.push('weekloop=0-0-0-24')
-
-        // 构建tokenParams（URL编码格式）
-        const tokenParamsObj = {
-          role_id: gameParams.role_id,
-          role_name: encodeURIComponent(gameParams.role_name || ''),
-          area_id: gameParams.area_id,
-          zone_id: gameParams.zone_id,
-          lang_type: gameParams.lang_type || 'zh-CN',
-          algorithm: gameParams.algorithm || 'itop',
-          encode: gameParams.encode || '2',
-          channelid: gameParams.channelid,
-          nickname: encodeURIComponent(gameParams.nickname || ''),
-          gameid: gameParams.gameid,
-          os: gameParams.os,
-          ts: gameParams.ts,
-          version: gameParams.version,
-          seq: gameParams.seq,
-          sig: gameParams.sig,
-          itopencodeparam: gameParams.itopencodeparam
-        }
-
-        const tokenParamsString = Object.entries(tokenParamsObj)
-          .filter(([key, value]) => value !== undefined && value !== null && value !== '')
-          .map(([key, value]) => `${key}=${value}`)
-          .join('&')
-
-        cookieParts.push(`tokenParams=?${encodeURIComponent(tokenParamsString)}`)
-
-        // 添加verifysession
-        if (exchangeData.verifysession) {
-          cookieParts.push(`verifysession=${exchangeData.verifysession}`)
-        }
-
-        cookieHeader = cookieParts.join('; ')
-      } catch (error) {
-        console.error('解析Cookie失败:', error)
-        // 回退到简单的verifysession
-        if (exchangeData.verifysession) {
-          cookieHeader = `verifysession=${exchangeData.verifysession}`
-        }
-      }
-    } else if (exchangeData.verifysession) {
+    if (exchangeData.verifysession) {
       cookieHeader = `verifysession=${exchangeData.verifysession}`
     }
 

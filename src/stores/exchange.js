@@ -37,7 +37,7 @@ export const useExchangeStore = defineStore('exchange', () => {
         date: record.date || new Date().toLocaleString(),
         server: record.server || 'unknown',
         serverName: record.serverName || '未知',
-        source: record.source || 'local', // 标记来源：local-本地兑换, cloud-云端同步
+        source: record.source || '本地', // 标记来源：本地-本地兑换, 云端-云端同步
         ...record
       }
 
@@ -112,36 +112,53 @@ export const useExchangeStore = defineStore('exchange', () => {
         const index = result.findIndex(r => r.id === closestRecord.id)
         if (index !== -1) {
           // 智能融合规则：
-          const isLocalRecord = closestRecord.source === 'local'
-          const isCloudRecord = newRecord.source === 'cloud'
+          const isLocalRecord = closestRecord.source === '本地'
+          const isCloudRecord = newRecord.source === '云端'
+          const isLocalNewRecord = newRecord.source === '本地'
+          const isCloudOldRecord = closestRecord.source === '云端'
 
-          // 融合记录
-          result[index] = {
-            ...closestRecord,
-            // 1. 时间选择：优先使用云端时间（更精确）
-            date: isCloudRecord ? newRecord.date : closestRecord.date,
+          // 融合条件检查：只有当一个记录是本地来源，另一个是云端来源时才进行融合
+          const shouldMerge = (isLocalRecord && isCloudRecord) || (isLocalNewRecord && isCloudOldRecord)
 
-            // 2. 结果信息：优先使用本地信息（更详细）
-            message: isLocalRecord ? closestRecord.message : newRecord.message,
+          if (shouldMerge) {
+            console.log(`融合记录: ${closestRecord.source} + ${newRecord.source} (CDK: ${newRecord.cdk})`)
 
-            // 3. 成功状态：如果有一个成功，则认为成功
-            success: closestRecord.success || newRecord.success,
+            // 识别云端和本地记录
+            const cloudRecord = isCloudRecord ? newRecord : (isCloudOldRecord ? closestRecord : null)
+            const localRecord = isLocalRecord ? closestRecord : (isLocalNewRecord ? newRecord : null)
 
-            // 4. 服务器信息：保留更详细的
-            serverName: closestRecord.serverName || newRecord.serverName,
+            // 融合记录
+            result[index] = {
+              ...closestRecord,
+              // 1. 时间选择：优先使用云端时间（更精确）
+              date: cloudRecord ? cloudRecord.date : localRecord.date,
 
-            // 标记为已融合
-            merged: true,
+              // 2. 结果信息：优先使用本地信息（更详细）
+              message: localRecord ? localRecord.message : cloudRecord.message,
 
-            // 记录融合来源
-            mergedFrom: `${closestRecord.source}+${newRecord.source}`,
+              // 3. 成功状态：如果有一个成功，则认为成功
+              success: closestRecord.success || newRecord.success,
 
-            // 记录融合时间
-            mergedAt: new Date().toISOString()
+              // 4. 服务器信息：保留更详细的
+              serverName: closestRecord.serverName || newRecord.serverName,
+
+              // 标记为已融合
+              merged: true,
+
+              // 记录融合来源
+              mergedFrom: `${closestRecord.source}+${newRecord.source}`,
+
+              // 记录融合时间
+              mergedAt: new Date().toISOString()
+            }
+
+            // 标记为已处理
+            processedNewRecords.add(newRecord.id)
+          } else {
+            // 相同来源的重复记录，跳过新记录，避免重复
+            console.log(`跳过重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk})`)
+            processedNewRecords.add(newRecord.id)
           }
-
-          // 标记为已处理
-          processedNewRecords.add(newRecord.id)
         }
       }
     }

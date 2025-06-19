@@ -125,7 +125,7 @@
                 {{ row.success ? '成功' : '失败' }}
               </el-tag>
               <el-tag
-                v-if="row.source === 'cloud'"
+                v-if="row.source === '云端'"
                 type="info"
                 size="small"
                 effect="plain"
@@ -196,7 +196,17 @@
             <strong>融合时间：</strong
             >{{
               selectedRecord.mergedAt
-                ? new Date(selectedRecord.mergedAt).toLocaleString()
+                ? new Date(selectedRecord.mergedAt)
+                    .toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false,
+                    })
+                    .replace(/\//g, '-')
                 : '未知'
             }}
           </p>
@@ -233,13 +243,13 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import { ElMessage } from 'element-plus'
 import { ArrowDown, InfoFilled } from '@element-plus/icons-vue'
 import {
   serverOptions,
   getServerName,
   getServerTagType,
 } from '../utils/serverUtils'
+import { showCustomMessage } from '../utils/customMessage'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -271,8 +281,8 @@ const hasGlobalUsers = computed(() => {
 
 // 来源选项
 const sourceOptions = [
-  { label: '本地兑换', value: 'local' },
-  { label: '云端同步', value: 'cloud' },
+  { label: '本地兑换', value: '本地' },
+  { label: '云端同步', value: '云端' },
 ]
 
 // 获取当前筛选条件下的所有记录
@@ -337,7 +347,7 @@ const handleClearCommand = (command) => {
   } else if (command === 'clearFiltered') {
     const filteredCount = getFilteredRecords().length
     if (filteredCount === 0) {
-      ElMessage.warning('当前没有符合筛选条件的记录')
+      showCustomMessage('当前没有符合筛选条件的记录', 'warning')
       return
     }
 
@@ -373,7 +383,7 @@ const confirmClear = async () => {
     if (clearType.value === 'clearAll') {
       // 清除全部历史
       await exchangeStore.clearHistory()
-      ElMessage.success('已清除全部历史记录')
+      showCustomMessage('已清除全部历史记录', 'success')
     } else if (clearType.value === 'clearFiltered') {
       // 清除筛选后的历史
       const filteredRecords = getFilteredRecords()
@@ -387,10 +397,13 @@ const confirmClear = async () => {
       // 替换历史记录为保留的记录
       await exchangeStore.replaceHistory(remainingRecords)
 
-      ElMessage.success(`已清除 ${filteredRecords.length} 条筛选后的历史记录`)
+      showCustomMessage(
+        `已清除 ${filteredRecords.length} 条筛选后的历史记录`,
+        'success'
+      )
     }
   } catch (error) {
-    ElMessage.error('清除历史记录失败')
+    showCustomMessage('清除历史记录失败', 'error')
     console.error('清除历史记录失败:', error)
   } finally {
     loading.value = false
@@ -403,9 +416,9 @@ const syncAllHistory = async () => {
   syncLoading.value = true
   try {
     await exchangeStore.syncAllHistory({ pageSize: 20 })
-    ElMessage.success('已同步全部历史记录')
+    showCustomMessage('已同步全部历史记录', 'success')
   } catch (error) {
-    ElMessage.error('同步历史记录失败')
+    showCustomMessage('同步历史记录失败', 'error')
     console.error('同步历史记录失败:', error)
   } finally {
     syncLoading.value = false

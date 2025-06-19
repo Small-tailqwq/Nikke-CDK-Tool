@@ -264,7 +264,6 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
 import { Check, Plus, InfoFilled, Refresh } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
@@ -272,6 +271,7 @@ import { useRoute } from 'vue-router'
 import UserDialog from '../components/UserDialog.vue'
 
 import { exchangeCDK, getCaptchaCN, exchangeCDKCN } from '../utils/api'
+import { showCustomMessage } from '../utils/customMessage'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -699,6 +699,7 @@ const handleExchange = async () => {
             cdk: cdk,
             success: result.success,
             message: result.message,
+            source: '本地', // 标记为本地兑换记录
             ...serverInfo,
             date: exchangeStartTime
               .toLocaleString('zh-CN', {
@@ -726,6 +727,7 @@ const handleExchange = async () => {
             cdk: cdk,
             success: false,
             message: error.message || '兑换失败',
+            source: '本地', // 标记为本地兑换记录
             ...serverInfo,
             date: exchangeStartTime
               .toLocaleString('zh-CN', {
@@ -757,13 +759,16 @@ const handleExchange = async () => {
     const failCount = results.length - successCount
 
     if (failCount === 0) {
-      ElMessage.success(`全部兑换成功`)
+      showCustomMessage(`全部兑换成功`, 'success')
       form.cdk = ''
       selectedUserIds.value = []
     } else if (successCount === 0) {
-      ElMessage.error(`全部兑换失败`)
+      showCustomMessage(`全部兑换失败`, 'error')
     } else {
-      ElMessage.warning(`成功 ${successCount} 个，失败 ${failCount} 个`)
+      showCustomMessage(
+        `成功 ${successCount} 个，失败 ${failCount} 个`,
+        'warning'
+      )
     }
 
     // 展开结果面板
@@ -855,14 +860,14 @@ const getCaptchaAndShowDialog = async () => {
         captchaInputRef.value.focus()
       }
     } else {
-      ElMessage.error(result.message || '获取验证码失败')
+      showCustomMessage(result.message || '获取验证码失败', 'error')
       captchaForm.result = {
         success: false,
         message: result.message || '获取验证码失败',
       }
     }
   } catch (error) {
-    ElMessage.error('获取验证码失败')
+    showCustomMessage('获取验证码失败', 'error')
     captchaForm.result = {
       success: false,
       message: '获取验证码失败',
@@ -876,7 +881,7 @@ const getCaptchaAndShowDialog = async () => {
 // 提交国服验证码兑换
 const submitCnExchange = async () => {
   if (!captchaForm.captcha) {
-    ElMessage.error('请输入验证码')
+    showCustomMessage('请输入验证码', 'error')
     return
   }
 
@@ -888,7 +893,7 @@ const submitCnExchange = async () => {
     try {
       gameParams = JSON.parse(currentCnUser.value.cookie)
     } catch (error) {
-      ElMessage.error('用户数据格式错误')
+      showCustomMessage('用户数据格式错误', 'error')
       captchaForm.result = {
         success: false,
         message: '用户数据格式错误',
@@ -916,7 +921,7 @@ const submitCnExchange = async () => {
     globalCdkIndex.value++
 
     if (result.success) {
-      ElMessage.success('兑换成功')
+      showCustomMessage('兑换成功', 'success')
       // 成功后清空输入框，准备下一个CDK
       captchaForm.captcha = ''
 
@@ -939,7 +944,7 @@ const submitCnExchange = async () => {
         })
       }
     } else {
-      ElMessage.error(result.message || '兑换失败')
+      showCustomMessage(result.message || '兑换失败', 'error')
       // 失败后也要检查是否需要关闭
       if (globalCdkIndex.value >= globalCdkTotal.value) {
         // 所有CDK处理完成，延迟关闭对话框
@@ -962,7 +967,7 @@ const submitCnExchange = async () => {
       }
     }
   } catch (error) {
-    ElMessage.error('兑换失败')
+    showCustomMessage('兑换失败', 'error')
     captchaForm.result = {
       success: false,
       message: error.message || '兑换失败',
@@ -1014,10 +1019,10 @@ const refreshCaptchaOnly = async () => {
       captchaForm.verifysession = result.verifysession
       captchaForm.captcha = ''
     } else {
-      ElMessage.error(result.message || '获取验证码失败')
+      showCustomMessage(result.message || '获取验证码失败', 'error')
     }
   } catch (error) {
-    ElMessage.error('获取验证码失败')
+    showCustomMessage('获取验证码失败', 'error')
   } finally {
     captchaLoading.value = false
     isRefreshingCaptcha.value = false

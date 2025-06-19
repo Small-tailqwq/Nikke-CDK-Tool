@@ -2,9 +2,9 @@ import axios from 'axios'
 
 // 创建axios实例
 const api = axios.create({
-  // baseURL为cloudflare worker的API地址，如担心隐私问题，请自己替换部署
-  // baseURL: 'https://nikke-cdk.shunxi.workers.dev',
-  baseURL: 'https://nikke-cdk.hayasa.org',
+  // baseURL为cloudflare worker的API地址，支持环境变量配置
+  // 优先使用环境变量，否则使用默认地址
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org',
 
   timeout: 10000,
   withCredentials: true,
@@ -117,23 +117,10 @@ export const exchangeCDKCN = async (gameParams, cdk, captchaCode) => {
       }
     }
 
-    // 国服错误码映射
-    const cnErrorMessages = {
-      '107': '活动太火爆，参与人数太多，请稍后再试',
-      '-191': '该口令码不存在，请您确认后输入!',
-      '-192': 'CDK已被使用',
-      '-193': '该账号已兑换过此CDK',
-      '-194': 'CDK已过期',
-      '-195': '验证码错误',
-      '-196': '需要重新获取验证码',
-      '-300': '登录已过期，请重新登录',
-      '-301': '角色信息异常'
-    }
-
-    const errorCode = String(result.ret || result.iRet)
+    // 直接使用官方返回的错误信息，无需前端映射
     return {
       success: false,
-      message: cnErrorMessages[errorCode] || result.sMsg || '兑换失败'
+      message: result.sMsg || '兑换失败'
     }
 
   } catch (error) {
@@ -289,7 +276,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
               cdk: item.cdk,
               success: item.status === true,
               message: item.status === true ? '兑换成功' : '兑换失败',
-              source: 'cloud'
+              source: '云端'
             })),
             total: data.total || records.length,
             isLastPage: isLastPage,
@@ -310,7 +297,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
             cdk: item.cdkey || item.cdk,
             success: item.status === 1 || item.status === true,
             message: (item.status === 1 || item.status === true) ? '兑换成功' : '兑换失败',
-            source: 'cloud' // 标记来源为云端
+            source: '云端' // 标记来源为云端
           })),
           total: data.length,
           isLastPage: true, // 对于数组格式，假设只有一页
@@ -332,7 +319,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
               cdk: item.cdkey || item.cdk || item.code || '未知CDK',
               success: item.status === 1 || item.success === true,
               message: (item.status === 1 || item.success === true) ? '兑换成功' : '兑换失败',
-              source: 'cloud'
+              source: '云端'
             })),
             total: data.total || records.length,
             isLastPage: data.is_last_page === true || (data.total && records.length >= data.total),
