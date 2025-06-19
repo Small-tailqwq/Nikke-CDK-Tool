@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-18T14:10:34.082Z",
+  "lastUpdate": "2025-06-19T06:23:37.420Z",
   "cdks": [
     {
       "type": "group",
@@ -174,6 +174,18 @@
       "note": "棒球队联动买票给的，还有一个布兰儿小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17"
+    },
+    {
+      "code": "KanaeSoukaVol9RUXZ",
+      "name": "VTB“创可”直播奖励",
+      "reward": "珠宝×200",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "油管主播的打榜粉丝奖励，[想看原主点这里](https://www.youtube.com/@SoukaKANAE)。CDK月底过期，有次数限制",
+      "author": "GME",
+      "created": "2025-06-19"
     }
   ]
 }
