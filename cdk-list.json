@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-19T16:58:37.431Z",
+  "lastUpdate": "2025-06-22T15:31:39.446Z",
   "cdks": [
     {
       "type": "group",
@@ -206,6 +206,18 @@
           "note": "国服直播奖励",
           "author": "SUMMER",
           "created": "2025-06-19"
+        },
+        {
+          "code": "SLNSZB66",
+          "name": "国服直播 - 好感卷",
+          "reward": "指挥官自由使用卷×1",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "不是哥们，这也是 CDK？",
+          "author": "匿名",
+          "created": "2025-06-22"
         }
       ],
       "image": "/announcement-images/CN_LIVE_STREAM.webp"
@@ -249,6 +261,19 @@
       "author": "GME",
       "created": "2025-06-20",
       "image": "/announcement-images/FuranLilithVol9WZLY.webp"
+    },
+    {
+      "code": "RubianaVol9SNWR",
+      "name": "VTB“Rubiana”直播奖励",
+      "reward": "珠宝×100",
+      "servers": [
+        "cn"
+      ],
+      "status": "可用",
+      "note": "依旧是管人直播奖励，这次的应该是第三名了。\n点此跳转管人主页：[Rubiana*ch. ルビアーナ](https://www.youtube.com/@Rubiana_VEYOND)",
+      "author": "大哥嫑烎",
+      "created": "2025-06-22",
+      "image": "/announcement-images/RubianaVol9SNWR.webp"
     }
   ]
 }
