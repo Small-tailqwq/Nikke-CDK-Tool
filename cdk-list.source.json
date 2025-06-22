@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-22T15:31:39.446Z",
+  "lastUpdate": "2025-06-22T15:35:11.024Z",
   "cdks": [
     {
       "type": "group",
@@ -260,7 +260,7 @@
       "name": "VTB“Rubiana”直播奖励",
       "reward": "珠宝×100",
       "servers": [
-        "cn"
+        "global"
       ],
       "status": "可用",
       "note": "依旧是管人直播奖励，这次的应该是第三名了。\n点此跳转管人主页：[Rubiana*ch. ルビアーナ](https://www.youtube.com/@Rubiana_VEYOND)",
