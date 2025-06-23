@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-22T15:35:11.024Z",
+  "lastUpdate": "2025-06-23T09:09:22.681Z",
   "cdks": [
     {
       "type": "group",
@@ -262,7 +262,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "依旧是管人直播奖励，这次的应该是第三名了。\n点此跳转管人主页：[Rubiana*ch. ルビアーナ](https://www.youtube.com/@Rubiana_VEYOND)",
       "author": "大哥嫑烎",
       "created": "2025-06-22"
