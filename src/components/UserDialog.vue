@@ -162,6 +162,39 @@
               :rows="10"
               :placeholder="cookiePlaceholder"
             />
+
+            <!-- Cookie工具栏 - 编辑模式 -->
+            <div class="cookie-tools" v-if="form.cookie">
+              <div class="cookie-tools-left">
+                <span class="format-info">
+                  <el-icon><InfoFilled /></el-icon>
+                  {{ cookieFormatInfo }}
+                </span>
+              </div>
+              <div class="cookie-tools-right">
+                <el-button
+                  size="small"
+                  type="primary"
+                  plain
+                  @click="convertCookieFormat"
+                  :disabled="!isApplicationFormat"
+                  :icon="Refresh"
+                >
+                  转换为标准格式
+                </el-button>
+                <el-button
+                  size="small"
+                  type="success"
+                  plain
+                  @click="validateCookieManually"
+                  :loading="manualValidationLoading"
+                  :icon="Check"
+                >
+                  验证Cookie
+                </el-button>
+              </div>
+            </div>
+
             <div class="cookie-info-footer">
               <div class="cookie-expire-info">
                 <el-tag
@@ -202,13 +235,46 @@
             </div>
           </div>
         </template>
-        <el-input
-          v-else
-          v-model="form.cookie"
-          type="textarea"
-          :rows="10"
-          :placeholder="cookiePlaceholder"
-        />
+        <div v-else>
+          <el-input
+            v-model="form.cookie"
+            type="textarea"
+            :rows="10"
+            :placeholder="cookiePlaceholder"
+          />
+
+          <!-- Cookie工具栏 -->
+          <div class="cookie-tools" v-if="form.cookie">
+            <div class="cookie-tools-left">
+              <span class="format-info">
+                <el-icon><InfoFilled /></el-icon>
+                {{ cookieFormatInfo }}
+              </span>
+            </div>
+            <div class="cookie-tools-right">
+              <el-button
+                size="small"
+                type="primary"
+                plain
+                @click="convertCookieFormat"
+                :disabled="!isApplicationFormat"
+                :icon="Refresh"
+              >
+                转换为标准格式
+              </el-button>
+              <el-button
+                size="small"
+                type="success"
+                plain
+                @click="validateCookieManually"
+                :loading="manualValidationLoading"
+                :icon="Check"
+              >
+                验证Cookie
+              </el-button>
+            </div>
+          </div>
+        </div>
       </el-form-item>
 
       <!-- 国服显示角色信息 -->
@@ -327,6 +393,7 @@ import {
   ArrowLeft,
   QuestionFilled,
   Refresh,
+  Check,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
@@ -391,6 +458,9 @@ const isRenewing = ref(false) // 标记是否正在续期，避免重复解析
 
 // 新增：标记用户是否手动修改了过期天数
 const manualExpireDaysEdit = ref(false)
+
+// Cookie工具相关状态
+const manualValidationLoading = ref(false)
 
 // 服务器选项
 const serverOptions = [
@@ -817,6 +887,22 @@ const shouldShowRenewButton = computed(() => {
   return form.cookieExpireDays < 30 && form.cookieExpireDays > 0
 })
 
+// 检测Cookie格式
+const isApplicationFormat = computed(() => {
+  return form.cookie && form.cookie.includes('\t')
+})
+
+// Cookie格式信息
+const cookieFormatInfo = computed(() => {
+  if (!form.cookie) return ''
+
+  if (isApplicationFormat.value) {
+    return '检测到Application面板格式'
+  } else {
+    return '标准Cookie格式'
+  }
+})
+
 // 监听Cookie值变化，自动更新过期时间
 watch(
   () => form.cookie,
@@ -1108,21 +1194,41 @@ const handleGlobalCookieParse = async () => {
       console.warn('获取国际服角色信息失败:', result.message)
       parsedGlobalInfo.value = null
 
-      // 🔧 关键修复：如果API验证失败且错误信息表明Cookie无效，则标记Cookie状态为异常
-      if (
-        result.message &&
-        result.message.includes('无法从Cookie中提取必要的游戏参数')
-      ) {
-        console.warn('检测到Cookie已失效，设置状态为异常')
-        // 设置程序更新标志，避免监听器误判为用户手动修改
-        window.isUpdatingExpireDays = true
-        form.cookieExpireDays = -1 // 设置为异常状态
-        // 标记为Cookie验证失效状态，用于保存时保护
-        form.cookieValidationFailed = true
-        nextTick(() => {
-          window.isUpdatingExpireDays = false
-        })
-        showCustomMessage('检测到Cookie已失效，请重新设置Cookie信息', 'warning')
+      // 🔧 改进验证逻辑：区分Cookie格式错误和API调用失败
+      if (result.message) {
+        if (result.message.includes('无法从Cookie中提取必要的游戏参数')) {
+          // 这通常表示Cookie格式有问题，可能需要转换
+          console.warn('Cookie参数提取失败，可能需要格式转换')
+          showCustomMessage(
+            'Cookie格式可能需要转换，请尝试使用"转换为标准格式"或"验证Cookie"功能',
+            'warning'
+          )
+        } else if (
+          result.message.includes('token is invalid') ||
+          result.message.includes('认证失败') ||
+          result.message.includes('401') ||
+          result.message.includes('403')
+        ) {
+          // 明确的认证失败，标记为无效
+          console.warn('检测到Cookie认证失败，设置状态为异常')
+          window.isUpdatingExpireDays = true
+          form.cookieExpireDays = -1
+          form.cookieValidationFailed = true
+          nextTick(() => {
+            window.isUpdatingExpireDays = false
+          })
+          showCustomMessage(
+            '检测到Cookie已失效，请重新设置Cookie信息',
+            'warning'
+          )
+        } else {
+          // 其他错误（网络问题、服务器问题等），不标记Cookie为无效
+          console.warn('API调用失败，但不确定是Cookie问题:', result.message)
+          showCustomMessage(
+            '无法验证Cookie状态，请检查网络连接或稍后重试',
+            'info'
+          )
+        }
       }
     }
   } catch (error) {
@@ -1157,6 +1263,109 @@ watch(
     clearTimeout(window.globalCookieParseTimer)
   }
 )
+
+// 手动转换Cookie格式
+const convertCookieFormat = () => {
+  if (!form.cookie || !isApplicationFormat.value) {
+    showCustomMessage('当前不是Application面板格式，无需转换', 'info')
+    return
+  }
+
+  try {
+    const parseResult = parseAndStandardizeCookie(form.cookie)
+
+    if (parseResult.isValid) {
+      // 更新为标准格式
+      form.cookie = parseResult.standardCookie
+
+      // 更新过期信息
+      form.cookieExpireDays = parseResult.expireDays
+      form.cookieActualExpireDate = parseResult.expireDate
+
+      // 重置验证失效标志
+      form.cookieValidationFailed = false
+
+      showCustomMessage(
+        `转换成功！Cookie格式已标准化，有效期：${parseResult.expireDays}天`,
+        'success'
+      )
+
+      console.log('Cookie格式转换成功:', {
+        原始格式: 'Application面板格式',
+        转换后格式: '标准Cookie格式',
+        有效期天数: parseResult.expireDays,
+      })
+    } else {
+      showCustomMessage(`转换失败：${parseResult.error}`, 'error')
+    }
+  } catch (error) {
+    console.error('Cookie格式转换异常:', error)
+    showCustomMessage('Cookie格式转换异常', 'error')
+  }
+}
+
+// 手动验证Cookie有效性
+const validateCookieManually = async () => {
+  if (!form.cookie) {
+    showCustomMessage('请先输入Cookie信息', 'warning')
+    return
+  }
+
+  manualValidationLoading.value = true
+
+  try {
+    console.log('开始手动验证Cookie有效性...')
+
+    // 先解析Cookie格式
+    const parseResult = parseAndStandardizeCookie(form.cookie)
+
+    if (!parseResult.isValid) {
+      showCustomMessage(`Cookie格式错误：${parseResult.error}`, 'error')
+      return
+    }
+
+    // 使用标准化的Cookie进行API验证
+    const result = await getGlobalUserCompleteInfo(parseResult.standardCookie)
+
+    if (result.success && result.data) {
+      // 验证成功
+      console.log('Cookie验证成功:', result.data)
+
+      // 更新角色信息
+      parsedGlobalInfo.value = result.data
+
+      // 使用转换后的标准Cookie
+      form.cookie = parseResult.standardCookie
+      form.cookieExpireDays = parseResult.expireDays
+      form.cookieActualExpireDate = parseResult.expireDate
+
+      // 重置验证失效标志
+      form.cookieValidationFailed = false
+
+      // 自动填充信息
+      if (!form.name && result.data.role_name) {
+        form.name = result.data.role_name
+      }
+
+      showCustomMessage(
+        `Cookie验证成功！角色：${result.data.role_name}，等级：${result.data.player_level}`,
+        'success'
+      )
+    } else {
+      // 验证失败
+      console.warn('Cookie验证失败:', result.message)
+      showCustomMessage(
+        `Cookie验证失败：${result.message || '无法获取角色信息'}`,
+        'error'
+      )
+    }
+  } catch (error) {
+    console.error('Cookie验证异常:', error)
+    showCustomMessage(`Cookie验证异常：${error.message || '未知错误'}`, 'error')
+  } finally {
+    manualValidationLoading.value = false
+  }
+}
 
 // 处理Cookie续期
 const handleRenewCookie = async () => {
@@ -2007,6 +2216,88 @@ const handleSubmit = async () => {
 
           @media screen and (max-width: 768px) {
             margin-left: 0;
+          }
+        }
+      }
+    }
+  }
+
+  // Cookie工具栏样式
+  .cookie-tools {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: var(--el-fill-color-extra-light);
+    border-radius: 6px;
+    border: 1px solid var(--el-border-color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+
+    @media screen and (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .cookie-tools-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .format-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--el-text-color-regular);
+        font-size: 13px;
+
+        .el-icon {
+          font-size: 14px;
+          color: var(--el-color-info);
+        }
+
+        @media screen and (max-width: 768px) {
+          font-size: 12px;
+        }
+      }
+
+      @media screen and (max-width: 768px) {
+        justify-content: center;
+      }
+    }
+
+    .cookie-tools-right {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+
+      @media screen and (max-width: 768px) {
+        flex-direction: column;
+        gap: 6px;
+
+        .el-button {
+          width: 100%;
+        }
+      }
+
+      .el-button {
+        font-size: 12px;
+        padding: 4px 8px;
+        height: 24px;
+
+        .el-icon {
+          font-size: 12px;
+        }
+
+        @media screen and (max-width: 768px) {
+          height: 32px;
+          font-size: 13px;
+          padding: 6px 12px;
+
+          .el-icon {
+            font-size: 13px;
           }
         }
       }

@@ -180,12 +180,12 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
-import { ElMessageBox, ElLoading } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import UserDialog from '../components/UserDialog.vue'
-import { showCustomMessage } from '../utils/customMessage'
+import { showCustomMessage, ProgressMessage } from '../utils/customMessage'
 import {
   renewGlobalCookie,
   shouldRenewCookie,
@@ -383,14 +383,12 @@ const handleBatchRenewCookies = async () => {
 
   batchRenewLoading.value = true
 
-  try {
-    // 显示进度提示
-    const loadingInstance = ElLoading.service({
-      lock: true,
-      text: `正在为第1个用户续期，共${renewableUsers.length}个用户...`,
-      background: 'rgba(0, 0, 0, 0.7)',
-    })
+  // 创建进度提示
+  const progressMessage = new ProgressMessage(
+    `正在为第1个用户续期，共${renewableUsers.length}个用户...`
+  )
 
+  try {
     let successCount = 0
     let failCount = 0
     const results = []
@@ -399,10 +397,14 @@ const handleBatchRenewCookies = async () => {
     for (let i = 0; i < renewableUsers.length; i++) {
       const user = renewableUsers[i]
 
-      // 更新进度提示
-      loadingInstance.text = `正在为 ${user.name} 续期，第${i + 1}个，共${
-        renewableUsers.length
-      }个用户...`
+      // 更新进度和消息
+      const progressPercentage = ((i + 1) / renewableUsers.length) * 100
+      progressMessage.updateProgress(
+        progressPercentage,
+        `正在为 ${user.name} 续期，第${i + 1}个，共${
+          renewableUsers.length
+        }个用户...`
+      )
 
       try {
         const result = await autoRenewUserCookie(user)
@@ -457,20 +459,18 @@ const handleBatchRenewCookies = async () => {
       }
     }
 
-    // 关闭加载提示
-    loadingInstance.close()
-
     // 显示结果
     if (successCount > 0) {
-      showCustomMessage(
-        `批量续期完成：成功 ${successCount} 个，失败 ${failCount} 个`,
-        successCount === renewableUsers.length ? 'success' : 'warning'
-      )
+      const resultMessage = `批量续期完成：成功 ${successCount} 个，失败 ${failCount} 个`
+
+      if (successCount === renewableUsers.length) {
+        progressMessage.complete(resultMessage)
+      } else {
+        progressMessage.error(resultMessage, false)
+        setTimeout(() => progressMessage.hide(), 3000)
+      }
     } else {
-      showCustomMessage(
-        `批量续期失败：所有 ${failCount} 个用户都续期失败`,
-        'error'
-      )
+      progressMessage.error(`批量续期失败：所有 ${failCount} 个用户都续期失败`)
     }
 
     // 详细结果日志
@@ -482,7 +482,7 @@ const handleBatchRenewCookies = async () => {
     })
   } catch (error) {
     console.error('批量续期异常:', error)
-    showCustomMessage('批量续期过程中发生异常', 'error')
+    progressMessage.error('批量续期过程中发生异常')
   } finally {
     batchRenewLoading.value = false
   }
@@ -640,14 +640,10 @@ const syncSinglePage = async (user, page = 1) => {
 const syncAllPages = async (user) => {
   syncLoading.value = true
 
-  try {
-    // 显示进度提示
-    const loadingInstance = ElLoading.service({
-      lock: true,
-      text: '正在同步第1页...',
-      background: 'rgba(0, 0, 0, 0.7)',
-    })
+  // 创建进度提示
+  const progressMessage = new ProgressMessage('正在同步第1页...')
 
+  try {
     // 同步第一页，获取总页数信息
     const firstPageResult = await exchangeStore.syncUserHistory(user, {
       page: 1,
@@ -655,8 +651,7 @@ const syncAllPages = async (user) => {
     })
 
     if (!firstPageResult.success) {
-      loadingInstance.close()
-      showCustomMessage(firstPageResult.message || '同步失败', 'error')
+      progressMessage.error(firstPageResult.message || '同步失败')
       return
     }
 
@@ -666,8 +661,7 @@ const syncAllPages = async (user) => {
 
     // 如果只有一页或没有更多页，直接返回
     if (totalPages <= 1 || !firstPageResult.hasMorePages) {
-      loadingInstance.close()
-      showCustomMessage(`成功同步了 ${totalRecords} 条历史记录`, 'success')
+      progressMessage.complete(`成功同步了 ${totalRecords} 条历史记录`)
       return
     }
 
@@ -675,8 +669,12 @@ const syncAllPages = async (user) => {
     while (currentPage < totalPages) {
       currentPage++
 
-      // 更新加载提示
-      loadingInstance.text = `正在同步第${currentPage}页，共${totalPages}页...`
+      // 更新进度和消息
+      const progressPercentage = (currentPage / totalPages) * 100
+      progressMessage.updateProgress(
+        progressPercentage,
+        `正在同步第${currentPage}页，共${totalPages}页...`
+      )
 
       // 同步下一页
       const result = await exchangeStore.syncUserHistory(user, {
@@ -694,17 +692,13 @@ const syncAllPages = async (user) => {
       await new Promise((resolve) => setTimeout(resolve, 300))
     }
 
-    // 关闭加载提示
-    loadingInstance.close()
-
     // 显示最终结果
-    showCustomMessage(
-      `成功同步了 ${totalRecords} 条历史记录，共 ${currentPage} 页`,
-      'success'
+    progressMessage.complete(
+      `成功同步了 ${totalRecords} 条历史记录，共 ${currentPage} 页`
     )
   } catch (error) {
     console.error('同步所有历史记录失败:', error)
-    showCustomMessage('同步失败: ' + (error.message || '未知错误'), 'error')
+    progressMessage.error('同步失败: ' + (error.message || '未知错误'))
   } finally {
     syncLoading.value = false
   }

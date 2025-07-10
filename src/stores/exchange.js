@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { syncUserExchangeHistory } from '../utils/api'
-import { ElMessage } from 'element-plus'
 import { useUserStore } from './user'
 
 export const useExchangeStore = defineStore('exchange', () => {
@@ -275,8 +274,8 @@ export const useExchangeStore = defineStore('exchange', () => {
           totalRecords = result.total || allRecords.length
           totalPages = result.totalPages || Math.ceil(totalRecords / pageSize)
 
-          // 显示同步进度
-          ElMessage.info(`已同步第${currentPage}页，共${totalPages}页，当前${allRecords.length}条记录，总计${totalRecords}条`)
+          // 同步进度由调用方的ProgressMessage显示，这里不再重复显示
+          console.log(`已同步第${currentPage}页，共${totalPages}页，当前${allRecords.length}条记录，总计${totalRecords}条`)
 
           // 判断是否还有更多页面
           hasMorePages = result.hasMorePages && currentPage < totalPages
@@ -387,7 +386,7 @@ export const useExchangeStore = defineStore('exchange', () => {
       // 依次同步每个用户的所有历史记录
       for (const user of globalUsers) {
         try {
-          ElMessage.info(`正在同步用户 ${user.name} 的历史记录...`)
+          console.log(`正在同步用户 ${user.name} 的历史记录...`)
           const result = await syncUserHistory(user, {
             syncAll: true,
             pageSize: pageSize
@@ -396,15 +395,15 @@ export const useExchangeStore = defineStore('exchange', () => {
           if (result.success) {
             successCount++
             totalSynced += result.count
-            ElMessage.success(`用户 ${user.name} 同步完成，共 ${result.count} 条记录`)
+            console.log(`用户 ${user.name} 同步完成，共 ${result.count} 条记录`)
           } else {
             failCount++
-            ElMessage.warning(`用户 ${user.name} 同步失败: ${result.message}`)
+            console.warn(`用户 ${user.name} 同步失败: ${result.message}`)
           }
         } catch (error) {
           failCount++
           console.error(`同步用户 ${user.name} 的历史记录失败:`, error)
-          ElMessage.error(`用户 ${user.name} 同步失败`)
+          console.error(`用户 ${user.name} 同步失败`)
         }
       }
 
