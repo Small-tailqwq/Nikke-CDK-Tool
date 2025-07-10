@@ -51,7 +51,11 @@
                     size="small"
                     class="cookie-status"
                   >
-                    Cookie剩余 {{ user.cookieExpireDays }} 天
+                    {{
+                      user.cookieExpireDays === -1
+                        ? 'Cookie时间异常'
+                        : `Cookie剩余 ${user.cookieExpireDays} 天`
+                    }}
                   </el-tag>
                 </div>
               </div>
@@ -442,8 +446,9 @@ const exchangeButtonText = computed(() => {
 
 // 获取Cookie状态对应的标签类型
 const getCookieStatusType = (days) => {
-  if (days > 180) return 'success'
-  if (days > 30) return 'warning'
+  if (days === -1) return 'danger' // 过期时间异常
+  if (days > 20) return 'success'
+  if (days > 7) return 'warning'
   return 'danger'
 }
 

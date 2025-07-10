@@ -4,9 +4,20 @@
       <template #header>
         <div class="card-header">
           <span>用户管理</span>
-          <el-button type="primary" size="small" @click="showAddUserDialog">
-            添加用户
-          </el-button>
+          <div class="header-actions">
+            <el-button
+              type="success"
+              size="small"
+              @click="handleBatchRenewCookies"
+              :loading="batchRenewLoading"
+              :disabled="!hasRenewableUsers"
+            >
+              批量续期
+            </el-button>
+            <el-button type="primary" size="small" @click="showAddUserDialog">
+              添加用户
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -75,12 +86,44 @@
           min-width="180"
           class-name="hide-on-mobile"
         />
-        <el-table-column label="Cookie状态" min-width="150">
+        <el-table-column label="Cookie状态" min-width="200">
           <template #default="{ row }">
-            <el-tag v-if="row.server === 'cn'" type="info"> 国服不适用 </el-tag>
-            <el-tag v-else :type="getCookieStatusType(row.cookieExpireDays)">
-              剩余 {{ row.cookieExpireDays }} 天
-            </el-tag>
+            <div class="cookie-status-display">
+              <el-tag v-if="row.server === 'cn'" type="info">
+                国服不适用
+              </el-tag>
+              <template v-else>
+                <el-tag :type="getCookieStatusType(row.cookieExpireDays)">
+                  {{
+                    row.cookieExpireDays === -1
+                      ? 'Cookie时间异常'
+                      : `剩余 ${row.cookieExpireDays} 天`
+                  }}
+                </el-tag>
+                <el-tooltip
+                  v-if="row.cookieExpireDays === -1"
+                  content="Cookie已失效或无法验证，请重新设置完整的Cookie"
+                  placement="top"
+                >
+                  <el-icon
+                    style="margin-left: 4px; color: var(--el-color-warning)"
+                  >
+                    <WarningFilled />
+                  </el-icon>
+                </el-tooltip>
+                <el-button
+                  v-if="shouldShowRenewButton(row)"
+                  size="small"
+                  type="primary"
+                  plain
+                  @click="handleRenewUserCookie(row)"
+                  :loading="getRenewLoading(row.id)"
+                  class="renew-btn"
+                >
+                  续期
+                </el-button>
+              </template>
+            </div>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
@@ -136,12 +179,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { ElMessageBox, ElLoading } from 'element-plus'
+import { WarningFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import UserDialog from '../components/UserDialog.vue'
 import { showCustomMessage } from '../utils/customMessage'
+import {
+  renewGlobalCookie,
+  shouldRenewCookie,
+  autoRenewUserCookie,
+} from '../utils/api'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -154,8 +203,17 @@ const selectedUser = ref(null)
 const selectedUserId = ref(null)
 const syncLoading = ref(false)
 
+// Cookie续期相关状态
+const renewLoadingMap = ref(new Map()) // 记录每个用户的续期状态
+const batchRenewLoading = ref(false)
+
 // 检测是否为移动端
 const isMobile = computed(() => window.innerWidth <= 768)
+
+// 计算是否有需要续期的用户
+const hasRenewableUsers = computed(() => {
+  return userStore.users.some((user) => shouldShowRenewButton(user))
+})
 
 // 国际服区域映射表（英文 -> 中文）
 const regionMapping = {
@@ -168,8 +226,9 @@ const regionMapping = {
 
 // 获取Cookie状态对应的标签类型
 const getCookieStatusType = (days) => {
-  if (days > 180) return 'success'
-  if (days > 30) return 'warning'
+  if (days === -1) return 'danger' // 过期时间异常
+  if (days > 20) return 'success'
+  if (days > 7) return 'warning'
   return 'danger'
 }
 
@@ -217,6 +276,215 @@ const getCnRoleName = (user) => {
     return decodeURIComponent(cnData.role_name)
   } catch (error) {
     return cnData.role_name
+  }
+}
+
+// Cookie续期相关方法
+// 判断用户是否需要显示续期按钮
+const shouldShowRenewButton = (user) => {
+  if (user.server === 'cn' || !user.cookie) {
+    return false
+  }
+  // 异常状态的Cookie不显示续期按钮，需要重新设置
+  if (user.cookieExpireDays === -1) {
+    return false
+  }
+  return shouldRenewCookie(user.cookieExpireDays, 7)
+}
+
+// 获取用户续期加载状态
+const getRenewLoading = (userId) => {
+  return renewLoadingMap.value.get(userId) || false
+}
+
+// 单个用户Cookie续期
+const handleRenewUserCookie = async (user) => {
+  if (user.server === 'cn') {
+    showCustomMessage('国服用户无需Cookie续期', 'info')
+    return
+  }
+
+  if (!user.cookie) {
+    showCustomMessage('用户Cookie为空，无法续期', 'warning')
+    return
+  }
+
+  // 设置加载状态
+  renewLoadingMap.value.set(user.id, true)
+
+  try {
+    console.log(`开始为用户 ${user.name} 续期Cookie...`)
+
+    const result = await renewGlobalCookie(user.cookie)
+
+    if (result.success) {
+      // 更新用户数据
+      const updateData = {
+        cookie: result.data.newCookie,
+        cookieExpireDays: result.data.expireDays,
+        cookieActualExpireDate: new Date(
+          Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
+        ).toISOString(),
+      }
+
+      await userStore.updateUser(user.id, updateData)
+
+      showCustomMessage(
+        `用户 ${user.name} Cookie续期成功！新的有效期：${result.data.expireDays}天`,
+        'success'
+      )
+
+      console.log(`用户 ${user.name} Cookie续期成功:`, {
+        renewedAt: result.data.renewedAt,
+        newExpireDays: result.data.expireDays,
+      })
+    } else {
+      showCustomMessage(
+        `用户 ${user.name} Cookie续期失败：${result.message}`,
+        'error'
+      )
+      console.error(`用户 ${user.name} Cookie续期失败:`, result)
+    }
+  } catch (error) {
+    console.error(`用户 ${user.name} Cookie续期异常:`, error)
+    showCustomMessage(`用户 ${user.name} Cookie续期过程中发生异常`, 'error')
+  } finally {
+    // 清除加载状态
+    renewLoadingMap.value.delete(user.id)
+  }
+}
+
+// 批量Cookie续期
+const handleBatchRenewCookies = async () => {
+  // 筛选需要续期的用户
+  const renewableUsers = userStore.users.filter((user) =>
+    shouldShowRenewButton(user)
+  )
+
+  if (renewableUsers.length === 0) {
+    showCustomMessage('当前没有需要续期的用户', 'info')
+    return
+  }
+
+  // 确认对话框
+  try {
+    await ElMessageBox.confirm(
+      `检测到 ${renewableUsers.length} 个用户的Cookie需要续期，是否继续？`,
+      '批量续期确认',
+      {
+        confirmButtonText: '确定续期',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+  } catch {
+    return // 用户取消
+  }
+
+  batchRenewLoading.value = true
+
+  try {
+    // 显示进度提示
+    const loadingInstance = ElLoading.service({
+      lock: true,
+      text: `正在为第1个用户续期，共${renewableUsers.length}个用户...`,
+      background: 'rgba(0, 0, 0, 0.7)',
+    })
+
+    let successCount = 0
+    let failCount = 0
+    const results = []
+
+    // 逐个用户进行续期（避免并发过多）
+    for (let i = 0; i < renewableUsers.length; i++) {
+      const user = renewableUsers[i]
+
+      // 更新进度提示
+      loadingInstance.text = `正在为 ${user.name} 续期，第${i + 1}个，共${
+        renewableUsers.length
+      }个用户...`
+
+      try {
+        const result = await autoRenewUserCookie(user)
+
+        if (result.success) {
+          successCount++
+
+          // 更新用户数据
+          const updateData = {
+            cookie: result.data.newCookie,
+            cookieExpireDays: result.data.expireDays,
+            cookieActualExpireDate: new Date(
+              Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
+            ).toISOString(),
+          }
+
+          await userStore.updateUser(user.id, updateData)
+
+          results.push({
+            user: user.name,
+            success: true,
+            expireDays: result.data.expireDays,
+          })
+
+          console.log(
+            `批量续期: 用户 ${user.name} 成功，新过期天数: ${result.data.expireDays}`
+          )
+        } else {
+          failCount++
+          results.push({
+            user: user.name,
+            success: false,
+            message: result.message,
+          })
+
+          console.warn(`批量续期: 用户 ${user.name} 失败:`, result.message)
+        }
+      } catch (error) {
+        failCount++
+        results.push({
+          user: user.name,
+          success: false,
+          message: error.message || '续期异常',
+        })
+
+        console.error(`批量续期: 用户 ${user.name} 异常:`, error)
+      }
+
+      // 添加延迟，避免请求过于密集
+      if (i < renewableUsers.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+
+    // 关闭加载提示
+    loadingInstance.close()
+
+    // 显示结果
+    if (successCount > 0) {
+      showCustomMessage(
+        `批量续期完成：成功 ${successCount} 个，失败 ${failCount} 个`,
+        successCount === renewableUsers.length ? 'success' : 'warning'
+      )
+    } else {
+      showCustomMessage(
+        `批量续期失败：所有 ${failCount} 个用户都续期失败`,
+        'error'
+      )
+    }
+
+    // 详细结果日志
+    console.log('批量续期结果汇总:', {
+      total: renewableUsers.length,
+      success: successCount,
+      fail: failCount,
+      details: results,
+    })
+  } catch (error) {
+    console.error('批量续期异常:', error)
+    showCustomMessage('批量续期过程中发生异常', 'error')
+  } finally {
+    batchRenewLoading.value = false
   }
 }
 
@@ -454,21 +722,7 @@ const confirmDelete = async () => {
 
   deleting.value = true
   try {
-    // 如果是国际服或港澳台服用户，清除相关Cookie
-    if (
-      selectedUser.value.server === 'global' ||
-      selectedUser.value.server === 'tw'
-    ) {
-      try {
-        const { clearBlablaLinkCookies } = await import(
-          '../utils/browser-cookie'
-        )
-        clearBlablaLinkCookies()
-        console.log('[UserManagement] 已清除相关Cookie')
-      } catch (error) {
-        console.error('[UserManagement] 清除Cookie失败:', error)
-      }
-    }
+    // 国际服用户删除后，Cookie会在自然过期时失效，无需手动清除
 
     await userStore.deleteUser(selectedUser.value.id)
     showCustomMessage('删除成功', 'success')
@@ -480,8 +734,36 @@ const confirmDelete = async () => {
   }
 }
 
-onMounted(() => {
-  userStore.fetchUsers()
+// 处理来自Cookie警告组件的编辑用户事件
+const handleEditUserEvent = (event) => {
+  const { userId } = event.detail
+  if (userId) {
+    console.log(`[UserManagement] 收到编辑用户事件，用户ID: ${userId}`)
+    handleEdit(userId)
+  }
+}
+
+onMounted(async () => {
+  await userStore.fetchUsers()
+
+  // 🔧 检查是否有需要验证的Cookie状态异常用户
+  const usersWithInvalidCookies = userStore.users.filter(
+    (user) => user.server !== 'cn' && user.cookieExpireDays === -1
+  )
+
+  if (usersWithInvalidCookies.length > 0) {
+    console.log(
+      `发现 ${usersWithInvalidCookies.length} 个用户的Cookie状态异常，建议重新设置`
+    )
+  }
+
+  // 🔧 监听来自Cookie警告组件的编辑用户事件
+  window.addEventListener('editUser', handleEditUserEvent)
+})
+
+// 清理事件监听器
+onBeforeUnmount(() => {
+  window.removeEventListener('editUser', handleEditUserEvent)
 })
 </script>
 
@@ -553,6 +835,37 @@ onMounted(() => {
     }
   }
 
+  .cookie-status-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+
+    .renew-btn {
+      font-size: 11px;
+      padding: 0 8px;
+      height: 24px;
+      border-radius: 4px;
+      transition: all 0.3s ease;
+
+      @media screen and (max-width: 768px) {
+        font-size: 10px;
+        padding: 0 6px;
+        height: 22px;
+        margin-top: 2px;
+      }
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
+    }
+  }
+
   .user-card {
     .card-header {
       display: flex;
@@ -563,6 +876,17 @@ onMounted(() => {
 
       @media screen and (max-width: 768px) {
         font-size: 14px;
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+
+        @media screen and (max-width: 768px) {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
       }
     }
 

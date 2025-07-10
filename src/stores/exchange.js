@@ -222,6 +222,16 @@ export const useExchangeStore = defineStore('exchange', () => {
       }
     }
 
+    // 🔧 修复：检查Cookie有效性，如果Cookie已失效，直接返回失败
+    if (user.cookieExpireDays < 0) {
+      console.log(`用户 ${user.name} 的Cookie已失效，跳过历史记录同步`)
+      return {
+        success: false,
+        message: 'Cookie已失效，无法同步历史记录。请更新Cookie后重试。',
+        count: 0
+      }
+    }
+
     loading.value = true
     try {
       // 获取选项参数

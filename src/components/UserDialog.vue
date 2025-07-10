@@ -116,18 +116,29 @@
             <div class="cookie-expire-setting">
               <el-input-number
                 v-model="form.cookieExpireDays"
-                :min="1"
-                :max="3650"
+                :min="form.cookieValidationFailed ? -1 : 1"
+                :max="30"
                 size="small"
                 class="expire-days-input"
               />
               <span class="expire-days-label">天</span>
               <el-tooltip
-                content="系统已自动计算Cookie的剩余有效期天数，您也可以手动调整"
+                content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
                 placement="top"
               >
                 <el-icon class="info-icon"><InfoFilled /></el-icon>
               </el-tooltip>
+              <el-button
+                v-if="shouldShowRenewButton"
+                type="primary"
+                size="small"
+                :loading="renewLoading"
+                @click="handleRenewCookie"
+                class="renew-button"
+              >
+                <el-icon><Refresh /></el-icon>
+                续期至30天
+              </el-button>
             </div>
           </div>
         </template>
@@ -164,18 +175,29 @@
               <div class="cookie-expire-setting">
                 <el-input-number
                   v-model="form.cookieExpireDays"
-                  :min="1"
-                  :max="3650"
+                  :min="form.cookieValidationFailed ? -1 : 1"
+                  :max="30"
                   size="small"
                   class="expire-days-input"
                 />
                 <span class="expire-days-label">天</span>
                 <el-tooltip
-                  content="系统已自动计算Cookie的剩余有效期天数，您也可以手动调整"
+                  content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
                   placement="top"
                 >
                   <el-icon class="info-icon"><InfoFilled /></el-icon>
                 </el-tooltip>
+                <el-button
+                  v-if="shouldShowRenewButton"
+                  type="primary"
+                  size="small"
+                  :loading="renewLoading"
+                  @click="handleRenewCookie"
+                  class="renew-button"
+                >
+                  <el-icon><Refresh /></el-icon>
+                  续期至30天
+                </el-button>
               </div>
             </div>
           </div>
@@ -304,10 +326,16 @@ import {
   InfoFilled,
   ArrowLeft,
   QuestionFilled,
+  Refresh,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
+import {
+  parseGameUrlCN,
+  getGlobalUserCompleteInfo,
+  renewGlobalCookie,
+  shouldRenewCookie,
+} from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 
 const props = defineProps({
@@ -357,6 +385,13 @@ const parsedGameInfo = ref(null)
 const parsedGlobalInfo = ref(null)
 const globalInfoLoading = ref(false)
 
+// Cookie续期功能
+const renewLoading = ref(false)
+const isRenewing = ref(false) // 标记是否正在续期，避免重复解析
+
+// 新增：标记用户是否手动修改了过期天数
+const manualExpireDaysEdit = ref(false)
+
 // 服务器选项
 const serverOptions = [
   { label: '国际服', value: 'global' },
@@ -370,6 +405,7 @@ const form = reactive({
   server: 'global',
   cookie: '',
   cookieExpireDays: 0, // 将由Cookie解析函数自动计算
+  cookieActualExpireDate: null, // 新增：真正的cookie过期日期
   uid: '',
   gameUrl: '',
 })
@@ -377,353 +413,262 @@ const form = reactive({
 // 临时存储编辑模式的数据
 const editFormData = ref(null)
 
-// 解析Cookie过期时间
-const parseCookieExpireDate = (cookieStr) => {
-  // 默认值：如果无法解析，返回365天
-  const defaultDays = 365
-
-  try {
-    // 首先尝试解析Application面板复制的格式（优先级最高）
-    if (cookieStr.includes('\t')) {
-      const cookieLines = cookieStr.split('\n').filter((line) => line.trim())
-      let latestExpireDate = null
-
-      for (const line of cookieLines) {
-        const parts = line.split('\t')
-        if (parts.length >= 5) {
-          const expireDateStr = parts[4]?.trim()
-          if (expireDateStr && expireDateStr !== 'Session') {
-            try {
-              const expireDate = new Date(expireDateStr)
-              if (!isNaN(expireDate.getTime())) {
-                // 找到最远的过期日期（而不是最近的）
-                if (!latestExpireDate || expireDate > latestExpireDate) {
-                  latestExpireDate = expireDate
-                }
-              }
-            } catch (e) {
-              console.warn('无法解析Application面板日期:', expireDateStr)
-            }
-          }
-        }
-      }
-
-      if (latestExpireDate) {
-        const now = new Date()
-        const diffTime = latestExpireDate - now
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        console.log(
-          '从Application面板解析到过期时间:',
-          latestExpireDate.toISOString(),
-          '剩余天数:',
-          diffDays
-        )
-        return Math.max(1, diffDays) // 至少返回1天
-      }
+// 解析Cookie过期时间并生成标准Cookie
+const parseAndStandardizeCookie = (cookieInput) => {
+  if (!cookieInput || !cookieInput.trim()) {
+    return {
+      standardCookie: '',
+      originalCookie: '',
+      expireDays: 0,
+      expireDate: null,
+      isValid: false,
+      error: 'Cookie输入为空',
     }
-
-    // 特别检查OptanonAlertBoxClosed这个常见的Cookie
-    const optanonMatch = cookieStr.match(/OptanonAlertBoxClosed=([^;]+)/i)
-    if (optanonMatch && optanonMatch[1]) {
-      try {
-        const dateStr = optanonMatch[1].trim()
-        console.log('找到OptanonAlertBoxClosed:', dateStr)
-
-        // 尝试直接解析ISO格式日期
-        const expireDate = new Date(dateStr)
-
-        // 检查日期是否有效
-        if (!isNaN(expireDate.getTime())) {
-          // 对于OptanonAlertBoxClosed，需要加一年作为实际过期时间
-          const actualExpireDate = new Date(expireDate)
-          actualExpireDate.setFullYear(actualExpireDate.getFullYear() + 1)
-
-          const now = new Date()
-          const diffTime = actualExpireDate - now
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          console.log(
-            '从OptanonAlertBoxClosed解析到过期时间(+1年):',
-            actualExpireDate.toISOString(),
-            '剩余天数:',
-            diffDays
-          )
-          return Math.max(1, diffDays) // 至少返回1天
-        } else {
-          console.log('OptanonAlertBoxClosed日期无效:', expireDate)
-        }
-      } catch (e) {
-        console.warn('解析OptanonAlertBoxClosed日期失败:', optanonMatch[1], e)
-      }
-    }
-
-    // 检查datestamp参数
-    const datestampMatch = cookieStr.match(/datestamp=([^&]+)/i)
-    if (datestampMatch && datestampMatch[1]) {
-      try {
-        // 解码URL编码的日期字符串
-        const dateStr = decodeURIComponent(datestampMatch[1].trim())
-        console.log('找到datestamp:', dateStr)
-
-        // 处理特殊格式 "Sun+Jun+08+2025+20:30:51+GMT+0800+(香港标准时间)"
-        let expireDate
-
-        // 尝试多种格式
-        if (dateStr.includes('+')) {
-          // 替换多个+为空格，尝试解析
-          const cleanDateStr = dateStr.replace(/\+/g, ' ')
-          expireDate = new Date(cleanDateStr)
-          console.log(
-            '尝试解析清理后的datestamp:',
-            cleanDateStr,
-            '结果:',
-            expireDate
-          )
-        } else {
-          expireDate = new Date(dateStr)
-        }
-
-        // 检查日期是否有效
-        if (!isNaN(expireDate.getTime())) {
-          // 对于datestamp，需要加一年作为实际过期时间
-          const actualExpireDate = new Date(expireDate)
-          actualExpireDate.setFullYear(actualExpireDate.getFullYear() + 1)
-
-          const now = new Date()
-          const diffTime = actualExpireDate - now
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          console.log(
-            '从datestamp解析到过期时间(+1年):',
-            actualExpireDate.toISOString(),
-            '剩余天数:',
-            diffDays
-          )
-          return Math.max(1, diffDays) // 至少返回1天
-        } else {
-          console.log('datestamp日期无效:', expireDate)
-        }
-      } catch (e) {
-        console.warn('解析datestamp日期失败:', datestampMatch[1], e)
-      }
-    }
-
-    // 检查是否包含多行（可能是从Application面板复制的格式，但不是制表符分隔的）
-    if (cookieStr.includes('\n') && !cookieStr.includes('\t')) {
-      const cookieLines = cookieStr.split('\n').filter((line) => line.trim())
-      let latestExpireDate = null
-
-      for (const line of cookieLines) {
-        // 支持空格分隔的格式
-        const parts = line.split(/\s{2,}/)
-
-        if (parts.length >= 5) {
-          // 第五列通常是过期时间
-          const expireDateStr = parts[4]?.trim()
-
-          if (expireDateStr && expireDateStr !== 'Session') {
-            try {
-              const expireDate = new Date(expireDateStr)
-
-              // 检查日期是否有效
-              if (!isNaN(expireDate.getTime())) {
-                // 找到最远的过期日期（而不是最早的）
-                if (!latestExpireDate || expireDate > latestExpireDate) {
-                  latestExpireDate = expireDate
-                }
-              }
-            } catch (e) {
-              console.warn('无法解析日期:', expireDateStr, e)
-            }
-          }
-        }
-      }
-
-      // 如果找到有效的过期日期，计算剩余天数
-      if (latestExpireDate) {
-        const now = new Date()
-        const diffTime = latestExpireDate - now
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        console.log(
-          '从多行格式解析到过期时间:',
-          latestExpireDate.toISOString(),
-          '剩余天数:',
-          diffDays
-        )
-        return Math.max(1, diffDays) // 至少返回1天
-      }
-    }
-
-    // 尝试从字符串中查找日期格式（ISO格式或标准日期格式）
-    const dateRegex =
-      /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}|(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{4}|\d{4}-\d{2}-\d{2}/g
-    const matches = cookieStr.match(dateRegex)
-
-    if (matches && matches.length > 0) {
-      let latestExpireDate = null
-
-      for (const match of matches) {
-        try {
-          const expireDate = new Date(match)
-
-          // 检查日期是否有效（不一定要在未来）
-          if (!isNaN(expireDate.getTime())) {
-            // 如果日期在过去，尝试加一年（可能是Cookie创建日期）
-            let adjustedDate = new Date(expireDate)
-            if (adjustedDate < new Date()) {
-              adjustedDate.setFullYear(adjustedDate.getFullYear() + 1)
-              console.log(
-                '日期在过去，尝试加一年:',
-                match,
-                '调整为:',
-                adjustedDate
-              )
-            }
-
-            console.log('找到日期格式:', match, '解析为:', adjustedDate)
-
-            // 如果这是第一个有效日期，或者比之前找到的日期更远，则更新
-            if (!latestExpireDate || adjustedDate > latestExpireDate) {
-              latestExpireDate = adjustedDate
-            }
-          }
-        } catch (e) {
-          console.warn('无法解析日期:', match, e)
-        }
-      }
-
-      // 如果找到有效的过期日期，计算剩余天数
-      if (latestExpireDate) {
-        const now = new Date()
-        const diffTime = latestExpireDate - now
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        console.log(
-          '最终解析到的过期日期:',
-          latestExpireDate.toISOString(),
-          '剩余天数:',
-          diffDays
-        )
-        return Math.max(1, diffDays) // 至少返回1天
-      }
-    }
-
-    // 尝试从标准Cookie字符串中解析 expires 属性
-    if (cookieStr.includes('expires=')) {
-      const expiresMatches = cookieStr.match(/expires=([^;]+)/gi)
-      if (expiresMatches && expiresMatches.length > 0) {
-        let latestExpireDate = null
-
-        for (const match of expiresMatches) {
-          const dateStr = match.replace(/expires=/i, '').trim()
-          try {
-            const expireDate = new Date(dateStr)
-
-            // 检查日期是否有效
-            if (!isNaN(expireDate.getTime())) {
-              // 如果日期在过去，尝试加一年
-              let adjustedDate = new Date(expireDate)
-              if (adjustedDate < new Date()) {
-                adjustedDate.setFullYear(adjustedDate.getFullYear() + 1)
-                console.log(
-                  'expires日期在过去，尝试加一年:',
-                  dateStr,
-                  '调整为:',
-                  adjustedDate
-                )
-              }
-
-              // 找到最远的过期日期
-              if (!latestExpireDate || adjustedDate > latestExpireDate) {
-                latestExpireDate = adjustedDate
-              }
-            }
-          } catch (e) {
-            console.warn('无法解析expires日期:', dateStr, e)
-          }
-        }
-
-        // 如果找到有效的过期日期，计算剩余天数
-        if (latestExpireDate) {
-          const now = new Date()
-          const diffTime = latestExpireDate - now
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-          console.log(
-            '从expires解析到过期时间:',
-            latestExpireDate.toISOString(),
-            '剩余天数:',
-            diffDays
-          )
-          return Math.max(1, diffDays) // 至少返回1天
-        }
-      }
-    }
-
-    // 尝试从标准Cookie字符串中解析 max-age 属性（秒为单位）
-    if (cookieStr.includes('max-age=')) {
-      const maxAgeMatches = cookieStr.match(/max-age=(\d+)/gi)
-      if (maxAgeMatches && maxAgeMatches.length > 0) {
-        let minMaxAge = null
-
-        for (const match of maxAgeMatches) {
-          const maxAgeStr = match.replace(/max-age=/i, '').trim()
-          const maxAge = parseInt(maxAgeStr, 10)
-
-          // 检查max-age是否有效
-          if (!isNaN(maxAge)) {
-            // 如果这是第一个有效值，或者比之前找到的值更小，则更新
-            if (minMaxAge === null || maxAge < minMaxAge) {
-              minMaxAge = maxAge
-            }
-          }
-        }
-
-        // 如果找到有效的max-age，转换为天数
-        if (minMaxAge !== null) {
-          const diffDays = Math.ceil(minMaxAge / (60 * 60 * 24))
-          return Math.max(1, diffDays) // 至少返回1天
-        }
-      }
-    }
-
-    // 如果上述方法都失败，尝试直接从字符串中提取年份，并构造一个日期
-    const yearMatch = cookieStr.match(/\b(202[0-9])\b/g)
-    if (yearMatch && yearMatch.length > 0) {
-      // 找到所有年份
-      const years = yearMatch
-        .map((year) => parseInt(year, 10))
-        .filter((year) => !isNaN(year))
-        .sort((a, b) => b - a) // 降序排列，优先使用最远的年份
-
-      if (years.length > 0) {
-        const maxYear = years[0] // 获取最大年份
-        const currentYear = new Date().getFullYear()
-
-        // 如果年份是当前年份或过去年份，尝试加一年
-        let targetYear = maxYear
-        if (maxYear <= currentYear) {
-          targetYear = currentYear + 1
-          console.log('提取的年份不在未来，使用当前年份+1:', targetYear)
-        }
-
-        // 构造一个简单的日期：该年的1月1日
-        const futureDate = new Date(targetYear, 0, 1)
-        const now = new Date()
-        const diffTime = futureDate - now
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        console.log(
-          '从年份构造日期:',
-          futureDate.toISOString(),
-          '剩余天数:',
-          diffDays
-        )
-        return Math.max(1, diffDays) // 至少返回1天
-      }
-    }
-  } catch (error) {
-    console.warn('解析Cookie过期时间失败:', error)
   }
 
-  // 如果无法解析，返回默认值
-  console.log('无法解析Cookie过期时间，使用默认值:', defaultDays)
-  return defaultDays
+  const originalCookie = cookieInput.trim()
+
+  try {
+    // 检查是否为Application面板格式
+    const isApplicationFormat = originalCookie.includes('\t')
+
+    if (isApplicationFormat) {
+      return parseApplicationCookie(originalCookie)
+    } else {
+      return parseStandardCookie(originalCookie)
+    }
+  } catch (error) {
+    console.error('Cookie解析失败:', error)
+    return {
+      standardCookie: '',
+      originalCookie,
+      expireDays: -1,
+      expireDate: null,
+      isValid: false,
+      error: `Cookie解析失败: ${error.message}`,
+    }
+  }
+}
+
+// 解析Application面板格式Cookie
+const parseApplicationCookie = (cookieStr) => {
+  const cookieLines = cookieStr.split('\n').filter((line) => line.trim())
+  const cookiePairs = []
+  let gameTokenExpireDate = null
+
+  // 定义游戏相关的关键Cookie名称
+  const gameCookieNames = [
+    'game_token',
+    'game_uid',
+    'game_openid',
+    'game_gameid',
+    'game_channelid',
+    'game_user_name',
+    'game_adult_status',
+    'game_login_game',
+  ]
+
+  const foundCookies = {}
+
+  // 解析每一行Cookie
+  for (const line of cookieLines) {
+    const parts = line.split('\t')
+    if (parts.length < 5) continue
+
+    const cookieName = parts[0]?.trim()
+    const cookieValue = parts[1]?.trim()
+    const expireDateStr = parts[4]?.trim()
+
+    // 只处理游戏相关的Cookie
+    const isGameCookie = gameCookieNames.includes(cookieName)
+
+    if (isGameCookie && cookieValue) {
+      foundCookies[cookieName] = cookieValue
+      cookiePairs.push(`${cookieName}=${cookieValue}`)
+
+      // 特别关注game_token的过期时间
+      if (
+        cookieName === 'game_token' &&
+        expireDateStr &&
+        expireDateStr !== 'Session'
+      ) {
+        try {
+          const expireDate = new Date(expireDateStr)
+          if (!isNaN(expireDate.getTime()) && expireDate > new Date()) {
+            gameTokenExpireDate = expireDate
+          }
+        } catch (e) {
+          console.warn(`解析${cookieName}过期时间失败:`, expireDateStr, e)
+        }
+      }
+    }
+  }
+
+  // 验证必需的Cookie字段
+  const requiredFields = [
+    'game_token',
+    'game_gameid',
+    'game_openid',
+    'game_uid',
+    'game_channelid',
+    'game_user_name',
+  ]
+  const missingFields = requiredFields.filter((field) => !foundCookies[field])
+
+  if (missingFields.length > 0) {
+    return {
+      standardCookie: '',
+      originalCookie: cookieStr,
+      expireDays: -1,
+      expireDate: null,
+      isValid: false,
+      error: `缺少必需的Cookie字段: ${missingFields.join(', ')}`,
+    }
+  }
+
+  // 生成标准Cookie
+  let standardCookie = cookiePairs.join('; ')
+
+  // 计算过期时间
+  let expireDays = 30 // 默认30天
+  let expireDate = null
+
+  if (gameTokenExpireDate) {
+    const now = new Date()
+    const diffTime = gameTokenExpireDate.getTime() - now.getTime()
+    expireDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+    expireDate = gameTokenExpireDate
+
+    // 在标准Cookie中添加expires字段（用于内部时间判断）
+    const expireStr = gameTokenExpireDate.toUTCString()
+    standardCookie += `; expires=${expireStr}`
+  } else {
+    // 无法解析到过期时间，先设置为30天，但标记需要API验证
+    expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    const expireStr = expireDate.toUTCString()
+    standardCookie += `; expires=${expireStr}`
+
+    console.warn(
+      '无法从Application Cookie中解析到game_token过期时间，设置为30天后'
+    )
+    console.warn('⚠️ Cookie过期时间未知，需要通过API验证实际有效性')
+  }
+
+  return {
+    standardCookie,
+    originalCookie: cookieStr,
+    expireDays: Math.min(expireDays, 30), // 限制最大30天
+    expireDate: expireDate?.toISOString(),
+    isValid: true,
+    error: null,
+  }
+}
+
+// 解析标准格式Cookie
+const parseStandardCookie = (cookieStr) => {
+  // 检查是否包含游戏相关的cookie
+  const requiredFields = [
+    'game_token',
+    'game_uid',
+    'game_openid',
+    'game_gameid',
+    'game_channelid',
+    'game_user_name',
+  ]
+  const missingFields = requiredFields.filter(
+    (field) => !cookieStr.includes(field)
+  )
+
+  if (missingFields.length > 0) {
+    return {
+      standardCookie: '',
+      originalCookie: cookieStr,
+      expireDays: -1,
+      expireDate: null,
+      isValid: false,
+      error: `缺少必需的Cookie字段: ${missingFields.join(', ')}`,
+    }
+  }
+
+  let expireDate = null
+  let expireDays = 30
+
+  // 尝试从现有的expires属性中解析
+  const expiresMatch = cookieStr.match(/expires=([^;]+)/i)
+  if (expiresMatch) {
+    try {
+      const parsedDate = new Date(expiresMatch[1].trim())
+      if (!isNaN(parsedDate.getTime()) && parsedDate > new Date()) {
+        expireDate = parsedDate
+        const now = new Date()
+        const diffTime = expireDate.getTime() - now.getTime()
+        expireDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+      }
+    } catch (e) {
+      console.warn('解析现有expires失败:', e)
+    }
+  }
+
+  // 如果没有expires或解析失败，添加默认expires
+  let standardCookie = cookieStr
+  if (!expireDate) {
+    expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    expireDays = 30
+
+    if (!expiresMatch) {
+      // 如果没有expires字段，添加一个
+      const expireStr = expireDate.toUTCString()
+      standardCookie += `; expires=${expireStr}`
+    } else {
+      // 如果有但解析失败，替换它
+      const expireStr = expireDate.toUTCString()
+      standardCookie = standardCookie.replace(
+        /expires=([^;]+)/i,
+        `expires=${expireStr}`
+      )
+    }
+  }
+
+  return {
+    standardCookie,
+    originalCookie: cookieStr,
+    expireDays: Math.min(expireDays, 30),
+    expireDate: expireDate?.toISOString(),
+    isValid: true,
+    error: null,
+  }
+}
+
+// 兼容性处理：处理老版本数据
+const migrateOldCookieData = (userData) => {
+  if (!userData.cookie) return userData
+
+  // 检查是否已经是新格式（包含expires）
+  if (userData.cookie.includes('expires=')) {
+    return userData // 已经是新格式，无需迁移
+  }
+
+  // 老版本数据，需要迁移
+  console.log('检测到老版本Cookie数据，开始迁移:', userData.name)
+
+  // 🔧 优化老版本Cookie处理：设置为需要验证状态，而不是直接标记为过期
+  const expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 临时设置30天
+  const expireStr = expireDate.toUTCString()
+
+  return {
+    ...userData,
+    cookie: `${userData.cookie}; expires=${expireStr}`,
+    cookieExpireDays: -1, // 标记为需要验证状态
+    cookieActualExpireDate: expireDate.toISOString(),
+    needsCookieUpdate: true, // 标记需要更新Cookie
+    needsApiValidation: true, // 新增：标记需要API验证
+  }
+}
+
+// 替换原来的parseCookieExpireDate函数
+const parseCookieExpireDate = (cookieStr) => {
+  const result = parseAndStandardizeCookie(cookieStr)
+  return result.expireDays
 }
 
 // Cookie输入框提示文本
@@ -731,25 +676,28 @@ const cookiePlaceholder = computed(() => {
   return `请粘贴完整的Cookie信息，支持以下两种格式：
 
 1. 从Application面板复制的格式（推荐，可自动解析过期时间）：
-game_token  abc123  .domain.com  /  2024-01-01
-game_uid    123456  .domain.com  /  2024-01-01
+game_token  abc123  .domain.com  /  2025-07-19T13:03:11.018Z
+game_uid    123456  .domain.com  /  2025-07-19T13:03:11.018Z
 
 2. 标准Cookie格式（如包含expires或max-age属性也可自动解析过期时间）：
-game_token=abc123; game_uid=123456; expires=Wed, 21 Oct 2023 07:28:00 GMT`
+game_token=abc123; game_uid=123456; expires=Wed, 21 Oct 2025 07:28:00 GMT
+
+注意：Cookie最大有效期为30天，您可以手动调整过期天数，也可以随时点击续期按钮将Cookie续期至30天`
 })
 
 // 获取Cookie状态对应的标签类型
 const getCookieStatusType = (days) => {
-  if (days > 180) return 'success'
-  if (days > 30) return 'warning'
+  if (days === -1) return 'danger' // 过期时间异常
+  if (days > 20) return 'success'
+  if (days > 7) return 'warning'
   return 'danger'
 }
 
 // 获取更友好的Cookie状态文本
 const getCookieStatusText = (days) => {
-  if (days > 365) return `Cookie有效期超过1年`
-  if (days > 180) return `Cookie有效期${days}天`
-  if (days > 30) return `Cookie有效期${days}天`
+  if (days === -1) return 'Cookie过期时间异常'
+  if (days > 20) return `Cookie有效期${days}天`
+  if (days > 7) return `Cookie有效期${days}天`
   return `Cookie即将过期(${days}天)`
 }
 
@@ -793,52 +741,30 @@ const rules = {
           return
         }
 
-        // 国际服使用原有的Cookie验证逻辑
-        // 处理从Application面板复制的Cookie格式
-        let cookieStr = value
+        // 使用新的解析逻辑
+        const parseResult = parseAndStandardizeCookie(value)
 
-        if (value.includes('\t')) {
-          // 如果包含制表符，说明是从Application面板复制的格式
-          const cookieLines = value.split('\n')
-          const cookiePairs = []
-
-          cookieLines.forEach((line) => {
-            const parts = line.split('\t')
-            if (parts.length < 5) return // 需要至少5列来获取过期时间
-
-            // 第一列是名称，第二列是值
-            cookiePairs.push(`${parts[0]}=${parts[1]}`)
-          })
-
-          cookieStr = cookiePairs.filter(Boolean).join('; ')
-        }
-
-        // 验证必需的Cookie字段
-        const requiredFields = [
-          'game_token',
-          'game_gameid',
-          'game_openid',
-          'game_uid',
-          'game_channelid',
-          'game_user_name',
-        ]
-
-        const missingFields = requiredFields.filter(
-          (field) => !cookieStr.includes(field)
-        )
-        if (missingFields.length > 0) {
-          callback(
-            new Error(`缺少必需的Cookie字段: ${missingFields.join(', ')}`)
-          )
+        if (!parseResult.isValid) {
+          callback(new Error(parseResult.error))
           return
         }
 
-        // 解析Cookie过期时间
-        const expireDays = parseCookieExpireDate(value)
-        form.cookieExpireDays = expireDays
+        // 🔧 关键修复：只有在用户没有手动修改过期天数时才更新过期信息
+        if (!manualExpireDaysEdit.value) {
+          // 设置程序更新标志，避免监听器误判为用户手动修改
+          window.isUpdatingExpireDays = true
+          form.cookieExpireDays = parseResult.expireDays
+          form.cookieActualExpireDate = parseResult.expireDate
+          nextTick(() => {
+            window.isUpdatingExpireDays = false
+          })
+        } else {
+          console.log(
+            '检测到用户手动修改过期天数，跳过自动更新，保持用户设置:',
+            form.cookieExpireDays
+          )
+        }
 
-        // 更新表单中的Cookie值为处理后的格式
-        form.cookie = cookieStr
         callback()
       },
       trigger: 'blur',
@@ -879,12 +805,63 @@ const rules = {
 // 检测是否为移动端
 const isMobile = computed(() => window.innerWidth <= 768)
 
+// 计算是否显示续期按钮
+const shouldShowRenewButton = computed(() => {
+  // 只有国际服和港澳台服才支持Cookie续期
+  if (form.server === 'cn' || !form.cookie) {
+    return false
+  }
+
+  // 放宽续期条件：允许用户随时手动续期（除非已经是30天满期）
+  // 或者当Cookie剩余天数≤20天时自动显示续期按钮
+  return form.cookieExpireDays < 30 && form.cookieExpireDays > 0
+})
+
 // 监听Cookie值变化，自动更新过期时间
 watch(
   () => form.cookie,
-  (newValue) => {
+  (newValue, oldValue) => {
     if (form.server !== 'cn' && newValue) {
-      form.cookieExpireDays = parseCookieExpireDate(newValue)
+      // 只有在Cookie内容真正发生变化时才重新解析
+      // 避免编辑模式下加载已有数据时触发不必要的解析
+      // 避免续期过程中的重复解析
+      if (
+        newValue !== oldValue &&
+        oldValue !== undefined &&
+        !isRenewing.value
+      ) {
+        // 🔧 关键改进：当Cookie内容变化时，重置手动编辑标志，允许重新解析
+        if (manualExpireDaysEdit.value) {
+          console.log(
+            '检测到Cookie内容变化，重置手动编辑标志，将重新解析过期时间'
+          )
+          manualExpireDaysEdit.value = false
+        }
+
+        // 设置程序更新标志，避免监听器误判为用户手动修改
+        window.isUpdatingExpireDays = true
+        form.cookieExpireDays = parseCookieExpireDate(newValue)
+        nextTick(() => {
+          window.isUpdatingExpireDays = false
+        })
+      }
+    }
+  }
+)
+
+// 新增：监听用户手动修改过期天数
+watch(
+  () => form.cookieExpireDays,
+  (newValue, oldValue) => {
+    // 如果过期天数发生变化，且不是在续期过程中，也不是程序自动解析更新，标记为用户手动修改
+    if (
+      newValue !== oldValue &&
+      oldValue !== undefined &&
+      !isRenewing.value &&
+      !window.isUpdatingExpireDays // 新增：程序更新标志
+    ) {
+      manualExpireDaysEdit.value = true
+      console.log('检测到用户手动修改过期天数:', newValue)
     }
   }
 )
@@ -901,21 +878,36 @@ watch(
         // 编辑模式：获取用户数据
         const userData = userStore.getUserById(props.userId)
         if (userData) {
+          // 🔧 兼容性处理：检查是否为老版本数据
+          const migratedData = migrateOldCookieData(userData)
+
           // 保存编辑前的数据，用于取消时恢复
-          editFormData.value = { ...userData }
+          editFormData.value = { ...migratedData }
+
           // 设置表单数据
           Object.assign(form, {
-            name: userData.name,
-            server: userData.server,
-            cookie: userData.cookie,
-            cookieExpireDays: userData.cookieExpireDays || 0,
-            uid: userData.uid,
-            gameUrl: userData.gameUrl,
+            name: migratedData.name,
+            server: migratedData.server,
+            cookie: migratedData.cookieOriginal || migratedData.cookie, // 显示原始Cookie格式
+            cookieExpireDays: migratedData.cookieExpireDays || 0,
+            cookieActualExpireDate: migratedData.cookieActualExpireDate || null,
+            uid: migratedData.uid,
+            gameUrl: migratedData.gameUrl,
           })
 
-          // 如果是国际服或港澳台服，重新解析Cookie过期时间
-          if (userData.server !== 'cn' && userData.cookie) {
-            form.cookieExpireDays = parseCookieExpireDate(userData.cookie)
+          // 如果是国际服或港澳台服，设置过期信息
+          if (migratedData.server !== 'cn') {
+            form.cookieExpireDays = migratedData.cookieExpireDays || 0
+            form.cookieActualExpireDate =
+              migratedData.cookieActualExpireDate || null
+
+            // 如果是迁移后的数据，提示用户更新Cookie
+            if (migratedData.needsCookieUpdate) {
+              console.warn('检测到老版本Cookie，建议用户更新Cookie信息')
+            }
+
+            // 编辑模式下重置手动修改标志，允许用户修改
+            manualExpireDaysEdit.value = false
           }
 
           // 如果是国服，需要解析游戏信息
@@ -960,6 +952,8 @@ watch(
       editFormData.value = null
       parsedGameInfo.value = null
       parsedGlobalInfo.value = null
+      manualExpireDaysEdit.value = false // 重置手动修改标志
+      form.cookieValidationFailed = false // 重置Cookie验证失败标志
       clearTimeout(window.globalCookieParseTimer)
     }
   }
@@ -984,9 +978,13 @@ const resetForm = () => {
     server: 'global',
     cookie: '',
     cookieExpireDays: 0, // 将由Cookie解析函数自动计算
+    cookieActualExpireDate: null, // 新增：真正的cookie过期日期
+    cookieValidationFailed: false, // 新增：Cookie验证失败标志
     uid: '',
     gameUrl: '',
   })
+  // 重置手动修改标志
+  manualExpireDaysEdit.value = false
 }
 
 // 处理关闭
@@ -1109,6 +1107,23 @@ const handleGlobalCookieParse = async () => {
     } else {
       console.warn('获取国际服角色信息失败:', result.message)
       parsedGlobalInfo.value = null
+
+      // 🔧 关键修复：如果API验证失败且错误信息表明Cookie无效，则标记Cookie状态为异常
+      if (
+        result.message &&
+        result.message.includes('无法从Cookie中提取必要的游戏参数')
+      ) {
+        console.warn('检测到Cookie已失效，设置状态为异常')
+        // 设置程序更新标志，避免监听器误判为用户手动修改
+        window.isUpdatingExpireDays = true
+        form.cookieExpireDays = -1 // 设置为异常状态
+        // 标记为Cookie验证失效状态，用于保存时保护
+        form.cookieValidationFailed = true
+        nextTick(() => {
+          window.isUpdatingExpireDays = false
+        })
+        showCustomMessage('检测到Cookie已失效，请重新设置Cookie信息', 'warning')
+      }
     }
   } catch (error) {
     console.error('解析国际服角色信息时出错:', error)
@@ -1142,6 +1157,158 @@ watch(
     clearTimeout(window.globalCookieParseTimer)
   }
 )
+
+// 处理Cookie续期
+const handleRenewCookie = async () => {
+  if (form.server === 'cn') {
+    showCustomMessage('国服用户无需Cookie续期', 'info')
+    return
+  }
+
+  if (!form.cookie) {
+    showCustomMessage('请先输入Cookie信息', 'warning')
+    return
+  }
+
+  try {
+    renewLoading.value = true
+    isRenewing.value = true // 标记正在续期
+
+    // 执行Cookie续期
+    const result = await renewGlobalCookie(form.cookie)
+
+    if (result.success) {
+      // 📝 详细调试信息
+      console.log('=== Cookie续期详细信息 ===')
+      console.log('原始Cookie长度:', form.cookie?.length || 0)
+      console.log('新Cookie长度:', result.data.newCookie?.length || 0)
+      console.log('Cookie是否发生变化:', form.cookie !== result.data.newCookie)
+      console.log('续期前过期天数:', form.cookieExpireDays)
+      console.log('续期后过期天数:', result.data.expireDays)
+
+      // 检查关键Cookie字段是否更新
+      const oldTokenMatch = form.cookie?.match(/game_token=([^;]+)/)
+      const newTokenMatch = result.data.newCookie?.match(/game_token=([^;]+)/)
+      if (oldTokenMatch && newTokenMatch) {
+        console.log(
+          'game_token是否更新:',
+          oldTokenMatch[1] !== newTokenMatch[1]
+        )
+        console.log('旧token:', oldTokenMatch[1]?.substring(0, 20) + '...')
+        console.log('新token:', newTokenMatch[1]?.substring(0, 20) + '...')
+      }
+
+      // 📋 智能更新Cookie格式
+      const wasApplicationFormat = form.cookie?.includes('\t')
+      const originalCookie = form.cookie // 保存原始Cookie用于比较
+
+      // 检查Cookie内容是否真的发生了变化
+      const cookieChanged = originalCookie !== result.data.newCookie
+
+      // 🔧 新续期逻辑：智能处理Cookie格式和存储
+      isRenewing.value = true
+      manualExpireDaysEdit.value = true // 防止Cookie变化触发重新解析
+
+      // 生成新的过期时间（添加expires字段）
+      const newExpireDate = new Date(
+        Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
+      )
+      const newExpireStr = newExpireDate.toUTCString()
+
+      // 构建新的标准Cookie（包含expires）
+      let newStandardCookie = result.data.newCookie
+      if (!newStandardCookie.includes('expires=')) {
+        newStandardCookie += `; expires=${newExpireStr}`
+      } else {
+        // 如果已有expires，替换它
+        newStandardCookie = newStandardCookie.replace(
+          /expires=([^;]+)/i,
+          `expires=${newExpireStr}`
+        )
+      }
+
+      // 📝 关键改进：保持显示格式不变
+      if (wasApplicationFormat) {
+        console.log('续期成功，保持Application面板显示格式')
+        // 显示格式保持为Application面板格式（用户输入的原始格式）
+        // 但内部存储使用新的标准Cookie
+        // form.cookie 保持不变，用户看到的还是Application格式
+      } else {
+        // 如果原来就是标准格式，更新显示的Cookie
+        form.cookie = newStandardCookie
+      }
+
+      // 更新过期信息
+      form.cookieExpireDays = result.data.expireDays
+      form.cookieActualExpireDate = newExpireDate.toISOString()
+
+      // 🔧 更新存储：使用新的存储格式
+      if (props.isEdit && props.userId) {
+        const userData = userStore.getUserById(props.userId)
+        if (userData) {
+          // 更新存储数据：标准Cookie（供API使用） + 原始Cookie（供显示使用）
+          userData.cookie = newStandardCookie // 存储标准Cookie（供API使用）
+          userData.cookieOriginal = form.cookie // 保持原始显示格式
+          userData.cookieExpireDays = result.data.expireDays
+          userData.cookieActualExpireDate = form.cookieActualExpireDate
+
+          // 保存到本地存储
+          await userStore.updateUser(props.userId, {
+            cookie: newStandardCookie, // 标准Cookie（供API使用）
+            cookieOriginal: form.cookie, // 原始Cookie（供显示使用）
+            cookieExpireDays: result.data.expireDays,
+            cookieActualExpireDate: form.cookieActualExpireDate,
+          })
+        }
+      }
+
+      // 🎯 新的成功提示信息
+      let successMessage = `Cookie续期成功！新的有效期：${result.data.expireDays}天`
+
+      if (wasApplicationFormat) {
+        successMessage +=
+          '\n✅ 保持Application面板显示格式，内部已更新标准Cookie'
+      } else {
+        successMessage += '\n✅ 标准Cookie格式已更新'
+      }
+
+      if (!cookieChanged) {
+        successMessage += '\n📝 Cookie令牌未变化，仅延长了过期时间'
+      } else {
+        successMessage += '\n🔄 Cookie令牌已更新为最新版本'
+      }
+
+      showCustomMessage(successMessage, 'success')
+
+      console.log('Cookie续期成功:', {
+        renewedAt: result.data.renewedAt,
+        newExpireDays: result.data.expireDays,
+        newActualExpireDate: form.cookieActualExpireDate,
+      })
+
+      // 续期成功后重置手动修改标志，允许用户继续手动调整
+      // 延迟重置标志，确保Cookie更新完成
+      setTimeout(() => {
+        manualExpireDaysEdit.value = false
+        isRenewing.value = false
+      }, 100)
+    } else {
+      showCustomMessage(result.message || 'Cookie续期失败', 'error')
+      console.error('Cookie续期失败:', result)
+      // 续期失败时立即清除标志
+      isRenewing.value = false
+      manualExpireDaysEdit.value = false
+    }
+  } catch (error) {
+    console.error('Cookie续期异常:', error)
+    showCustomMessage('Cookie续期过程中发生异常', 'error')
+    // 异常时立即清除标志
+    isRenewing.value = false
+    manualExpireDaysEdit.value = false
+  } finally {
+    renewLoading.value = false
+  }
+}
 
 // 处理提交
 const handleSubmit = async () => {
@@ -1185,14 +1352,46 @@ const handleSubmit = async () => {
       } | ${parsedGlobalInfo.value.region_name}`
     }
 
+    // 🔧 新的Cookie存储逻辑
+    let cookieData = {
+      cookie: form.cookie, // 默认值，如果不是国际服会被覆盖
+      cookieOriginal: form.cookie, // 原始输入格式（用于显示）
+      cookieExpireDays: Number(form.cookieExpireDays),
+      cookieActualExpireDate: form.cookieActualExpireDate,
+    }
+
+    // 处理国际服和港澳台服的Cookie
+    if (form.server !== 'cn' && form.cookie) {
+      const parseResult = parseAndStandardizeCookie(form.cookie)
+      if (parseResult.isValid) {
+        cookieData = {
+          cookie: parseResult.standardCookie, // 存储标准Cookie（供API使用）
+          cookieOriginal: parseResult.originalCookie, // 存储原始Cookie（供显示使用）
+          // 🔧 关键修复：如果Cookie验证失败，保持异常状态，否则使用解析结果
+          cookieExpireDays: form.cookieValidationFailed
+            ? -1
+            : parseResult.expireDays,
+          cookieActualExpireDate: form.cookieValidationFailed
+            ? form.cookieActualExpireDate
+            : parseResult.expireDate,
+        }
+        console.log('保存Cookie状态:', {
+          原始解析结果: parseResult.expireDays,
+          当前表单状态: form.cookieExpireDays,
+          Cookie验证失效标志: form.cookieValidationFailed,
+          最终保存状态: cookieData.cookieExpireDays,
+          是否保持异常状态: form.cookieValidationFailed,
+        })
+      }
+    }
+
     const userData = {
       name: form.name,
       server: form.server,
       serverName,
       uid,
       userName,
-      cookie: form.cookie,
-      cookieExpireDays: Number(form.cookieExpireDays),
+      ...cookieData, // 应用Cookie数据
     }
 
     // 如果是国服，额外保存原始游戏URL，并设置Cookie过期天数为0（表示不适用）
@@ -1224,22 +1423,7 @@ const handleSubmit = async () => {
     }
 
     if (form.server !== 'cn') {
-      // 国际服和港澳台服：设置浏览器Cookie
-      try {
-        // 导入Cookie设置工具
-        const { setBlablaLinkCookies } = await import('../utils/browser-cookie')
-        // 设置浏览器Cookie
-        const success = setBlablaLinkCookies(form.cookie, form.cookieExpireDays)
-        if (success) {
-          console.log(
-            `[UserDialog] 成功设置浏览器Cookie，过期天数: ${form.cookieExpireDays}`
-          )
-        } else {
-          console.warn('[UserDialog] 设置浏览器Cookie失败')
-        }
-      } catch (error) {
-        console.error('[UserDialog] 设置浏览器Cookie出错:', error)
-      }
+      // Cookie现在通过新的自动续期系统管理，无需手动设置浏览器Cookie
     }
 
     let savedUser
@@ -1263,7 +1447,12 @@ const handleSubmit = async () => {
     showCustomMessage(props.isEdit ? '更新成功' : '添加成功', 'success')
 
     // 如果是国际服或港澳台服用户，尝试同步历史记录
-    if (savedUser && savedUser.server !== 'cn') {
+    // 🔧 修复：只有当Cookie验证通过时才进行自动同步
+    if (
+      savedUser &&
+      savedUser.server !== 'cn' &&
+      !form.cookieValidationFailed
+    ) {
       // 使用setTimeout确保对话框关闭后再同步，避免UI阻塞
       setTimeout(() => {
         try {
@@ -1282,6 +1471,12 @@ const handleSubmit = async () => {
           console.warn('同步历史记录出错:', error)
         }
       }, 500)
+    } else if (
+      savedUser &&
+      savedUser.server !== 'cn' &&
+      form.cookieValidationFailed
+    ) {
+      console.log('检测到Cookie已失效，跳过自动同步历史记录功能')
     }
 
     handleClose()
@@ -1588,7 +1783,7 @@ const handleSubmit = async () => {
       @media screen and (max-width: 768px) {
         width: 100%;
         justify-content: flex-start;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         gap: 6px;
         align-items: center;
       }
@@ -1633,6 +1828,62 @@ const handleSubmit = async () => {
         @media screen and (max-width: 768px) {
           font-size: 13px;
         }
+      }
+
+      .renew-button {
+        margin-left: 8px;
+        flex-shrink: 0;
+        font-size: 12px;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: all 0.3s ease;
+
+        @media screen and (max-width: 768px) {
+          margin-left: 0;
+          margin-top: 6px;
+          width: auto;
+          height: 26px;
+          padding: 0 10px;
+          font-size: 11px;
+        }
+
+        .el-icon {
+          font-size: 12px;
+
+          @media screen and (max-width: 768px) {
+            font-size: 11px;
+          }
+        }
+
+        &:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+        }
+
+        &:active {
+          transform: translateY(0);
+        }
+
+        &.is-loading {
+          cursor: not-allowed;
+
+          .el-icon {
+            animation: rotate 1s linear infinite;
+          }
+        }
+      }
+    }
+
+    @keyframes rotate {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
       }
     }
   }

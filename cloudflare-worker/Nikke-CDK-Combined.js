@@ -43,64 +43,147 @@ async function handleOptions(request) {
 
 // ==================== BlablaLink API代理处理 ====================
 
-// 处理BlablaLink API代理请求
-async function handleBlablaLinkProxy(request) {
+// 🔄 处理Cookie续期请求
+async function handleCookieRenewal(request) {
   const origin = request.headers.get('Origin')
-  const url = new URL(request.url)
-
-  // 从路径中提取BlablaLink API端点
-  // 例如: /blablalink/api/user/CheckHasLipAccount -> /api/user/CheckHasLipAccount
-  const endpoint = url.pathname.replace('/blablalink', '')
-
-  // 构建目标URL
-  const targetUrl = `https://api.blablalink.com${endpoint}`
+  const targetUrl = 'https://api.blablalink.com/api/user/Login'
 
   try {
-    // 获取原始请求的内容
-    const contentType = request.headers.get('Content-Type')
-    let requestBody
+    // 解析请求体
+    const requestData = await request.json()
+    const { cookie, requestBody } = requestData
 
-    if (contentType && contentType.includes('application/json')) {
-      requestBody = await request.json()
-    } else {
-      requestBody = await request.text()
+    if (!cookie || !requestBody) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Missing cookie or requestBody'
+      }), {
+        status: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      })
     }
 
-    // 获取Cookie，优先使用X-Forwarded-Cookie头部
-    const forwardedCookie = request.headers.get('X-Forwarded-Cookie') || ''
-    const originalCookie = request.headers.get('Cookie') || ''
-    const cookie = forwardedCookie || originalCookie
-
-    // 构建代理请求
-    const proxyRequest = new Request(targetUrl, {
-      method: request.method,
+    // 构建续期请求
+    const renewalRequest = new Request(targetUrl, {
+      method: 'POST',
       headers: {
-        'Content-Type': contentType || 'application/json',
+        'Content-Type': 'application/json',
         'Origin': 'https://www.blablalink.com',
         'Referer': 'https://www.blablalink.com/',
-        // 使用传递的Cookie
+        'X-Channel-Type': '2',
+        'X-Language': 'en',
         'Cookie': cookie
       },
-      body: typeof requestBody === 'string' ? requestBody : JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody)
     })
 
-    // 发送请求并获取响应
-    const response = await fetch(proxyRequest)
-    const responseData = await response.text()
+    // 发送续期请求
+    const response = await fetch(renewalRequest)
+    const responseText = await response.text()
 
-    // 返回响应
-    return new Response(responseData, {
-      status: response.status,
+    // 解析响应
+    let responseData
+    try {
+      responseData = JSON.parse(responseText)
+    } catch (error) {
+      throw new Error('响应数据格式错误')
+    }
+
+    // 检查业务层返回码
+    if (responseData.code !== 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: responseData.msg || '续期请求失败',
+        originalResponse: responseData
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      })
+    }
+
+    // 提取Set-Cookie响应头
+    const setCookieHeaders = []
+    const rawSetCookie = response.headers.get('Set-Cookie')
+    if (rawSetCookie) {
+      // 处理多个Set-Cookie头（Cloudflare Worker可能合并它们）
+      const cookieEntries = rawSetCookie.split(', ')
+      for (const entry of cookieEntries) {
+        if (entry.includes('=')) {
+          setCookieHeaders.push(entry)
+        }
+      }
+    }
+
+    if (setCookieHeaders.length === 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '未收到新的Cookie数据',
+        originalResponse: responseData
+      }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      })
+    }
+
+    // 解析新Cookie
+    const cookiePairs = []
+    let maxAge = 0
+
+    for (const header of setCookieHeaders) {
+      const parts = header.split(';').map(part => part.trim())
+      const [cookiePair] = parts
+      const [key, value] = cookiePair.split('=')
+
+      if (key && value) {
+        cookiePairs.push(`${key}=${value}`)
+
+        // 提取Max-Age
+        const maxAgeMatch = parts.find(part => part.startsWith('Max-Age='))
+        if (maxAgeMatch) {
+          const ageSeconds = parseInt(maxAgeMatch.split('=')[1])
+          if (ageSeconds > maxAge) {
+            maxAge = ageSeconds
+          }
+        }
+      }
+    }
+
+    const expireDays = Math.floor(maxAge / (24 * 60 * 60))
+    const newCookieString = cookiePairs.join('; ')
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Cookie续期成功',
+      data: {
+        newCookie: newCookieString,
+        expireDays,
+        maxAge,
+        renewedAt: new Date().toISOString(),
+        originalResponse: responseData
+      }
+    }), {
+      status: 200,
       headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+        'Content-Type': 'application/json',
         ...corsHeaders(origin)
       }
     })
-  } catch (err) {
-    console.error('BlablaLink API代理请求失败:', err)
+
+  } catch (error) {
+    console.error('Cookie续期失败:', error)
     return new Response(JSON.stringify({
-      code: 500,
-      msg: `BlablaLink API代理请求失败: ${err.message}`
+      success: false,
+      message: error.message || 'Cookie续期失败',
+      error: error.toString()
     }), {
       status: 500,
       headers: {
@@ -110,6 +193,8 @@ async function handleBlablaLinkProxy(request) {
     })
   }
 }
+
+
 
 // ==================== 国际服处理逻辑 ====================
 
@@ -445,235 +530,11 @@ async function handleCnGetCaptcha(request) {
   }
 }
 
-// 🎯 获取当前活动配置参数 (新增)
-async function getCurrentActivityConfig() {
-  try {
-    // 尝试访问CDK活动页面获取最新配置
-    const activityPageUrl = 'https://nikke.qq.com/act/a20250217nikkecdk/index.html'
 
-    const pageResponse = await fetch(activityPageUrl, {
-      method: 'GET',
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'zh-CN,zh;q=0.9'
-      }
-    })
 
-    if (pageResponse.ok) {
-      const pageHtml = await pageResponse.text()
 
-      // 提取活动配置参数
-      const iChartIdMatch = pageHtml.match(/iChartId['"]\s*:\s*['"]?([^'",\s]+)['"]?/i)
-      const iSubChartIdMatch = pageHtml.match(/iSubChartId['"]\s*:\s*['"]?([^'",\s]+)['"]?/i)
-      const sIdeTokenMatch = pageHtml.match(/sIdeToken['"]\s*:\s*['"]([^'"]+)['"]/i)
 
-      if (iChartIdMatch || iSubChartIdMatch || sIdeTokenMatch) {
-        return {
-          success: true,
-          iChartId: iChartIdMatch ? iChartIdMatch[1] : "372756",
-          iSubChartId: iSubChartIdMatch ? iSubChartIdMatch[1] : "372756",
-          sIdeToken: sIdeTokenMatch ? sIdeTokenMatch[1] : "0HzkLt",
-          method: 'activity_page'
-        }
-      }
-    }
-  } catch (error) {
-    // 获取活动配置失败时静默处理
-  }
 
-  // 回退到默认配置
-  return {
-    success: false,
-    iChartId: "372756",
-    iSubChartId: "372756",
-    sIdeToken: "0HzkLt",
-    method: 'fallback'
-  }
-}
-
-// 🔐 获取国服认证Token (新增 - 解决itopencodeparam不完整问题)
-async function getCNAuthToken(gameParams) {
-  try {
-    // 方法1: 尝试通过AMS权限检查接口获取完整认证信息
-    try {
-      const authCheckUrl = `https://comm.ams.game.qq.com/ide/v2/auth/check?gameid=${gameParams.gameid || '28063'}&area_id=${gameParams.area_id}&role_id=${gameParams.role_id}&zone_id=${gameParams.zone_id}`
-
-      const authResponse = await fetch(authCheckUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
-          'Accept': 'application/json, text/plain, */*',
-          'Origin': 'https://nikke.qq.com',
-          'Referer': 'https://nikke.qq.com/'
-        }
-      })
-
-      if (authResponse.ok) {
-        const authData = await authResponse.json()
-        if (authData.ret === 0 && authData.data && authData.data.sIdeToken) {
-          return {
-            success: true,
-            sIdeToken: authData.data.sIdeToken,
-            itopencodeparam: authData.data.itopencodeparam || gameParams.itopencodeparam,
-            method: 'ams_auth'
-          }
-        }
-      }
-    } catch (error) {
-      // AMS认证方法失败时静默处理
-    }
-
-    // 方法2: 尝试访问CDK页面获取初始化认证信息
-    try {
-      const cdkPageUrl = `https://nikke.qq.com/act/a20250217nikkecdk/index.html?${Object.entries(gameParams).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&')}`
-
-      const pageResponse = await fetch(cdkPageUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'zh-CN,zh;q=0.9'
-        }
-      })
-
-      if (pageResponse.ok) {
-        const pageHtml = await pageResponse.text()
-
-        // 尝试从页面中提取认证信息
-        const sIdeTokenMatch = pageHtml.match(/sIdeToken['"]\s*:\s*['"]([^'"]+)['"]/i)
-        const itopencodeMatch = pageHtml.match(/itopencodeparam['"]\s*:\s*['"]([^'"]+)['"]/i)
-
-        // 🆕 提取活动配置参数
-        const iChartIdMatch = pageHtml.match(/iChartId['"]\s*:\s*['"]?([^'",\s]+)['"]?/i)
-        const iSubChartIdMatch = pageHtml.match(/iSubChartId['"]\s*:\s*['"]?([^'",\s]+)['"]?/i)
-
-        if (sIdeTokenMatch && itopencodeMatch) {
-          return {
-            success: true,
-            sIdeToken: sIdeTokenMatch[1],
-            itopencodeparam: itopencodeMatch[1],
-            iChartId: iChartIdMatch ? iChartIdMatch[1] : "372756", // 回退到已知值
-            iSubChartId: iSubChartIdMatch ? iSubChartIdMatch[1] : "372756", // 回退到已知值
-            method: 'page_parse'
-          }
-        }
-      }
-    } catch (error) {
-      // 页面解析方法失败时静默处理
-    }
-
-    // 方法3: 基于用户参数动态生成稳定的认证token
-    try {
-      // 使用用户的核心参数生成一个稳定的认证标识
-      const userIdentity = `${gameParams.role_id}-${gameParams.area_id}-${gameParams.zone_id}-${gameParams.seq}`
-      const timestamp = Math.floor(Date.now() / 1000)
-
-      // 生成增强的itopencodeparam（如果原参数太短）
-      let enhancedItopencodeparam = gameParams.itopencodeparam
-      if (!enhancedItopencodeparam || enhancedItopencodeparam.length < 100) {
-        // 基于用户身份信息生成更长的参数
-        const baseStr = `${userIdentity}-${gameParams.sig}-${timestamp}`
-        const hash1 = btoa(baseStr).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-        const hash2 = btoa(`${hash1}-${gameParams.channelid}-${gameParams.version}`).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-        const hash3 = btoa(`${hash2}-${gameParams.gameid}-${gameParams.os}`).replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-
-        enhancedItopencodeparam = (hash1 + hash2 + hash3).substring(0, 200)
-      }
-
-      // 🆕 动态生成活动参数（基于当前时间和用户信息）
-      const currentTime = new Date()
-      const activityId = `${currentTime.getFullYear()}${String(currentTime.getMonth() + 1).padStart(2, '0')}${String(currentTime.getDate()).padStart(2, '0')}`
-
-      // 基于用户信息生成稳定的Chart ID
-      const userHash = btoa(`${gameParams.role_id}-${gameParams.area_id}-${activityId}`).replace(/[^0-9]/g, '').substring(0, 6)
-      const dynamicChartId = userHash || "372756" // 回退到已知值
-
-      return {
-        success: true,
-        sIdeToken: "0HzkLt", // 使用已知有效的CDK兑换token
-        itopencodeparam: enhancedItopencodeparam,
-        iChartId: dynamicChartId,
-        iSubChartId: dynamicChartId,
-        method: 'enhanced_param'
-      }
-    } catch (error) {
-      // 参数增强方法失败时静默处理
-    }
-
-    // 所有方法都失败，返回原始参数
-    return {
-      success: false,
-      sIdeToken: "0HzkLt",
-      itopencodeparam: gameParams.itopencodeparam,
-      method: 'fallback'
-    }
-
-  } catch (error) {
-    console.error('获取认证Token失败:', error)
-    return {
-      success: false,
-      sIdeToken: "0HzkLt",
-      itopencodeparam: gameParams.itopencodeparam,
-      method: 'error'
-    }
-  }
-}
-
-// 🔐 处理国服认证Token获取 (新增)
-async function handleCnGetAuthToken(request) {
-  const origin = request.headers.get('Origin')
-
-  try {
-    const gameParams = await request.json()
-
-    // 验证必需参数
-    const requiredParams = ['role_id', 'area_id', 'zone_id']
-    for (const param of requiredParams) {
-      if (!gameParams[param]) {
-        return new Response(JSON.stringify({
-          success: false,
-          message: `缺少必需参数: ${param}`
-        }), {
-          status: 400,
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders(origin)
-          }
-        })
-      }
-    }
-
-    // 获取认证Token
-    const authResult = await getCNAuthToken(gameParams)
-
-    return new Response(JSON.stringify({
-      success: authResult.success,
-      sIdeToken: authResult.sIdeToken,
-      itopencodeparam: authResult.itopencodeparam,
-      method: authResult.method,
-      message: authResult.success ? '认证获取成功' : '认证获取失败，使用默认参数'
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders(origin)
-      }
-    })
-
-  } catch (error) {
-    console.error('获取认证Token失败:', error)
-    return new Response(JSON.stringify({
-      success: false,
-      message: error.message || '获取认证Token失败'
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders(origin)
-      }
-    })
-  }
-}
 
 // 🎮 处理国服CDK兑换
 async function handleCnCdkExchange(request) {
@@ -881,6 +742,12 @@ export default {
       case path === '/api/global/region-list' && method === 'POST':
         return handleGlobalRegionList(request)
 
+      // Cookie续期 (新增)
+      case path === '/global/cookie-renewal' && method === 'POST':
+        return handleCookieRenewal(request)
+      case path === '/api/global/cookie-renewal' && method === 'POST':
+        return handleCookieRenewal(request)
+
       // 向后兼容：保留原有复杂路径
       case path === '/api/game/proxy/Game/RecordCdkRedemption' && method === 'POST':
         return handleGlobalCdkExchange(request)
@@ -894,9 +761,7 @@ export default {
       case path === '/cn/captcha' && method === 'GET':
         return handleCnGetCaptcha(request)
 
-      // 获取认证Token
-      case path === '/cn/auth/token' && method === 'POST':
-        return handleCnGetAuthToken(request)
+
 
       // 国服CDK兑换
       case path === '/cn/cdk/exchange' && method === 'POST':
@@ -919,11 +784,7 @@ export default {
           }
         })
 
-      // ==================== BlablaLink API代理路由 ====================
 
-      // 处理BlablaLink API代理请求
-      case path.startsWith('/blablalink/') && (method === 'POST' || method === 'GET'):
-        return handleBlablaLinkProxy(request)
 
       // ==================== 通用路由 ====================
 
@@ -934,20 +795,20 @@ export default {
           message: 'NIKKE CDK Combined Worker is running',
           services: {
             global: 'International server CDK exchange and player info',
-            cn: 'Chinese server CDK exchange with captcha support',
-            blablalink: 'BlablaLink API proxy for cookie renewal'
+            cn: 'Chinese server CDK exchange with captcha support'
           },
           endpoints: {
             global_exchange: '/global/exchange (CDK兑换)',
             global_history: '/global/history (兑换历史)',
             global_player_info: '/global/player-info (角色信息)',
             global_region_list: '/global/region-list (服务器区域)',
+            global_cookie_renewal: '/global/cookie-renewal (Cookie续期)',
             cn_captcha: '/cn/captcha',
-            cn_auth: '/cn/auth/token',
+
             cn_exchange: '/cn/cdk/exchange',
             cn_log: '/cn/log',
             cn_health: '/cn/health',
-            blablalink: '/blablalink/{endpoint} (BlablaLink API代理)'
+
           },
           timestamp: new Date().toISOString()
         }), {
@@ -981,15 +842,16 @@ export default {
             'POST /global/history (国际服兑换历史 - 推荐)',
             'POST /global/player-info (国际服角色信息获取 - 新增)',
             'POST /global/region-list (国际服服务器区域列表 - 新增)',
+            'POST /global/cookie-renewal (国际服Cookie续期 - 新增)',
             'POST /api/game/proxy/Game/RecordCdkRedemption (国际服CDK兑换 - 向后兼容)',
             'POST /api/game/proxy/Game/GetCdkRedemptionHistory (国际服兑换历史 - 向后兼容)',
             'GET /cn/captcha?aid=xxx (国服验证码获取)',
-            'POST /cn/auth/token (国服认证Token获取)',
+
             'POST /cn/cdk/exchange (国服CDK兑换)',
             'POST /cn/log (国服日志记录)',
             'GET /cn/health (国服健康检查)',
             'GET /health (通用健康检查)',
-            'POST /blablalink/{endpoint} (BlablaLink API代理，用于Cookie智能续期)'
+
           ]
         }), {
           status: 404,

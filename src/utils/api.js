@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { showCustomMessage } from './customMessage'
+
+// 🔧 注意：normalizeApplicationCookie函数已移除
+// 现在Cookie在存储时就已经转换为标准格式，API调用时直接使用
 
 // 创建axios实例
 const api = axios.create({
@@ -13,9 +17,10 @@ const api = axios.create({
   }
 })
 
-// 国际服CDK兑换API
+// 🌍 国际服CDK兑换
 export const exchangeCDK = async (cookie, cdk) => {
   try {
+    // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
     const response = await api.post('/global/exchange', {
       cdkey: cdk,
       cookie: cookie
@@ -223,20 +228,21 @@ const generateMiloTag = () => {
 // 获取兑换历史API
 export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
   try {
+    // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
+
     console.log(`正在获取第${page}页历史记录，每页${pageSize}条...`)
 
-    // 构建请求负载，确保始终包含page_num和page_size参数
-    const payload = {
+    const requestPayload = {
       cookie: cookie,
       page_num: page,
       page_size: pageSize
     }
 
     // 添加请求负载日志
-    console.log(`发送历史记录请求负载:`, JSON.stringify(payload))
+    console.log(`发送历史记录请求负载:`, JSON.stringify(requestPayload))
 
     // 发送请求时始终包含完整负载
-    const response = await api.post('/global/history', payload)
+    const response = await api.post('/global/history', requestPayload)
 
     // 添加调试日志，查看返回的数据结构
     console.log(`历史记录API返回数据(页码${page}，每页${pageSize}条):`, response.data)
@@ -467,6 +473,8 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
 // 🌍 获取国际服角色详细信息 (新增)
 export const getUserGamePlayerInfo = async (cookie) => {
   try {
+    // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
+
     // 从Cookie中提取必要的参数
     const gameOpenid = cookie.match(/game_openid=([^;]+)/)?.[1]
     const gameGameid = cookie.match(/game_gameid=([^;]+)/)?.[1]
@@ -512,6 +520,8 @@ export const getUserGamePlayerInfo = async (cookie) => {
 // 🌍 获取服务器区域列表 (新增)
 export const getRegionList = async (cookie) => {
   try {
+    // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
+
     // 使用Worker代理请求
     const response = await api.post('/global/region-list', {
       cookie: cookie,
@@ -584,4 +594,119 @@ export const getGlobalUserCompleteInfo = async (cookie) => {
       message: error.message || '网络错误，请稍后重试'
     }
   }
+}
+
+/**
+ * Cookie自动续期功能
+ * 通过官网登录接口实现Cookie续期，延长30天有效期
+ */
+
+/**
+ * 续期国际服/港澳台服Cookie
+ * @param {string} cookie - 当前Cookie字符串
+ * @returns {Promise<Object>} 续期结果
+ */
+export const renewGlobalCookie = async (cookie) => {
+  try {
+    // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
+
+    // 解析Cookie中的关键参数
+    const params = parseCookieParams(cookie)
+
+    if (!params.game_openid || !params.game_token || !params.game_channelid) {
+      throw new Error('Cookie缺少必要的续期参数')
+    }
+
+    // 构建请求体
+    const requestBody = {
+      game_openid: params.game_openid,
+      game_channelid: parseInt(params.game_channelid),
+      game_token: params.game_token,
+      game_id: params.game_gameid || "29080", // NIKKE Global默认值
+      game_expire_time: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 当前时间+30天
+      game_uid: params.game_uid,
+      game_user_name: params.game_user_name,
+      game_adult_status: parseInt(params.game_adult_status || "1")
+    }
+
+    // 通过Cloudflare Worker发送续期请求
+    const response = await api.post('/global/cookie-renewal', {
+      cookie: cookie,
+      requestBody: requestBody
+    })
+
+    const result = response.data
+
+    // 检查Worker返回的结果
+    if (!result.success) {
+      throw new Error(result.message || '续期失败')
+    }
+
+    return result
+
+  } catch (error) {
+    console.error('Cookie续期失败:', error)
+    return {
+      success: false,
+      message: error.message || 'Cookie续期失败',
+      error: error
+    }
+  }
+}
+
+/**
+ * 解析Cookie字符串中的参数
+ * @param {string} cookie - Cookie字符串
+ * @returns {Object} 解析后的参数对象
+ */
+const parseCookieParams = (cookie) => {
+  const params = {}
+  const cookiePairs = cookie.split(';').map(pair => pair.trim())
+
+  for (const pair of cookiePairs) {
+    const [key, value] = pair.split('=')
+    if (key && value) {
+      params[key.trim()] = value.trim()
+    }
+  }
+
+  return params
+}
+
+/**
+ * 检查Cookie是否需要续期
+ * @param {number} expireDays - Cookie剩余天数
+ * @param {number} threshold - 续期阈值（天数），默认7天
+ * @returns {boolean} 是否需要续期
+ */
+export const shouldRenewCookie = (expireDays, threshold = 7) => {
+  return expireDays <= threshold && expireDays > 0
+}
+
+/**
+ * 自动续期检查和执行
+ * @param {Object} user - 用户对象
+ * @returns {Promise<Object>} 续期结果
+ */
+export const autoRenewUserCookie = async (user) => {
+  if (!user || user.server === 'cn') {
+    return { success: false, message: '国服用户无需Cookie续期' }
+  }
+
+  if (!user.cookie) {
+    return { success: false, message: '用户Cookie为空' }
+  }
+
+  const expireDays = user.cookieExpireDays || 0
+
+  if (!shouldRenewCookie(expireDays)) {
+    return {
+      success: false,
+      message: `Cookie还有${expireDays}天有效期，暂无需续期`
+    }
+  }
+
+  console.log(`用户 ${user.name} 的Cookie还有${expireDays}天过期，开始自动续期...`)
+
+  return await renewGlobalCookie(user.cookie)
 } 
