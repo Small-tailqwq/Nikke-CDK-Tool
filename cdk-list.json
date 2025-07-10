@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-06-23T09:09:22.681Z",
+  "lastUpdate": "2025-07-10T12:22:55.228Z",
   "cdks": [
     {
       "type": "group",
@@ -274,6 +274,39 @@
       "author": "大哥嫑烎",
       "created": "2025-06-22",
       "image": "/announcement-images/RubianaVol9SNWR.webp"
+    },
+    {
+      "type": "group",
+      "groupId": "NIKKEsummer2025",
+      "groupName": "25年夏日活动",
+      "note": "收录夏活CDK",
+      "cdks": [
+        {
+          "code": "NIKKESUMMERKICKOFF",
+          "name": "夏活开幕",
+          "reward": "成长套件：1H×2",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "蚊子腿",
+          "author": "GME",
+          "created": "2025-07-10"
+        },
+        {
+          "code": "CATCHMEIFYOUCAN717",
+          "name": "直播奖励",
+          "reward": "高级招募卷×10",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "CDK大意：如果你能抓住我，717",
+          "author": "GME",
+          "created": "2025-07-10"
+        }
+      ],
+      "image": "/announcement-images/NIKKEsummer2025.webp"
     }
   ]
 }
