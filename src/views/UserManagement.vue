@@ -404,7 +404,7 @@ const shouldShowRenewButton = (user) => {
   if (user.cookieExpireDays === -1) {
     return false
   }
-  return user.cookieExpireDays < 30
+  return user.cookieExpireDays <= 32
 }
 
 // 获取用户续期加载状态
