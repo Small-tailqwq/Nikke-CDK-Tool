@@ -1,5 +1,6 @@
 // 🌍🇨🇳 NIKKE CDK工具 - 统一Cloudflare Worker
 // 同时支持国际服和国服CDK兑换功能
+// 此为测试环境，包含隐私输出功能，请勿用于生产环境
 
 // 国际服固定请求头
 const GLOBAL_HEADERS = {
