@@ -113,17 +113,23 @@ async function handleCookieRenewal(request) {
     // 尝试现代Workers runtime的getAll方法
     if (typeof response.headers.getAll === 'function') {
       setCookies = response.headers.getAll('set-cookie')
+      console.log('✅ 使用getAll方法获取Set-Cookie')
     }
     // 回退方法：获取单个Set-Cookie头（可能包含多个合并的Cookie）
     else {
       const singleCookie = response.headers.get('Set-Cookie')
       if (singleCookie) {
+        console.log('⚠️ 使用单个Set-Cookie头，可能包含合并的Cookie')
 
         // 检查是否包含多个Cookie（通过寻找多个name=value对）
         const cookieMatches = singleCookie.match(/\w+=[^;,]+/g) || []
         const maxAgeCount = (singleCookie.match(/Max-Age=/gi) || []).length
 
+        console.log(`🔍 检测到${cookieMatches.length}个Cookie键值对，${maxAgeCount}个Max-Age`)
+
         if (maxAgeCount > 1) {
+          // 尝试智能分割多个Cookie
+          console.log('🔧 尝试分割合并的Cookie字符串')
 
           // 使用更安全的分割方法：寻找Cookie名称模式
           const cookiePattern = /(\w+=[^;,]+(?:;[^,]*?(?:Max-Age=\d+|expires=[^;,]+)[^,]*)?)/gi
@@ -131,14 +137,19 @@ async function handleCookieRenewal(request) {
 
           if (matches && matches.length > 1) {
             setCookies = matches
+            console.log(`✅ 成功分割为${matches.length}个Cookie`)
           } else {
             setCookies = [singleCookie]
+            console.log('⚠️ 分割失败，使用原始Cookie字符串')
           }
         } else {
           setCookies = [singleCookie]
         }
       }
     }
+
+    console.log('📋 获取到的Set-Cookie数量:', setCookies.length)
+    console.log('📋 Set-Cookie详情:', setCookies)
 
     if (setCookies.length === 0) {
       return new Response(JSON.stringify({
@@ -160,6 +171,7 @@ async function handleCookieRenewal(request) {
     let hasGameToken = false
 
     for (const setCookieHeader of setCookies) {
+      console.log('🔍 处理Set-Cookie:', setCookieHeader)
 
       // 分割Cookie属性（只在第一个分号处分割以获取name=value部分）
       const parts = setCookieHeader.split(';').map(part => part.trim())
@@ -169,6 +181,12 @@ async function handleCookieRenewal(request) {
         const [key, value] = cookiePair.split('=')
         if (key && value) {
           cookiePairs.push(`${key}=${value}`)
+
+          // 检查是否包含关键的game_token
+          if (key.trim() === 'game_token') {
+            hasGameToken = true
+            console.log('✅ 找到game_token:', value.substring(0, 20) + '...')
+          }
         }
       }
 
@@ -179,6 +197,7 @@ async function handleCookieRenewal(request) {
         if (ageSeconds > maxAge) {
           maxAge = ageSeconds
         }
+        console.log('📅 当前Cookie的Max-Age:', ageSeconds, '秒')
       }
     }
 
