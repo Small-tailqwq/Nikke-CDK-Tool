@@ -66,7 +66,7 @@ async function handleCookieRenewal(request) {
       })
     }
 
-    // 构建续期请求
+    // 构建续期请求 - 完善请求头
     const renewalRequest = new Request(targetUrl, {
       method: 'POST',
       headers: {
@@ -107,20 +107,51 @@ async function handleCookieRenewal(request) {
       })
     }
 
-    // 提取Set-Cookie响应头
-    const setCookieHeaders = []
-    const rawSetCookie = response.headers.get('Set-Cookie')
-    if (rawSetCookie) {
-      // 处理多个Set-Cookie头（Cloudflare Worker可能合并它们）
-      const cookieEntries = rawSetCookie.split(', ')
-      for (const entry of cookieEntries) {
-        if (entry.includes('=')) {
-          setCookieHeaders.push(entry)
+    // 🔧 修复：正确获取所有Set-Cookie响应头
+    let setCookies = []
+
+    // 尝试现代Workers runtime的getAll方法
+    if (typeof response.headers.getAll === 'function') {
+      setCookies = response.headers.getAll('set-cookie')
+      console.log('✅ 使用getAll方法获取Set-Cookie')
+    }
+    // 回退方法：获取单个Set-Cookie头（可能包含多个合并的Cookie）
+    else {
+      const singleCookie = response.headers.get('Set-Cookie')
+      if (singleCookie) {
+        console.log('⚠️ 使用单个Set-Cookie头，可能包含合并的Cookie')
+
+        // 检查是否包含多个Cookie（通过寻找多个name=value对）
+        const cookieMatches = singleCookie.match(/\w+=[^;,]+/g) || []
+        const maxAgeCount = (singleCookie.match(/Max-Age=/gi) || []).length
+
+        console.log(`🔍 检测到${cookieMatches.length}个Cookie键值对，${maxAgeCount}个Max-Age`)
+
+        if (maxAgeCount > 1) {
+          // 尝试智能分割多个Cookie
+          console.log('🔧 尝试分割合并的Cookie字符串')
+
+          // 使用更安全的分割方法：寻找Cookie名称模式
+          const cookiePattern = /(\w+=[^;,]+(?:;[^,]*?(?:Max-Age=\d+|expires=[^;,]+)[^,]*)?)/gi
+          const matches = singleCookie.match(cookiePattern)
+
+          if (matches && matches.length > 1) {
+            setCookies = matches
+            console.log(`✅ 成功分割为${matches.length}个Cookie`)
+          } else {
+            setCookies = [singleCookie]
+            console.log('⚠️ 分割失败，使用原始Cookie字符串')
+          }
+        } else {
+          setCookies = [singleCookie]
         }
       }
     }
 
-    if (setCookieHeaders.length === 0) {
+    console.log('📋 获取到的Set-Cookie数量:', setCookies.length)
+    console.log('📋 Set-Cookie详情:', setCookies)
+
+    if (setCookies.length === 0) {
       return new Response(JSON.stringify({
         success: false,
         message: '未收到新的Cookie数据',
@@ -134,39 +165,62 @@ async function handleCookieRenewal(request) {
       })
     }
 
-    // 解析新Cookie
+    // 🔧 修复：正确解析每个Set-Cookie
     const cookiePairs = []
     let maxAge = 0
+    let hasGameToken = false
 
-    for (const header of setCookieHeaders) {
-      const parts = header.split(';').map(part => part.trim())
-      const [cookiePair] = parts
-      const [key, value] = cookiePair.split('=')
+    for (const setCookieHeader of setCookies) {
+      console.log('🔍 处理Set-Cookie:', setCookieHeader)
 
-      if (key && value) {
-        cookiePairs.push(`${key}=${value}`)
+      // 分割Cookie属性（只在第一个分号处分割以获取name=value部分）
+      const parts = setCookieHeader.split(';').map(part => part.trim())
+      const cookiePair = parts[0] // 第一部分是 name=value
 
-        // 提取Max-Age
-        const maxAgeMatch = parts.find(part => part.startsWith('Max-Age='))
-        if (maxAgeMatch) {
-          const ageSeconds = parseInt(maxAgeMatch.split('=')[1])
-          if (ageSeconds > maxAge) {
-            maxAge = ageSeconds
+      if (cookiePair.includes('=')) {
+        const [key, value] = cookiePair.split('=')
+        if (key && value) {
+          cookiePairs.push(`${key}=${value}`)
+
+          // 检查是否包含关键的game_token
+          if (key.trim() === 'game_token') {
+            hasGameToken = true
+            console.log('✅ 找到game_token:', value.substring(0, 20) + '...')
           }
         }
       }
+
+      // 🔧 修复：正确提取Max-Age（查找所有Cookie中的最大值）
+      const maxAgeMatch = setCookieHeader.match(/Max-Age=(\d+)/i)
+      if (maxAgeMatch) {
+        const ageSeconds = parseInt(maxAgeMatch[1], 10)
+        if (ageSeconds > maxAge) {
+          maxAge = ageSeconds
+        }
+        console.log('📅 当前Cookie的Max-Age:', ageSeconds, '秒')
+      }
     }
 
+    // 检查是否获取到了关键的game_token
+    if (!hasGameToken) {
+      console.warn('⚠️ 未找到game_token，续期可能失败')
+    }
+
+    // 🔧 修复：只拼接name=value对，不拼接expires=，并返回expireAt字段
     const expireDays = Math.floor(maxAge / (24 * 60 * 60))
-    const newCookieString = cookiePairs.join('; ')
+    let newCookieString = cookiePairs.join('; ')
+    const expireAt = (maxAge > 0) ? new Date(Date.now() + maxAge * 1000).toISOString() : null
 
     return new Response(JSON.stringify({
       success: true,
       message: 'Cookie续期成功',
       data: {
-        newCookie: newCookieString,
+        newCookie: newCookieString, // 只包含name=value
         expireDays,
         maxAge,
+        expireAt, // 新增字段
+        hasGameToken,
+        totalCookies: setCookies.length,
         renewedAt: new Date().toISOString(),
         originalResponse: responseData
       }

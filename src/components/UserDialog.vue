@@ -17,55 +17,17 @@
     >
       <el-form-item label="用户名" prop="name">
         <el-input v-model="form.name" placeholder="请输入用户名" />
-        <el-popover
-          v-if="showTutorial && currentTutorialField === 'name'"
-          :visible="true"
-          :title="tutorialSteps.name.title"
-          :placement="tutorialSteps.name.placement"
-          width="300"
-          trigger="manual"
-        >
-          <template #reference>
-            <div class="tutorial-target"></div>
-          </template>
-          <p>{{ tutorialSteps.name.content }}</p>
-          <div class="tutorial-footer">
-            <el-button type="primary" size="small" @click="handleTutorialNext"
-              >下一步</el-button
-            >
-            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
-          </div>
-        </el-popover>
       </el-form-item>
 
       <el-form-item label="服务器" prop="server">
-        <el-select v-model="form.server" placeholder="请选择服务器">
+        <el-select v-model="form.server" placeholder="选择服务器" size="large">
           <el-option
-            v-for="server in serverOptions"
-            :key="server.value"
-            :label="server.label"
-            :value="server.value"
+            v-for="option in serverOptions"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
           />
         </el-select>
-        <el-popover
-          v-if="showTutorial && currentTutorialField === 'server'"
-          :visible="true"
-          :title="tutorialSteps.server.title"
-          :placement="tutorialSteps.server.placement"
-          width="300"
-          trigger="manual"
-        >
-          <template #reference>
-            <div class="tutorial-target"></div>
-          </template>
-          <p>{{ tutorialSteps.server.content }}</p>
-          <div class="tutorial-footer">
-            <el-button type="primary" size="small" @click="handleTutorialNext"
-              >下一步</el-button
-            >
-            <el-button size="small" @click="skipTutorial">跳过教程</el-button>
-          </div>
-        </el-popover>
       </el-form-item>
 
       <el-form-item label="UID" v-if="isEdit">
@@ -114,20 +76,22 @@
               </el-tag>
             </div>
             <div class="cookie-expire-setting">
-              <el-input-number
-                v-model="form.cookieExpireDays"
-                :min="form.cookieValidationFailed ? -1 : 1"
-                :max="30"
-                size="small"
-                class="expire-days-input"
-              />
-              <span class="expire-days-label">天</span>
-              <el-tooltip
-                content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
-                placement="top"
-              >
-                <el-icon class="info-icon"><InfoFilled /></el-icon>
-              </el-tooltip>
+              <div class="expire-days-controls">
+                <el-input-number
+                  v-model="form.cookieExpireDays"
+                  :min="form.cookieValidationFailed ? -1 : 1"
+                  :max="30"
+                  size="small"
+                  class="expire-days-input"
+                />
+                <span class="expire-days-label">天</span>
+                <el-tooltip
+                  content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
+                  placement="top"
+                >
+                  <el-icon class="info-icon"><InfoFilled /></el-icon>
+                </el-tooltip>
+              </div>
               <el-button
                 v-if="shouldShowRenewButton"
                 type="primary"
@@ -206,20 +170,22 @@
                 </el-tag>
               </div>
               <div class="cookie-expire-setting">
-                <el-input-number
-                  v-model="form.cookieExpireDays"
-                  :min="form.cookieValidationFailed ? -1 : 1"
-                  :max="30"
-                  size="small"
-                  class="expire-days-input"
-                />
-                <span class="expire-days-label">天</span>
-                <el-tooltip
-                  content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
-                  placement="top"
-                >
-                  <el-icon class="info-icon"><InfoFilled /></el-icon>
-                </el-tooltip>
+                <div class="expire-days-controls">
+                  <el-input-number
+                    v-model="form.cookieExpireDays"
+                    :min="form.cookieValidationFailed ? -1 : 1"
+                    :max="30"
+                    size="small"
+                    class="expire-days-input"
+                  />
+                  <span class="expire-days-label">天</span>
+                  <el-tooltip
+                    content="系统已自动计算Cookie的剩余有效期天数，您可以手动调整。手动修改后系统不会自动覆盖您的设置。"
+                    placement="top"
+                  >
+                    <el-icon class="info-icon"><InfoFilled /></el-icon>
+                  </el-tooltip>
+                </div>
                 <el-button
                   v-if="shouldShowRenewButton"
                   type="primary"
@@ -386,7 +352,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick, computed } from 'vue'
+import {
+  ref,
+  reactive,
+  watch,
+  nextTick,
+  computed,
+  onMounted,
+  onBeforeUnmount,
+} from 'vue'
 import {
   Lock,
   InfoFilled,
@@ -428,22 +402,6 @@ const formRef = ref(null)
 const saving = ref(false)
 const dialogVisible = ref(false)
 const showCookie = ref(false)
-
-// 添加教程相关变量
-const showTutorial = ref(false)
-const currentTutorialField = ref('')
-const tutorialSteps = {
-  name: {
-    title: '设置用户名',
-    content: '输入一个便于识别的用户名',
-    placement: 'bottom',
-  },
-  server: {
-    title: '选择服务器',
-    content: '选择您游戏所在的服务器',
-    placement: 'bottom',
-  },
-}
 
 // 国服游戏信息解析
 const parsedGameInfo = ref(null)
@@ -713,9 +671,28 @@ const parseStandardCookie = (cookieStr) => {
 const migrateOldCookieData = (userData) => {
   if (!userData.cookie) return userData
 
-  // 检查是否已经是新格式（包含expires）
-  if (userData.cookie.includes('expires=')) {
-    return userData // 已经是新格式，无需迁移
+  // 🔧 修复：更准确的新格式检查
+  // 检查是否已经是新格式（包含expires或者有有效的cookieExpireDays）
+  const hasExpires = userData.cookie.includes('expires=')
+  const hasValidExpireDays =
+    userData.cookieExpireDays && userData.cookieExpireDays > 0
+  const hasActualExpireDate = userData.cookieActualExpireDate
+
+  // 如果满足以下任一条件，认为是新格式：
+  // 1. Cookie包含expires=
+  // 2. 有有效的过期天数和过期日期
+  // 3. 已经标记为不需要更新
+  if (
+    hasExpires ||
+    (hasValidExpireDays && hasActualExpireDate) ||
+    userData.needsCookieUpdate === false
+  ) {
+    // 清除可能残留的更新标志
+    return {
+      ...userData,
+      needsCookieUpdate: false,
+      needsApiValidation: false,
+    }
   }
 
   // 老版本数据，需要迁移
@@ -769,20 +746,6 @@ const getCookieStatusText = (days) => {
   if (days > 20) return `Cookie有效期${days}天`
   if (days > 7) return `Cookie有效期${days}天`
   return `Cookie即将过期(${days}天)`
-}
-
-// 处理教程相关函数
-const handleTutorialNext = () => {
-  if (currentTutorialField.value === 'name') {
-    currentTutorialField.value = 'server'
-  } else {
-    skipTutorial()
-  }
-}
-
-const skipTutorial = () => {
-  showTutorial.value = false
-  currentTutorialField.value = ''
 }
 
 // 表单验证规则
@@ -873,7 +836,22 @@ const rules = {
 }
 
 // 检测是否为移动端
-const isMobile = computed(() => window.innerWidth <= 768)
+const screenWidth = ref(window.innerWidth)
+const isMobile = computed(() => screenWidth.value <= 768)
+
+// 更新屏幕尺寸
+const updateScreenSize = () => {
+  screenWidth.value = window.innerWidth
+}
+
+// 添加窗口尺寸监听
+onMounted(() => {
+  window.addEventListener('resize', updateScreenSize)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateScreenSize)
+})
 
 // 计算是否显示续期按钮
 const shouldShowRenewButton = computed(() => {
@@ -1394,6 +1372,18 @@ const handleRenewCookie = async () => {
       console.log('Cookie是否发生变化:', form.cookie !== result.data.newCookie)
       console.log('续期前过期天数:', form.cookieExpireDays)
       console.log('续期后过期天数:', result.data.expireDays)
+      console.log('总Cookie数量:', result.data.totalCookies)
+      console.log('包含game_token:', result.data.hasGameToken)
+
+      // 🚨 关键检查：验证是否包含game_token
+      if (!result.data.hasGameToken) {
+        console.error('❌ 续期失败：响应中未包含game_token')
+        showCustomMessage(
+          'Cookie续期失败：未获取到新的游戏令牌(game_token)，请检查Cookie是否有效',
+          'error'
+        )
+        return
+      }
 
       // 检查关键Cookie字段是否更新
       const oldTokenMatch = form.cookie?.match(/game_token=([^;]+)/)
@@ -1467,12 +1457,21 @@ const handleRenewCookie = async () => {
             cookieOriginal: form.cookie, // 原始Cookie（供显示使用）
             cookieExpireDays: result.data.expireDays,
             cookieActualExpireDate: form.cookieActualExpireDate,
+            needsCookieUpdate: false, // 🔧 清除更新标志
+            needsApiValidation: false, // 🔧 清除验证标志
           })
         }
       }
 
-      // 🎯 新的成功提示信息
+      // 🎯 改进的成功提示信息
       let successMessage = `Cookie续期成功！新的有效期：${result.data.expireDays}天`
+
+      // 添加详细的续期信息
+      successMessage += `\n📊 续期统计：获取了${result.data.totalCookies}个Cookie`
+
+      if (result.data.hasGameToken) {
+        successMessage += '\n🎮 游戏令牌(game_token)已更新'
+      }
 
       if (wasApplicationFormat) {
         successMessage +=
@@ -1487,12 +1486,20 @@ const handleRenewCookie = async () => {
         successMessage += '\n🔄 Cookie令牌已更新为最新版本'
       }
 
+      // 🔧 添加过期时间提醒
+      const expireDate = new Date(
+        Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
+      )
+      successMessage += `\n📅 新的过期时间：${expireDate.toLocaleString()}`
+
       showCustomMessage(successMessage, 'success')
 
       console.log('Cookie续期成功:', {
         renewedAt: result.data.renewedAt,
         newExpireDays: result.data.expireDays,
         newActualExpireDate: form.cookieActualExpireDate,
+        totalCookies: result.data.totalCookies,
+        hasGameToken: result.data.hasGameToken,
       })
 
       // 续期成功后重置手动修改标志，允许用户继续手动调整
@@ -1573,14 +1580,21 @@ const handleSubmit = async () => {
     if (form.server !== 'cn' && form.cookie) {
       const parseResult = parseAndStandardizeCookie(form.cookie)
       if (parseResult.isValid) {
+        // ⚙️ 更新逻辑：如果用户手动修改了剩余天数(manualExpireDaysEdit)，则优先使用用户输入的值
+        // 否则仍使用解析结果中的 expireDays。
+        const finalExpireDays = form.cookieValidationFailed
+          ? -1
+          : manualExpireDaysEdit.value
+          ? Number(form.cookieExpireDays)
+          : parseResult.expireDays
+
         cookieData = {
           cookie: parseResult.standardCookie, // 存储标准Cookie（供API使用）
           cookieOriginal: parseResult.originalCookie, // 存储原始Cookie（供显示使用）
-          // 🔧 关键修复：如果Cookie验证失败，保持异常状态，否则使用解析结果
-          cookieExpireDays: form.cookieValidationFailed
-            ? -1
-            : parseResult.expireDays,
+          cookieExpireDays: finalExpireDays,
           cookieActualExpireDate: form.cookieValidationFailed
+            ? form.cookieActualExpireDate
+            : manualExpireDaysEdit.value
             ? form.cookieActualExpireDate
             : parseResult.expireDate,
         }
@@ -1702,6 +1716,59 @@ const handleSubmit = async () => {
 <style lang="scss">
 // 全局样式，确保在生产环境中也能正确应用
 .el-dialog {
+  // 统一所有 textarea 的字体样式（PC端和移动端通用）
+  .el-textarea {
+    width: 100% !important;
+
+    .el-textarea__inner {
+      font-size: 13px !important;
+      line-height: 1.5;
+      font-family: inherit;
+      width: 100% !important;
+    }
+  }
+
+  // 精确针对Cookie输入框的宽度设置，不影响其他元素
+  .el-form-item .el-form-item__content {
+    // 直接选中textarea元素，无论嵌套层级
+    .el-textarea {
+      width: 100% !important;
+      box-sizing: border-box !important;
+
+      .el-textarea__inner {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        resize: vertical !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+      }
+    }
+  }
+
+  // 为添加模式下的div容器设置宽度（但不影响其他类型的div）
+  .el-form-item .el-form-item__content > div {
+    // 只有当div直接包含textarea时才设置宽度
+    &:not(.cookie-mask):not(.cookie-content):not(.cookie-info-footer):not(
+        .cn-game-info
+      ):not(.global-game-info):not(.cookie-tools) {
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+  }
+
+  // 更高权重的强制样式
+  .user-dialog
+    .el-form
+    .el-form-item
+    .el-form-item__content
+    .el-textarea
+    .el-textarea__inner {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   @media screen and (max-width: 768px) {
     &.user-dialog {
       // 确保对话框在移动端正确显示
@@ -1746,12 +1813,6 @@ const handleSubmit = async () => {
         font-size: 14px;
       }
 
-      .el-textarea {
-        .el-textarea__inner {
-          font-size: 13px !important;
-        }
-      }
-
       // 优化表单在移动端的间距
       .el-form-item {
         margin-bottom: 20px;
@@ -1773,16 +1834,6 @@ const handleSubmit = async () => {
 
             .cookie-info-footer {
               margin-top: 8px;
-            }
-          }
-        }
-
-        // 直接针对包含cookie输入框的表单项
-        &[prop='cookie'] {
-          .el-form-item__content {
-            > * {
-              width: 100%;
-              box-sizing: border-box;
             }
           }
         }
@@ -1935,51 +1986,45 @@ const handleSubmit = async () => {
 
   .cookie-info-footer {
     margin-top: 12px;
-    padding: 12px;
+    padding: 16px;
     background-color: var(--el-fill-color-light);
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid var(--el-border-color-lighter);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 360px;
+    flex-direction: column;
+    gap: 12px;
+    width: max-content;
+    max-width: 100%;
     box-sizing: border-box;
+    align-self: flex-start;
 
     @media screen and (max-width: 768px) {
-      padding: 8px 10px;
+      padding: 12px;
       margin-top: 10px;
-      flex-direction: column;
       gap: 10px;
-      align-items: stretch;
-      justify-content: flex-start;
-      width: 100%;
-      max-width: none;
       border-radius: 6px;
+      width: 100%;
+      align-self: stretch;
     }
 
     .cookie-expire-info {
       display: flex;
       align-items: center;
-
-      @media screen and (max-width: 768px) {
-        justify-content: flex-start;
-        width: 100%;
-        margin-bottom: 4px;
-      }
+      justify-content: flex-start;
 
       .cookie-days {
-        font-size: 13px;
-        padding: 0 8px;
-        height: 24px;
-        line-height: 24px;
+        font-size: 14px;
+        padding: 0 12px;
+        height: 28px;
+        line-height: 28px;
         white-space: nowrap;
+        border-radius: 4px;
 
         @media screen and (max-width: 768px) {
-          font-size: 12px;
-          height: 22px;
-          line-height: 22px;
-          padding: 0 6px;
-          white-space: nowrap;
+          font-size: 13px;
+          height: 26px;
+          line-height: 26px;
+          padding: 0 10px;
         }
       }
     }
@@ -1987,90 +2032,106 @@ const handleSubmit = async () => {
     .cookie-expire-setting {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: flex-start;
+      gap: 12px;
+      flex-wrap: nowrap;
 
       @media screen and (max-width: 768px) {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-        gap: 6px;
-        align-items: center;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
       }
 
-      .expire-days-input {
-        width: 100px;
+      .expire-days-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
 
         @media screen and (max-width: 768px) {
-          width: 100px;
-          flex-shrink: 0;
+          justify-content: center;
         }
 
-        :deep(.el-input__inner) {
+        .expire-days-input {
+          width: 90px;
+
           @media screen and (max-width: 768px) {
-            font-size: 13px;
-            height: 30px;
+            width: 100px;
+          }
+
+          :deep(.el-input__inner) {
             text-align: center;
-            padding: 0 8px;
+            font-weight: 500;
+
+            @media screen and (max-width: 768px) {
+              font-size: 14px;
+              height: 32px;
+              padding: 0 8px;
+            }
           }
         }
-      }
 
-      .expire-days-label {
-        color: var(--el-text-color-regular);
-        font-size: 13px;
-        flex-shrink: 0;
-        white-space: nowrap;
-
-        @media screen and (max-width: 768px) {
-          font-size: 12px;
-          line-height: 1.2;
+        .expire-days-label {
+          color: var(--el-text-color-regular);
+          font-size: 14px;
+          font-weight: 500;
           white-space: nowrap;
+
+          @media screen and (max-width: 768px) {
+            font-size: 13px;
+          }
         }
-      }
 
-      .info-icon {
-        color: var(--el-text-color-secondary);
-        font-size: 14px;
-        cursor: help;
-        flex-shrink: 0;
+        .info-icon {
+          color: var(--el-text-color-secondary);
+          font-size: 16px;
+          cursor: help;
+          flex-shrink: 0;
 
-        @media screen and (max-width: 768px) {
-          font-size: 13px;
+          @media screen and (max-width: 768px) {
+            font-size: 15px;
+          }
         }
       }
 
       .renew-button {
-        margin-left: 8px;
         flex-shrink: 0;
-        font-size: 12px;
-        height: 28px;
-        padding: 0 12px;
-        border-radius: 4px;
+        margin-left: 8px;
+        font-size: 13px;
+        height: 32px;
+        padding: 0 16px;
+        border-radius: 6px;
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
         transition: all 0.3s ease;
+        background-color: var(--el-color-primary);
+        border-color: var(--el-color-primary);
+        color: white;
+        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
+        white-space: nowrap;
+        font-weight: 500;
 
         @media screen and (max-width: 768px) {
-          margin-left: 0;
-          margin-top: 6px;
-          width: auto;
-          height: 26px;
-          padding: 0 10px;
-          font-size: 11px;
+          width: 100%;
+          justify-content: center;
+          height: 36px;
+          font-size: 14px;
+          padding: 0 20px;
         }
 
         .el-icon {
-          font-size: 12px;
+          font-size: 14px;
 
           @media screen and (max-width: 768px) {
-            font-size: 11px;
+            font-size: 15px;
           }
         }
 
         &:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+          background-color: var(--el-color-primary-light-2);
         }
 
         &:active {
@@ -2093,6 +2154,105 @@ const handleSubmit = async () => {
       }
       to {
         transform: rotate(360deg);
+      }
+    }
+  }
+
+  // Cookie工具栏样式
+  .cookie-tools {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background-color: var(--el-fill-color-extra-light);
+    border-radius: 6px;
+    border: 1px solid var(--el-border-color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    width: 100%;
+    box-sizing: border-box;
+
+    @media screen and (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .cookie-tools-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 1;
+      min-width: 0;
+
+      .format-info {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--el-text-color-regular);
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+
+        .el-icon {
+          font-size: 13px;
+          color: var(--el-color-info);
+          flex-shrink: 0;
+        }
+
+        @media screen and (max-width: 768px) {
+          font-size: 11px;
+        }
+      }
+
+      @media screen and (max-width: 768px) {
+        justify-content: center;
+      }
+    }
+
+    .cookie-tools-right {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+
+      @media screen and (max-width: 768px) {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+
+        .el-button {
+          flex: 1 1 45%;
+          min-width: 120px;
+          max-width: calc(50% - 8px);
+        }
+      }
+
+      .el-button {
+        font-size: 11px;
+        padding: 3px 6px;
+        height: 22px;
+        white-space: nowrap;
+        flex-shrink: 0;
+
+        .el-icon {
+          font-size: 11px;
+        }
+
+        @media screen and (max-width: 768px) {
+          height: 32px;
+          font-size: 13px;
+          padding: 6px 12px;
+
+          .el-icon {
+            font-size: 13px;
+          }
+        }
       }
     }
   }
@@ -2216,88 +2376,6 @@ const handleSubmit = async () => {
 
           @media screen and (max-width: 768px) {
             margin-left: 0;
-          }
-        }
-      }
-    }
-  }
-
-  // Cookie工具栏样式
-  .cookie-tools {
-    margin-top: 8px;
-    padding: 8px 12px;
-    background-color: var(--el-fill-color-extra-light);
-    border-radius: 6px;
-    border: 1px solid var(--el-border-color-light);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-
-    @media screen and (max-width: 768px) {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-      padding: 8px;
-    }
-
-    .cookie-tools-left {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-
-      .format-info {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        color: var(--el-text-color-regular);
-        font-size: 13px;
-
-        .el-icon {
-          font-size: 14px;
-          color: var(--el-color-info);
-        }
-
-        @media screen and (max-width: 768px) {
-          font-size: 12px;
-        }
-      }
-
-      @media screen and (max-width: 768px) {
-        justify-content: center;
-      }
-    }
-
-    .cookie-tools-right {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-
-      @media screen and (max-width: 768px) {
-        flex-direction: column;
-        gap: 6px;
-
-        .el-button {
-          width: 100%;
-        }
-      }
-
-      .el-button {
-        font-size: 12px;
-        padding: 4px 8px;
-        height: 24px;
-
-        .el-icon {
-          font-size: 12px;
-        }
-
-        @media screen and (max-width: 768px) {
-          height: 32px;
-          font-size: 13px;
-          padding: 6px 12px;
-
-          .el-icon {
-            font-size: 13px;
           }
         }
       }
@@ -2449,6 +2527,19 @@ const handleSubmit = async () => {
         gap: 10px;
       }
     }
+  }
+}
+
+.renew-button {
+  margin-left: 10px;
+  vertical-align: middle;
+  height: 32px; // 与输入框对齐
+  border-radius: 4px;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
   }
 }
 </style>

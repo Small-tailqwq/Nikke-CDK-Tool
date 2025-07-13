@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { userStorage, tutorialStorage } from '../utils/storage'
+import { userStorage } from '../utils/storage'
 
 import { autoRenewUserCookie, shouldRenewCookie, getGlobalUserCompleteInfo } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
@@ -9,7 +9,6 @@ export const useUserStore = defineStore('user', () => {
   // 状态
   const users = ref(userStorage.loadUsers())
   const loading = ref(false)
-  const hasTutorialShown = ref(tutorialStorage.loadTutorialShown())
 
 
 
@@ -31,35 +30,40 @@ export const useUserStore = defineStore('user', () => {
       // 🔧 兼容性处理：检查并迁移老版本数据
       let hasUpdates = false
       loadedUsers = loadedUsers.map(user => {
-        if (user.server !== 'cn' && user.cookie && !user.cookie.includes('expires=')) {
-          // 检测到老版本Cookie数据，需要迁移
-          console.log(`迁移用户${user.name}的Cookie数据...`)
-
-          // 设置expires为当前时间（标记为已过期，需要用户重新设置）
-          const expireDate = new Date() // 当前时间，表示已过期
-          const expireStr = expireDate.toUTCString()
-
-          const migratedUser = {
-            ...user,
-            cookie: `${user.cookie}; expires=${expireStr}`, // 添加expires
-            cookieOriginal: user.cookie, // 保存原始Cookie用于显示
-            cookieExpireDays: 0, // 标记为过期
-            cookieActualExpireDate: expireDate.toISOString(),
-            needsCookieUpdate: true // 标记需要更新Cookie
+        // 优先判断cookieActualExpireDate字段
+        if (user.server !== 'cn' && user.cookie) {
+          if (user.cookieActualExpireDate) {
+            const expireDate = new Date(user.cookieActualExpireDate)
+            const now = new Date()
+            if (expireDate > now) {
+              // Cookie有效，跳过迁移
+              return user
+            }
           }
-
-          hasUpdates = true
-          return migratedUser
+          // 只有没有cookieActualExpireDate或已过期，且cookie不含expires=时才迁移
+          if (!user.cookieActualExpireDate && !user.cookie.includes('expires=')) {
+            console.log(`迁移用户${user.name}的Cookie数据...`)
+            const expireDate = new Date()
+            const expireStr = expireDate.toUTCString()
+            const migratedUser = {
+              ...user,
+              cookie: `${user.cookie}; expires=${expireStr}`,
+              cookieOriginal: user.cookie,
+              cookieExpireDays: 0,
+              cookieActualExpireDate: expireDate.toISOString(),
+              needsCookieUpdate: true
+            }
+            hasUpdates = true
+            return migratedUser
+          }
         }
-
         // 对于新版本数据，确保有cookieOriginal字段
         if (user.server !== 'cn' && user.cookie && !user.cookieOriginal) {
           return {
             ...user,
-            cookieOriginal: user.cookie // 如果没有原始Cookie，使用当前Cookie
+            cookieOriginal: user.cookie
           }
         }
-
         return user
       })
 
@@ -155,17 +159,6 @@ export const useUserStore = defineStore('user', () => {
       console.log(`getUserById: 未找到ID为${idStr}的用户`);
       return null;
     }
-  }
-
-  // 设置教程显示状态
-  const setTutorialShown = (shown) => {
-    hasTutorialShown.value = shown
-    tutorialStorage.saveTutorialShown(shown)
-  }
-
-  // 获取教程显示状态
-  const getTutorialShown = () => {
-    return hasTutorialShown.value
   }
 
   // Cookie状态检测相关状态
@@ -433,6 +426,13 @@ export const useUserStore = defineStore('user', () => {
           const result = await autoRenewUserCookie(user)
 
           if (result.success) {
+            // 🚨 检查是否包含关键的game_token
+            if (!result.data.hasGameToken) {
+              console.error(`❌ [UserStore] 用户 ${user.name} 自动续期失败：响应中未包含game_token`)
+              failedCount++
+              continue
+            }
+
             // 计算新的实际过期日期
             const newExpireDate = new Date(Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000)
 
@@ -440,11 +440,13 @@ export const useUserStore = defineStore('user', () => {
             await updateUser(user.id, {
               cookie: result.data.newCookie,
               cookieExpireDays: result.data.expireDays,
-              cookieActualExpireDate: newExpireDate.toISOString()
+              cookieActualExpireDate: newExpireDate.toISOString(),
+              needsCookieUpdate: false, // 🔧 清除更新标志
+              needsApiValidation: false, // 🔧 清除验证标志
             })
 
             renewedCount++
-            console.log(`[UserStore] 用户 ${user.name} Cookie自动续期成功，新有效期：${result.data.expireDays}天，过期日期：${newExpireDate.toISOString()}`)
+            console.log(`[UserStore] 用户 ${user.name} Cookie自动续期成功，新有效期：${result.data.expireDays}天，获取了${result.data.totalCookies}个Cookie，过期日期：${newExpireDate.toISOString()}`)
           } else {
             failedCount++
             console.warn(`[UserStore] 用户 ${user.name} Cookie自动续期失败:`, result.message)
@@ -477,7 +479,7 @@ export const useUserStore = defineStore('user', () => {
     // 状态
     users,
     loading,
-    hasTutorialShown,
+    // hasTutorialShown, // This line is removed
     cookieWarnings,
     dailyCheckStatus,
 
@@ -495,8 +497,6 @@ export const useUserStore = defineStore('user', () => {
     updateUser,
     deleteUser,
     getUserById,
-    setTutorialShown,
-    getTutorialShown,
 
 
 

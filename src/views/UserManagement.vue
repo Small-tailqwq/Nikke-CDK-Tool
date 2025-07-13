@@ -5,6 +5,24 @@
         <div class="card-header">
           <span>用户管理</span>
           <div class="header-actions">
+            <el-dropdown trigger="click" class="column-selector">
+              <el-button type="info" size="small" circle>
+                <el-icon><View /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item
+                    v-for="(col, index) in visibleColumns"
+                    :key="index"
+                  >
+                    <el-checkbox v-model="col.visible" :label="col.label" />
+                  </el-dropdown-item>
+                  <el-dropdown-item divided>
+                    <el-button text @click="resetColumns">重置</el-button>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
             <el-button
               type="success"
               size="small"
@@ -27,9 +45,35 @@
         v-loading="userStore.loading"
         class="user-table"
       >
-        <el-table-column prop="name" label="用户名" min-width="120" />
-        <el-table-column prop="uid" label="UID" min-width="180" />
-        <el-table-column label="服务器" min-width="160">
+        <el-table-column
+          v-if="getColumnVisible('name')"
+          prop="name"
+          label="用户名"
+          min-width="100"
+        >
+          <template #default="{ row }">
+            <el-tooltip :content="row.name" placement="top">
+              <span class="ellipsis">{{ row.name }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="getColumnVisible('uid')"
+          prop="uid"
+          label="UID"
+          min-width="120"
+        >
+          <template #default="{ row }">
+            <el-tooltip :content="row.uid" placement="top">
+              <span class="ellipsis">{{ row.uid }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="getColumnVisible('server')"
+          label="服务器"
+          min-width="140"
+        >
           <template #default="{ row }">
             <div class="server-display">
               <el-tag
@@ -45,8 +89,9 @@
           </template>
         </el-table-column>
         <el-table-column
+          v-if="getColumnVisible('playerInfo') && !isMobile"
           label="角色信息"
-          min-width="160"
+          min-width="140"
           class-name="hide-on-mobile"
         >
           <template #default="{ row }">
@@ -81,12 +126,24 @@
           </template>
         </el-table-column>
         <el-table-column
+          v-if="getColumnVisible('createTime') && !isMobile"
           prop="createTime"
           label="添加时间"
-          min-width="180"
+          min-width="120"
           class-name="hide-on-mobile"
-        />
-        <el-table-column label="Cookie状态" min-width="200">
+        >
+          <template #default="{ row }">
+            <el-tooltip :content="row.createTime" placement="top">
+              <span>{{ formatDate(row.createTime) }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="getColumnVisible('cookieStatus')"
+          label="Cookie状态"
+          min-width="140"
+          align="center"
+        >
           <template #default="{ row }">
             <div class="cookie-status-display">
               <el-tag v-if="row.server === 'cn'" type="info">
@@ -111,40 +168,57 @@
                     <WarningFilled />
                   </el-icon>
                 </el-tooltip>
-                <el-button
-                  v-if="shouldShowRenewButton(row)"
-                  size="small"
-                  type="primary"
-                  plain
-                  @click="handleRenewUserCookie(row)"
-                  :loading="getRenewLoading(row.id)"
-                  class="renew-btn"
-                >
-                  续期
-                </el-button>
               </template>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column
+          :width="getActionColumnWidth"
+          :fixed="false"
+          label="操作"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-button-group>
-              <el-button size="small" type="primary" @click="handleEdit(row)">
-                编辑
-              </el-button>
-              <el-button
-                v-if="row.server !== 'cn'"
-                size="small"
-                type="success"
-                @click="handleSyncHistory(row)"
-                :loading="syncLoading"
+            <div class="action-buttons">
+              <!-- 第一行：编辑 删除 -->
+              <div class="button-row">
+                <el-button size="small" type="primary" @click="handleEdit(row)">
+                  {{ isCompactScreen ? '编' : '编辑' }}
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  @click="handleDelete(row)"
+                >
+                  {{ isCompactScreen ? '删' : '删除' }}
+                </el-button>
+              </div>
+
+              <!-- 第二行：续期 同步 -->
+              <div
+                class="button-row"
+                v-if="shouldShowRenewButton(row) || row.server !== 'cn'"
               >
-                同步历史
-              </el-button>
-              <el-button size="small" type="danger" @click="handleDelete(row)">
-                删除
-              </el-button>
-            </el-button-group>
+                <el-button
+                  v-if="shouldShowRenewButton(row)"
+                  size="small"
+                  type="warning"
+                  @click="handleRenewUserCookie(row)"
+                  :loading="getRenewLoading(row.id)"
+                >
+                  {{ isCompactScreen ? '续' : '续期' }}
+                </el-button>
+                <el-button
+                  v-if="row.server !== 'cn'"
+                  size="small"
+                  type="success"
+                  @click="handleSyncHistory(row)"
+                  :loading="syncLoading"
+                >
+                  {{ isCompactScreen ? '同' : '同步' }}
+                </el-button>
+              </div>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -191,6 +265,7 @@ import {
   shouldRenewCookie,
   autoRenewUserCookie,
 } from '../utils/api'
+import { View } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -207,13 +282,54 @@ const syncLoading = ref(false)
 const renewLoadingMap = ref(new Map()) // 记录每个用户的续期状态
 const batchRenewLoading = ref(false)
 
-// 检测是否为移动端
-const isMobile = computed(() => window.innerWidth <= 768)
+// 列可见性状态
+const visibleColumns = ref([
+  { key: 'name', label: '用户名', visible: true },
+  { key: 'uid', label: 'UID', visible: true },
+  { key: 'server', label: '服务器', visible: true },
+  { key: 'playerInfo', label: '角色信息', visible: true },
+  { key: 'createTime', label: '添加时间', visible: true },
+  { key: 'cookieStatus', label: 'Cookie状态', visible: true },
+])
+const getColumnVisible = (key) =>
+  visibleColumns.value.find((c) => c.key === key)?.visible || false
+const resetColumns = () => {
+  visibleColumns.value.forEach((col) => (col.visible = true))
+}
+const formatDate = (date) => {
+  return new Date(date).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+}
+
+const screenWidth = ref(window.innerWidth)
+const isMobile = computed(() => screenWidth.value <= 768)
+const isSmallScreen = computed(() => screenWidth.value <= 1200)
+const isMediumScreen = computed(() => screenWidth.value <= 1024)
+const isCompactScreen = computed(() => screenWidth.value <= 900)
+
+// 动态计算操作列宽度
+const getActionColumnWidth = computed(() => {
+  if (screenWidth.value <= 600) return 140 // 极小屏幕
+  if (isMobile.value) return 160
+  if (isCompactScreen.value) return 180
+  if (isMediumScreen.value) return 200
+  return 220
+})
+
+const updateScreenSize = () => {
+  screenWidth.value = window.innerWidth
+}
 
 // 计算是否有需要续期的用户
 const hasRenewableUsers = computed(() => {
   return userStore.users.some((user) => shouldShowRenewButton(user))
 })
+
+// 确保在模板中可以访问这些响应式变量
+// isCompactScreen, isMediumScreen, getActionColumnWidth 已通过 computed 定义，会自动可用
 
 // 国际服区域映射表（英文 -> 中文）
 const regionMapping = {
@@ -285,11 +401,10 @@ const shouldShowRenewButton = (user) => {
   if (user.server === 'cn' || !user.cookie) {
     return false
   }
-  // 异常状态的Cookie不显示续期按钮，需要重新设置
   if (user.cookieExpireDays === -1) {
     return false
   }
-  return shouldRenewCookie(user.cookieExpireDays, 7)
+  return user.cookieExpireDays < 30
 }
 
 // 获取用户续期加载状态
@@ -318,25 +433,38 @@ const handleRenewUserCookie = async (user) => {
     const result = await renewGlobalCookie(user.cookie)
 
     if (result.success) {
+      // 🚨 检查是否包含关键的game_token
+      if (!result.data.hasGameToken) {
+        console.error(`❌ 用户 ${user.name} 续期失败：响应中未包含game_token`)
+        showCustomMessage(
+          `用户 ${user.name} Cookie续期失败：未获取到新的游戏令牌(game_token)`,
+          'error'
+        )
+        return
+      }
+
       // 更新用户数据
       const updateData = {
-        cookie: result.data.newCookie,
+        cookie: result.data.newCookie, // 只存name=value
+        cookieOriginal: result.data.newCookie,
         cookieExpireDays: result.data.expireDays,
-        cookieActualExpireDate: new Date(
-          Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
-        ).toISOString(),
+        cookieActualExpireDate: result.data.expireAt, // 用expireAt字段
+        needsCookieUpdate: false, // 🔧 清除更新标志
+        needsApiValidation: false, // 🔧 清除验证标志
       }
 
       await userStore.updateUser(user.id, updateData)
 
       showCustomMessage(
-        `用户 ${user.name} Cookie续期成功！新的有效期：${result.data.expireDays}天`,
+        `用户 ${user.name} Cookie续期成功！新的有效期：${result.data.expireDays}天\n📊 获取了${result.data.totalCookies}个Cookie\n🎮 游戏令牌已更新`,
         'success'
       )
 
       console.log(`用户 ${user.name} Cookie续期成功:`, {
         renewedAt: result.data.renewedAt,
         newExpireDays: result.data.expireDays,
+        totalCookies: result.data.totalCookies,
+        hasGameToken: result.data.hasGameToken,
       })
     } else {
       showCustomMessage(
@@ -369,7 +497,7 @@ const handleBatchRenewCookies = async () => {
   // 确认对话框
   try {
     await ElMessageBox.confirm(
-      `检测到 ${renewableUsers.length} 个用户的Cookie需要续期，是否继续？`,
+      `检测到 ${renewableUsers.length} 个用户的Cookie可以续期，是否继续？`,
       '批量续期确认',
       {
         confirmButtonText: '确定续期',
@@ -410,28 +538,44 @@ const handleBatchRenewCookies = async () => {
         const result = await autoRenewUserCookie(user)
 
         if (result.success) {
-          successCount++
+          // 🚨 检查是否包含关键的game_token
+          if (!result.data.hasGameToken) {
+            console.error(
+              `❌ 批量续期: 用户 ${user.name} 失败：响应中未包含game_token`
+            )
+            failCount++
+            results.push({
+              user: user.name,
+              success: false,
+              message: '未获取到游戏令牌(game_token)',
+            })
+          } else {
+            successCount++
 
-          // 更新用户数据
-          const updateData = {
-            cookie: result.data.newCookie,
-            cookieExpireDays: result.data.expireDays,
-            cookieActualExpireDate: new Date(
-              Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000
-            ).toISOString(),
+            // 更新用户数据
+            const updateData = {
+              cookie: result.data.newCookie, // 只存name=value
+              cookieOriginal: result.data.newCookie,
+              cookieExpireDays: result.data.expireDays,
+              cookieActualExpireDate: result.data.expireAt, // 用expireAt字段
+              needsCookieUpdate: false, // 🔧 清除更新标志
+              needsApiValidation: false, // 🔧 清除验证标志
+            }
+
+            await userStore.updateUser(user.id, updateData)
+
+            results.push({
+              user: user.name,
+              success: true,
+              expireDays: result.data.expireDays,
+              totalCookies: result.data.totalCookies,
+              hasGameToken: result.data.hasGameToken,
+            })
+
+            console.log(
+              `批量续期: 用户 ${user.name} 成功，新过期天数: ${result.data.expireDays}，获取了${result.data.totalCookies}个Cookie`
+            )
           }
-
-          await userStore.updateUser(user.id, updateData)
-
-          results.push({
-            user: user.name,
-            success: true,
-            expireDays: result.data.expireDays,
-          })
-
-          console.log(
-            `批量续期: 用户 ${user.name} 成功，新过期天数: ${result.data.expireDays}`
-          )
         } else {
           failCount++
           results.push({
@@ -740,6 +884,7 @@ const handleEditUserEvent = (event) => {
 onMounted(async () => {
   await userStore.fetchUsers()
 
+  window.addEventListener('resize', updateScreenSize)
   // 🔧 检查是否有需要验证的Cookie状态异常用户
   const usersWithInvalidCookies = userStore.users.filter(
     (user) => user.server !== 'cn' && user.cookieExpireDays === -1
@@ -758,6 +903,7 @@ onMounted(async () => {
 // 清理事件监听器
 onBeforeUnmount(() => {
   window.removeEventListener('editUser', handleEditUserEvent)
+  window.removeEventListener('resize', updateScreenSize)
 })
 </script>
 
@@ -832,30 +978,90 @@ onBeforeUnmount(() => {
   .cookie-status-display {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 6px; // 减小间隙使更紧凑
+    flex-wrap: nowrap; // 防止换行
+    justify-content: center;
+  }
 
-    .renew-btn {
-      font-size: 11px;
-      padding: 0 8px;
-      height: 24px;
-      border-radius: 4px;
-      transition: all 0.3s ease;
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+    align-items: center;
 
-      @media screen and (max-width: 768px) {
-        font-size: 10px;
-        padding: 0 6px;
-        height: 22px;
-        margin-top: 2px;
+    .button-row {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .el-button {
+      margin: 0; // 移除默认边距
+      border-radius: 4px; // 确保所有按钮都有圆角
+      flex-shrink: 0; // 防止按钮被压缩
+    }
+
+    // 紧凑屏幕优化 (900px以下)
+    @media screen and (max-width: 900px) {
+      gap: 4px;
+
+      .button-row {
+        gap: 4px;
       }
 
-      &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+      .el-button {
+        font-size: 12px;
+        padding: 4px 6px;
+        height: auto;
+        min-height: 24px;
+      }
+    }
+
+    // 中等屏幕优化 (1024px以下)
+    @media screen and (max-width: 1024px) and (min-width: 901px) {
+      gap: 5px;
+
+      .button-row {
+        gap: 5px;
       }
 
-      &:active {
-        transform: translateY(0);
+      .el-button {
+        font-size: 12px;
+        padding: 5px 7px;
+      }
+    }
+
+    // 移动端优化
+    @media screen and (max-width: 768px) {
+      gap: 3px;
+
+      .button-row {
+        gap: 3px;
+      }
+
+      .el-button {
+        font-size: 12px;
+        padding: 3px 5px;
+        height: auto;
+        min-height: 22px;
+      }
+    }
+
+    // 极小屏幕优化 (600px以下)
+    @media screen and (max-width: 600px) {
+      gap: 2px;
+
+      .button-row {
+        gap: 2px;
+      }
+
+      .el-button {
+        font-size: 11px;
+        padding: 2px 4px;
+        min-height: 20px;
+        line-height: 1.2;
       }
     }
   }
@@ -899,16 +1105,6 @@ onBeforeUnmount(() => {
           font-size: 13px;
         }
 
-        .el-button-group {
-          display: flex;
-          gap: 4px;
-          flex-wrap: wrap;
-
-          .el-button {
-            margin-bottom: 4px;
-          }
-        }
-
         .el-tag {
           font-size: 12px;
           padding: 0 4px;
@@ -940,5 +1136,17 @@ onBeforeUnmount(() => {
       }
     }
   }
+}
+.column-selector {
+  margin-right: 8px;
+}
+.ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-table {
+  width: 100%;
 }
 </style>

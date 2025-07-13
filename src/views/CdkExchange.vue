@@ -174,18 +174,45 @@
         :data="exchangeStore.recentHistory"
         stripe
         v-loading="exchangeStore.loading"
+        :fit="true"
+        class="history-table"
       >
-        <el-table-column prop="date" label="兑换时间" width="180" />
-        <el-table-column prop="userName" label="用户" />
-        <el-table-column prop="cdk" label="CDK" width="180" />
-        <el-table-column label="状态" width="100">
+        <!-- 兑换时间 （不换行，自动宽度） -->
+        <el-table-column
+          prop="date"
+          label="兑换时间"
+          min-width="170"
+          show-overflow-tooltip
+          class-name="nowrap-column"
+        />
+
+        <!-- 用户 -->
+        <el-table-column prop="userName" label="用户" min-width="80" />
+
+        <!-- CDK（较长，使用tooltip省略显示） -->
+        <el-table-column
+          prop="cdk"
+          label="CDK"
+          min-width="180"
+          show-overflow-tooltip
+        />
+
+        <!-- 状态 -->
+        <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.success ? 'success' : 'danger'">
+            <el-tag :type="row.success ? 'success' : 'danger'" effect="light">
               {{ row.success ? '成功' : '失败' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="结果" />
+
+        <!-- 结果（动态宽度，过长时省略） -->
+        <el-table-column
+          prop="message"
+          label="结果"
+          min-width="220"
+          show-overflow-tooltip
+        />
       </el-table>
     </el-card>
 
@@ -1447,6 +1474,15 @@ onMounted(() => {
       flex-direction: column;
       align-items: flex-start;
       gap: 8px;
+    }
+  }
+
+  .history-table {
+    // 防止 nowrap-column 单元格换行
+    .nowrap-column {
+      .cell {
+        white-space: nowrap;
+      }
     }
   }
 }

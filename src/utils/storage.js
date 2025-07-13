@@ -2,7 +2,6 @@
 const STORAGE_KEYS = {
   USERS: 'nikke_cdk_users',
   HISTORY: 'nikke_cdk_history',
-  TUTORIAL: 'nikke_cdk_tutorial'
 }
 
 // 简单AES加密（CryptoJS）
@@ -123,38 +122,6 @@ export const userStorage = {
       return userStorage.saveUsers(newUsers)
     } catch (error) {
       console.error('删除用户失败:', error)
-      return false
-    }
-  }
-}
-
-// 新增：教程状态操作
-export const tutorialStorage = {
-  // 保存教程状态
-  saveTutorialShown: (shown) => {
-    try {
-      const encryptedData = encrypt({ shown })
-      if (!encryptedData) {
-        console.error('加密教程状态失败')
-        return false
-      }
-      localStorage.setItem(STORAGE_KEYS.TUTORIAL, encryptedData)
-      return true
-    } catch (error) {
-      console.error('保存教程状态失败:', error)
-      return false
-    }
-  },
-
-  // 读取教程状态
-  loadTutorialShown: () => {
-    try {
-      const data = localStorage.getItem(STORAGE_KEYS.TUTORIAL)
-      if (!data) return false
-      const decryptedData = decrypt(data)
-      return decryptedData?.shown || false
-    } catch (error) {
-      console.error('读取教程状态失败:', error)
       return false
     }
   }

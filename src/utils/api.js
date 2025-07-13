@@ -623,11 +623,19 @@ export const renewGlobalCookie = async (cookie) => {
       game_channelid: parseInt(params.game_channelid),
       game_token: params.game_token,
       game_id: params.game_gameid || "29080", // NIKKE Global默认值
-      game_expire_time: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 当前时间+30天
+      game_expire_time: Math.floor(Date.now() / 1000) + (29 * 24 * 60 * 60), // 🔧 改为29天，避免时间偏差
       game_uid: params.game_uid,
       game_user_name: params.game_user_name,
       game_adult_status: parseInt(params.game_adult_status || "1")
     }
+
+    console.log('🔄 发送Cookie续期请求:', {
+      game_openid: params.game_openid,
+      game_channelid: params.game_channelid,
+      game_token: params.game_token.substring(0, 20) + '...',
+      game_expire_time: requestBody.game_expire_time,
+      expireDate: new Date(requestBody.game_expire_time * 1000).toISOString()
+    })
 
     // 通过Cloudflare Worker发送续期请求
     const response = await api.post('/global/cookie-renewal', {
@@ -641,6 +649,18 @@ export const renewGlobalCookie = async (cookie) => {
     if (!result.success) {
       throw new Error(result.message || '续期失败')
     }
+
+    // 验证是否包含关键的game_token
+    if (!result.data.hasGameToken) {
+      console.warn('⚠️ 续期响应中未包含game_token，可能续期不完整')
+    }
+
+    console.log('✅ Cookie续期成功:', {
+      totalCookies: result.data.totalCookies,
+      hasGameToken: result.data.hasGameToken,
+      expireDays: result.data.expireDays,
+      renewedAt: result.data.renewedAt
+    })
 
     return result
 

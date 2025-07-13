@@ -84,6 +84,7 @@
         @row-click="handleRowClick"
       >
         <el-table-column
+          v-if="!isMobile"
           prop="date"
           label="兑换时间"
           min-width="180"
@@ -104,6 +105,7 @@
         <el-table-column prop="userName" label="用户" min-width="120" />
         <el-table-column prop="cdk" label="CDK码" min-width="200" />
         <el-table-column
+          v-if="!isMobile"
           label="服务器"
           min-width="100"
           class-name="hide-on-mobile"
@@ -118,7 +120,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" min-width="80" fixed="right">
+        <el-table-column
+          label="状态"
+          min-width="80"
+          :fixed="isMobile ? false : 'right'"
+        >
           <template #default="{ row }">
             <div class="status-column">
               <el-tag :type="row.success ? 'success' : 'danger'" size="small">
