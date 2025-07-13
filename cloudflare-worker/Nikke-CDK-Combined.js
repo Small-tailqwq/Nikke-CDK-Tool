@@ -169,6 +169,11 @@ async function handleCookieRenewal(request) {
         const [key, value] = cookiePair.split('=')
         if (key && value) {
           cookiePairs.push(`${key}=${value}`)
+
+          // 检查是否包含关键的game_token
+          if (key.trim() === 'game_token') {
+            hasGameToken = true
+          }
         }
       }
 
