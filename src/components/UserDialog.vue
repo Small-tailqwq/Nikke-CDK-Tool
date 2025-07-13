@@ -188,10 +188,6 @@
               <span class="info-label">角色ID:</span>
               <span class="info-value">{{ parsedGameInfo.role_id }}</span>
             </div>
-            <div class="info-row">
-              <span class="info-label">Cookie状态:</span>
-              <el-tag type="info" size="small"> 国服不适用 </el-tag>
-            </div>
           </div>
         </div>
       </el-form-item>
@@ -233,15 +229,6 @@
               <span class="info-value">{{
                 parsedGlobalInfo.team_combat?.toLocaleString()
               }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Cookie状态:</span>
-              <el-tag
-                :type="getCookieStatusType(form.cookieExpireDays)"
-                size="small"
-              >
-                {{ getCookieStatusText(form.cookieExpireDays) }}
-              </el-tag>
             </div>
           </div>
           <div class="loading-placeholder" v-else-if="globalInfoLoading">
@@ -351,8 +338,6 @@ const form = reactive({
   name: '',
   server: 'global',
   cookie: '',
-  cookieExpireDays: 0, // 将由Cookie解析函数自动计算
-  cookieActualExpireDate: null, // 新增：真正的cookie过期日期
   uid: '',
   gameUrl: '',
 })
@@ -651,22 +636,6 @@ game_token=abc123; game_uid=123456; expires=Wed, 21 Oct 2025 07:28:00 GMT
 注意：Cookie最大有效期为30天，您可以手动调整过期天数，也可以随时点击续期按钮将Cookie续期至30天`
 })
 
-// 获取Cookie状态对应的标签类型
-const getCookieStatusType = (days) => {
-  if (days === -1) return 'danger' // 过期时间异常
-  if (days > 20) return 'success'
-  if (days > 7) return 'warning'
-  return 'danger'
-}
-
-// 获取更友好的Cookie状态文本
-const getCookieStatusText = (days) => {
-  if (days === -1) return 'Cookie过期时间异常'
-  if (days > 20) return `Cookie有效期${days}天`
-  if (days > 7) return `Cookie有效期${days}天`
-  return `Cookie即将过期(${days}天)`
-}
-
 // 表单验证规则
 const rules = {
   name: [
@@ -860,8 +829,6 @@ watch(
             name: migratedData.name,
             server: migratedData.server,
             cookie: migratedData.cookieOriginal || migratedData.cookie, // 显示原始Cookie格式
-            cookieExpireDays: migratedData.cookieExpireDays || 0,
-            cookieActualExpireDate: migratedData.cookieActualExpireDate || null,
             uid: migratedData.uid,
             gameUrl: migratedData.gameUrl,
           })
@@ -924,8 +891,6 @@ watch(
       parsedGameInfo.value = null
       parsedGlobalInfo.value = null
       manualExpireDaysEdit.value = false // 重置手动修改标志
-      form.cookieValidationFailed = false // 重置Cookie验证失败标志
-      clearTimeout(window.globalCookieParseTimer)
     }
   }
 )
@@ -948,9 +913,6 @@ const resetForm = () => {
     name: '',
     server: 'global',
     cookie: '',
-    cookieExpireDays: 0, // 将由Cookie解析函数自动计算
-    cookieActualExpireDate: null, // 新增：真正的cookie过期日期
-    cookieValidationFailed: false, // 新增：Cookie验证失败标志
     uid: '',
     gameUrl: '',
   })
@@ -1098,7 +1060,6 @@ const handleGlobalCookieParse = async () => {
           console.warn('检测到Cookie认证失败，设置状态为异常')
           window.isUpdatingExpireDays = true
           form.cookieExpireDays = -1
-          form.cookieValidationFailed = true
           nextTick(() => {
             window.isUpdatingExpireDays = false
           })
@@ -1168,7 +1129,7 @@ const convertCookieFormat = () => {
       form.cookieActualExpireDate = parseResult.expireDate
 
       // 重置验证失效标志
-      form.cookieValidationFailed = false
+      // form.cookieValidationFailed = false // 删除
 
       showCustomMessage(
         `转换成功！Cookie格式已标准化，有效期：${parseResult.expireDays}天`,
@@ -1225,7 +1186,7 @@ const validateCookieManually = async () => {
       form.cookieActualExpireDate = parseResult.expireDate
 
       // 重置验证失效标志
-      form.cookieValidationFailed = false
+      // form.cookieValidationFailed = false // 删除
 
       // 自动填充信息
       if (!form.name && result.data.role_name) {
@@ -1754,134 +1715,6 @@ const handleSubmit = async () => {
         }
       }
     }
-
-    .cookie-expire-setting {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      gap: 12px;
-      flex-wrap: nowrap;
-
-      @media screen and (max-width: 768px) {
-        flex-direction: column;
-        gap: 10px;
-        align-items: stretch;
-      }
-
-      .expire-days-controls {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-shrink: 0;
-
-        @media screen and (max-width: 768px) {
-          justify-content: center;
-        }
-
-        .expire-days-input {
-          width: 90px;
-
-          @media screen and (max-width: 768px) {
-            width: 100px;
-          }
-
-          :deep(.el-input__inner) {
-            text-align: center;
-            font-weight: 500;
-
-            @media screen and (max-width: 768px) {
-              font-size: 14px;
-              height: 32px;
-              padding: 0 8px;
-            }
-          }
-        }
-
-        .expire-days-label {
-          color: var(--el-text-color-regular);
-          font-size: 14px;
-          font-weight: 500;
-          white-space: nowrap;
-
-          @media screen and (max-width: 768px) {
-            font-size: 13px;
-          }
-        }
-
-        .info-icon {
-          color: var(--el-text-color-secondary);
-          font-size: 16px;
-          cursor: help;
-          flex-shrink: 0;
-
-          @media screen and (max-width: 768px) {
-            font-size: 15px;
-          }
-        }
-      }
-
-      .renew-button {
-        flex-shrink: 0;
-        margin-left: 8px;
-        font-size: 13px;
-        height: 32px;
-        padding: 0 16px;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        transition: all 0.3s ease;
-        background-color: var(--el-color-primary);
-        border-color: var(--el-color-primary);
-        color: white;
-        box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
-        white-space: nowrap;
-        font-weight: 500;
-
-        @media screen and (max-width: 768px) {
-          width: 100%;
-          justify-content: center;
-          height: 36px;
-          font-size: 14px;
-          padding: 0 20px;
-        }
-
-        .el-icon {
-          font-size: 14px;
-
-          @media screen and (max-width: 768px) {
-            font-size: 15px;
-          }
-        }
-
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
-          background-color: var(--el-color-primary-light-2);
-        }
-
-        &:active {
-          transform: translateY(0);
-        }
-
-        &.is-loading {
-          cursor: not-allowed;
-
-          .el-icon {
-            animation: rotate 1s linear infinite;
-          }
-        }
-      }
-    }
-
-    @keyframes rotate {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
   }
 
   // Cookie工具栏样式
@@ -2096,14 +1929,6 @@ const handleSubmit = async () => {
             text-align: left;
           }
         }
-
-        .el-tag {
-          margin-left: auto;
-
-          @media screen and (max-width: 768px) {
-            margin-left: 0;
-          }
-        }
       }
     }
   }
@@ -2160,14 +1985,6 @@ const handleSubmit = async () => {
           @media screen and (max-width: 768px) {
             font-size: 13px;
             text-align: left;
-          }
-        }
-
-        .el-tag {
-          margin-left: auto;
-
-          @media screen and (max-width: 768px) {
-            margin-left: 0;
           }
         }
       }
