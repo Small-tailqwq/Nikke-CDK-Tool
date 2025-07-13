@@ -108,16 +108,21 @@
                   row.playerInfo
                 "
               >
+                <!-- 角色名 -->
                 <div class="info-row">
                   <span class="info-label">角色:</span>
                   <span class="info-value">{{ row.playerInfo.role_name }}</span>
                 </div>
+                <!-- 战力 -->
                 <div class="info-row">
                   <span class="info-label">战力:</span>
                   <span class="info-value">{{
                     row.playerInfo.team_combat?.toLocaleString()
                   }}</span>
                 </div>
+              </div>
+              <div v-else-if="row.server !== 'cn'" class="no-info">
+                <span>暂无详细信息</span>
               </div>
               <div v-else class="no-info">
                 <span>暂无详细信息</span>
@@ -265,6 +270,7 @@ import {
   shouldRenewCookie,
   autoRenewUserCookie,
 } from '../utils/api'
+
 import { View } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
@@ -443,10 +449,16 @@ const handleRenewUserCookie = async (user) => {
         return
       }
 
+      // 确保Cookie中没有expires字段（过期时间信息在角色信息卡片中显示）
+      const cookieWithoutExpires = result.data.newCookie.replace(
+        /;\s*expires=[^;]+/i,
+        ''
+      )
+
       // 更新用户数据
       const updateData = {
-        cookie: result.data.newCookie, // 只存name=value
-        cookieOriginal: result.data.newCookie,
+        cookie: cookieWithoutExpires, // 纯Cookie，不包含expires字段
+        cookieOriginal: cookieWithoutExpires,
         cookieExpireDays: result.data.expireDays,
         cookieActualExpireDate: result.data.expireAt, // 用expireAt字段
         needsCookieUpdate: false, // 🔧 清除更新标志
@@ -552,10 +564,16 @@ const handleBatchRenewCookies = async () => {
           } else {
             successCount++
 
+            // 确保Cookie中没有expires字段（过期时间信息在角色信息卡片中显示）
+            const cookieWithoutExpires = result.data.newCookie.replace(
+              /;\s*expires=[^;]+/i,
+              ''
+            )
+
             // 更新用户数据
             const updateData = {
-              cookie: result.data.newCookie, // 只存name=value
-              cookieOriginal: result.data.newCookie,
+              cookie: cookieWithoutExpires, // 纯Cookie，不包含expires字段
+              cookieOriginal: cookieWithoutExpires,
               cookieExpireDays: result.data.expireDays,
               cookieActualExpireDate: result.data.expireAt, // 用expireAt字段
               needsCookieUpdate: false, // 🔧 清除更新标志

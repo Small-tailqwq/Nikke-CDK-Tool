@@ -202,6 +202,18 @@
       >
         <div class="global-game-info" v-loading="globalInfoLoading">
           <div class="info-card" v-if="parsedGlobalInfo">
+            <!-- 第一行：Cookie过期时间 -->
+            <div v-if="cookieExpireDate" class="info-row expire-time-row">
+              <span class="info-label">过期时间:</span>
+              <el-tag
+                :type="getCookieExpireTagType(cookieExpireDate)"
+                size="small"
+                class="expire-tag"
+              >
+                {{ formatCookieExpireTime(cookieExpireDate) }}
+              </el-tag>
+            </div>
+            <!-- 其他信息 -->
             <div class="info-row">
               <span class="info-label">游戏服区:</span>
               <el-tag type="primary" size="small">
@@ -284,6 +296,10 @@ import {
   shouldRenewCookie,
 } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
+import {
+  formatCookieExpireTime,
+  getCookieExpireTagType,
+} from '../utils/dateUtils'
 
 const props = defineProps({
   visible: {
@@ -315,6 +331,29 @@ const parsedGameInfo = ref(null)
 // 国际服角色信息解析
 const parsedGlobalInfo = ref(null)
 const globalInfoLoading = ref(false)
+
+// Cookie过期时间计算
+const cookieExpireDate = computed(() => {
+  if (form.server === 'cn') return null
+
+  // 如果是编辑模式，从用户数据中获取
+  if (props.isEdit && props.userId) {
+    const userData = userStore.getUserById(props.userId)
+    if (userData?.cookieActualExpireDate) {
+      return userData.cookieActualExpireDate
+    }
+  }
+
+  // 如果是新增模式，从Cookie解析结果中获取
+  if (parsedCookieInfo.value?.expireDate) {
+    return parsedCookieInfo.value.expireDate
+  }
+
+  return null
+})
+
+// 存储Cookie解析结果
+const parsedCookieInfo = ref(null)
 
 // Cookie续期功能
 const renewLoading = ref(false)
@@ -471,14 +510,11 @@ const parseApplicationCookie = (cookieStr) => {
     expireDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
     expireDate = gameTokenExpireDate
 
-    // 在标准Cookie中添加expires字段（用于内部时间判断）
-    const expireStr = gameTokenExpireDate.toUTCString()
-    standardCookie += `; expires=${expireStr}`
+    // 不再在Cookie中添加expires字段，过期时间信息将在角色信息卡片中显示
   } else {
     // 无法解析到过期时间，先设置为30天，但标记需要API验证
     expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    const expireStr = expireDate.toUTCString()
-    standardCookie += `; expires=${expireStr}`
+    // 不再在Cookie中添加expires字段，过期时间信息将在角色信息卡片中显示
 
     console.warn(
       '无法从Application Cookie中解析到game_token过期时间，设置为30天后'
@@ -525,21 +561,11 @@ const parseStandardCookie = (cookieStr) => {
   let expireDate = null
   let expireDays = 30
 
-  // 尝试从现有的expires属性中解析
+  // 🔧 注意：expires字段仅用于显示，不用于系统判断
+  // 系统判断Cookie过期时间完全依赖cookieActualExpireDate字段
+  // 这里不再尝试解析expires字段中的时间
   const expiresMatch = cookieStr.match(/expires=([^;]+)/i)
-  if (expiresMatch) {
-    try {
-      const parsedDate = new Date(expiresMatch[1].trim())
-      if (!isNaN(parsedDate.getTime()) && parsedDate > new Date()) {
-        expireDate = parsedDate
-        const now = new Date()
-        const diffTime = expireDate.getTime() - now.getTime()
-        expireDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
-      }
-    } catch (e) {
-      console.warn('解析现有expires失败:', e)
-    }
-  }
+  // expires字段存在但不解析，仅用于显示目的
 
   // 如果没有expires或解析失败，添加默认expires
   let standardCookie = cookieStr
@@ -547,18 +573,15 @@ const parseStandardCookie = (cookieStr) => {
     expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     expireDays = 30
 
-    if (!expiresMatch) {
-      // 如果没有expires字段，添加一个
-      const expireStr = expireDate.toUTCString()
-      standardCookie += `; expires=${expireStr}`
-    } else {
-      // 如果有但解析失败，替换它
-      const expireStr = expireDate.toUTCString()
-      standardCookie = standardCookie.replace(
-        /expires=([^;]+)/i,
-        `expires=${expireStr}`
-      )
+    // 移除现有的expires字段（如果有的话）
+    if (expiresMatch) {
+      standardCookie = standardCookie.replace(/;\s*expires=[^;]+/i, '')
     }
+    // 不再在Cookie中添加expires字段，过期时间信息将在角色信息卡片中显示
+  } else {
+    // 如果解析成功，移除现有的expires字段
+    standardCookie = standardCookie.replace(/;\s*expires=[^;]+/i, '')
+    // 不再在Cookie中添加expires字段，过期时间信息将在角色信息卡片中显示
   }
 
   return {
@@ -676,6 +699,8 @@ const rules = {
           window.isUpdatingExpireDays = true
           form.cookieExpireDays = parseResult.expireDays
           form.cookieActualExpireDate = parseResult.expireDate
+          // 更新Cookie解析结果，用于过期时间显示
+          parsedCookieInfo.value = parseResult
           nextTick(() => {
             window.isUpdatingExpireDays = false
           })
@@ -780,7 +805,11 @@ watch(
 
         // 设置程序更新标志，避免监听器误判为用户手动修改
         window.isUpdatingExpireDays = true
-        form.cookieExpireDays = parseCookieExpireDate(newValue)
+        const parseResult = parseAndStandardizeCookie(newValue)
+        form.cookieExpireDays = parseResult.expireDays
+        form.cookieActualExpireDate = parseResult.expireDate
+        // 更新Cookie解析结果，用于过期时间显示
+        parsedCookieInfo.value = parseResult
         nextTick(() => {
           window.isUpdatingExpireDays = false
         })
@@ -1985,6 +2014,22 @@ const handleSubmit = async () => {
           @media screen and (max-width: 768px) {
             font-size: 13px;
             text-align: left;
+          }
+        }
+
+        // 过期时间行特殊样式
+        &.expire-time-row {
+          .info-label {
+            min-width: 60px;
+          }
+
+          .expire-tag {
+            font-size: 11px;
+            padding: 0 6px;
+            height: 20px;
+            line-height: 18px;
+            border-radius: 4px;
+            font-weight: 500;
           }
         }
       }
