@@ -614,7 +614,7 @@ const openSubmitCdk = () => {
 }
 
 // 处理角色选择变化
-const handleCharacterChange = (userId: string | null) => {
+const handleCharacterChange = async (userId: string | null) => {
   if (!userId) {
     // 清空选择的CDK
     selectedCdks.value = []
@@ -641,32 +641,93 @@ const handleCharacterChange = (userId: string | null) => {
     return
   }
 
+  // 新增：每天每账号只自动同步一次
+  const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD
+  const syncKey = `cdk_auto_sync_${userId}`
+  const lastSyncDate = localStorage.getItem(syncKey)
+  if (lastSyncDate === today) {
+    // 今日已自动同步过，跳过
+    // 非国服角色，自动勾选未兑换的CDK
+    selectedCdks.value = [] // 先清空选中状态
+    filteredCdks.value.forEach((cdk) => {
+      const status = getCdkStatus(cdk)
+      const exchangeStatus = getCdkExchangeStatus(cdk)
+      if (
+        isSingleCDK(cdk) &&
+        status === '可用' &&
+        exchangeStatus === '未兑换'
+      ) {
+        selectedCdks.value.push(cdk.code)
+      } else if (
+        isCDKGroup(cdk) &&
+        (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
+        (status === '可用' || status === '部分可用')
+      ) {
+        const groupCodes = getGroupCodes(cdk)
+        const redeemed = new Set(
+          selectedUserExchangeHistory.value
+            .filter((record: any) => groupCodes.includes(record.cdk))
+            .map((record: any) => record.cdk)
+        )
+        cdk.cdks.forEach((subCdk: SingleCDK) => {
+          if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
+            selectedCdks.value.push(subCdk.code)
+          }
+        })
+      }
+    })
+    if (selectedCdks.value.length > 0) {
+      showCustomMessage(
+        `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,
+        'success'
+      )
+    }
+    return
+  }
+
+  // 未同步过，执行自动同步
+  try {
+    exchangeStore.loading = true
+    const result = await exchangeStore.syncUserHistory(user, {
+      page: 1,
+      pageSize: 20,
+    })
+    if (result.success) {
+      showCustomMessage('已同步该角色最近20条兑换记录', 'success')
+      // 自动刷新历史
+      await exchangeStore.fetchHistory()
+      // 记录本次同步日期
+      localStorage.setItem(syncKey, today)
+    } else {
+      showCustomMessage(result.message || '同步兑换历史失败', 'error')
+    }
+  } catch (error: any) {
+    showCustomMessage(
+      '同步兑换历史失败: ' + (error.message || '未知错误'),
+      'error'
+    )
+  } finally {
+    exchangeStore.loading = false
+  }
+
   // 非国服角色，自动勾选未兑换的CDK
   selectedCdks.value = [] // 先清空选中状态
-  // 获取所有可用且未兑换的CDK
   filteredCdks.value.forEach((cdk) => {
     const status = getCdkStatus(cdk)
     const exchangeStatus = getCdkExchangeStatus(cdk)
-
-    // 对单个CDK，如果可用且未兑换，则勾选
     if (isSingleCDK(cdk) && status === '可用' && exchangeStatus === '未兑换') {
       selectedCdks.value.push(cdk.code)
-    }
-    // 对CDK组合，如果整组未兑换且状态为可用或部分可用，则勾选可用的子CDK
-    else if (
+    } else if (
       isCDKGroup(cdk) &&
       (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
       (status === '可用' || status === '部分可用')
     ) {
-      // 获取组合中可用且未兑换的子CDK
       const groupCodes = getGroupCodes(cdk)
       const redeemed = new Set(
         selectedUserExchangeHistory.value
           .filter((record: any) => groupCodes.includes(record.cdk))
           .map((record: any) => record.cdk)
       )
-
-      // 只添加未兑换的CDK
       cdk.cdks.forEach((subCdk: SingleCDK) => {
         if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
           selectedCdks.value.push(subCdk.code)
@@ -674,8 +735,6 @@ const handleCharacterChange = (userId: string | null) => {
       })
     }
   })
-
-  // 如果有选中的CDK，提示用户
   if (selectedCdks.value.length > 0) {
     showCustomMessage(
       `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,

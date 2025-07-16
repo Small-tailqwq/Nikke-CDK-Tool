@@ -120,11 +120,14 @@ export const useExchangeStore = defineStore('exchange', () => {
           const shouldMerge = (isLocalRecord && isCloudRecord) || (isLocalNewRecord && isCloudOldRecord)
 
           if (shouldMerge) {
-            console.log(`融合记录: ${closestRecord.source} + ${newRecord.source} (CDK: ${newRecord.cdk})`)
+            console.log(`📋 融合记录: ${closestRecord.source} + ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
 
             // 识别云端和本地记录
             const cloudRecord = isCloudRecord ? newRecord : (isCloudOldRecord ? closestRecord : null)
             const localRecord = isLocalRecord ? closestRecord : (isLocalNewRecord ? newRecord : null)
+
+            console.log(`📋 融合详情: 云端记录=${cloudRecord ? '有' : '无'}, 本地记录=${localRecord ? '有' : '无'}`)
+            console.log(`📋 融合结果: 时间=${cloudRecord ? cloudRecord.date : localRecord.date}, 状态=${closestRecord.success || newRecord.success ? '成功' : '失败'}, 信息=${localRecord ? localRecord.message : cloudRecord.message}`)
 
             // 融合记录
             result[index] = {
@@ -155,7 +158,8 @@ export const useExchangeStore = defineStore('exchange', () => {
             processedNewRecords.add(newRecord.id)
           } else {
             // 相同来源的重复记录，跳过新记录，避免重复
-            console.log(`跳过重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk})`)
+            console.log(`⚠️ 跳过重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+            console.log(`⚠️ 跳过原因: 相同来源的记录不需要融合，避免重复`)
             processedNewRecords.add(newRecord.id)
           }
         }
@@ -221,14 +225,12 @@ export const useExchangeStore = defineStore('exchange', () => {
       }
     }
 
-    // 🔧 修复：检查Cookie有效性，如果Cookie已失效，直接返回失败
+    // 🔧 修复：检查Cookie有效性，但允许用户手动强制同步
+    // 如果Cookie显示已失效，但用户可能已经更新了Cookie，应该尝试同步
     if (user.cookieExpireDays < 0) {
-      console.log(`用户 ${user.name} 的Cookie已失效，跳过历史记录同步`)
-      return {
-        success: false,
-        message: 'Cookie已失效，无法同步历史记录。请更新Cookie后重试。',
-        count: 0
-      }
+      console.log(`用户 ${user.name} 的Cookie显示已失效，但仍尝试同步（可能Cookie已更新）`)
+      // 不直接返回失败，而是继续尝试同步
+      // 如果真的失效，API调用会失败并返回相应错误
     }
 
     loading.value = true

@@ -112,6 +112,50 @@ export const useUserStore = defineStore('user', () => {
           id: users.value[index].id,
           createTime: users.value[index].createTime
         }
+
+        // 🔧 修复：如果更新了Cookie，重新检测Cookie状态
+        if (userData.cookie && userData.cookie !== users.value[index].cookie) {
+          console.log(`用户 ${updatedUser.name} 的Cookie已更新，重新检测状态...`)
+
+          // 重置Cookie状态，让系统重新检测
+          updatedUser.cookieExpireDays = undefined
+          updatedUser.cookieActualExpireDate = undefined
+          updatedUser.needsCookieUpdate = false
+
+          // 从每日检测状态中移除，允许重新检测
+          if (dailyCheckStatus.value.checkedUserIds.includes(id)) {
+            dailyCheckStatus.value.checkedUserIds = dailyCheckStatus.value.checkedUserIds.filter(uid => uid !== id)
+          }
+          if (dailyCheckStatus.value.dismissedWarnings.includes(id)) {
+            dailyCheckStatus.value.dismissedWarnings = dailyCheckStatus.value.dismissedWarnings.filter(uid => uid !== id)
+          }
+          saveDailyCheckStatus()
+
+          // 异步检测新Cookie状态
+          setTimeout(async () => {
+            try {
+              const result = await getGlobalUserCompleteInfo(userData.cookie)
+              if (result.success) {
+                console.log(`用户 ${updatedUser.name} 的新Cookie状态正常`)
+                // 更新Cookie状态为正常
+                await updateUser(id, {
+                  cookieExpireDays: 30, // 假设新Cookie有30天有效期
+                  cookieActualExpireDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                })
+              } else {
+                console.log(`用户 ${updatedUser.name} 的新Cookie仍然无效: ${result.message}`)
+                // 保持失效状态
+                await updateUser(id, {
+                  cookieExpireDays: -1,
+                  cookieActualExpireDate: new Date().toISOString()
+                })
+              }
+            } catch (error) {
+              console.error(`检测用户 ${updatedUser.name} 新Cookie状态失败:`, error)
+            }
+          }, 100)
+        }
+
         users.value[index] = updatedUser
         if (!userStorage.saveUsers(users.value)) {
           throw new Error('保存到本地存储失败')
