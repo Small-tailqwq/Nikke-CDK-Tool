@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-10T12:22:55.228Z",
+  "lastUpdate": "2025-07-16T12:11:34.375Z",
   "cdks": [
     {
       "type": "group",
@@ -278,7 +278,7 @@
     {
       "type": "group",
       "groupId": "NIKKEsummer2025",
-      "groupName": "25年夏日活动",
+      "groupName": "25年夏日活动奖励",
       "note": "收录夏活CDK",
       "cdks": [
         {
@@ -298,7 +298,8 @@
           "name": "直播奖励",
           "reward": "高级招募卷×10",
           "servers": [
-            "global"
+            "global",
+            "tw"
           ],
           "status": "可用",
           "note": "CDK大意：如果你能抓住我，717",
@@ -307,6 +308,20 @@
         }
       ],
       "image": "/announcement-images/NIKKEsummer2025.webp"
+    },
+    {
+      "code": "NIKKECONCERT2025",
+      "name": "25年音乐会奖励",
+      "reward": "水晶×300,MELODIES OF VICTORY特别称号×1",
+      "servers": [
+        "global",
+        "cn"
+      ],
+      "status": "可用",
+      "note": "胜利的旋律*1",
+      "author": "",
+      "created": "2025-07-16",
+      "image": "/announcement-images/NIKKECONCERT2025.webp"
     }
   ]
 }
