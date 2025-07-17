@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-16T12:11:34.375Z",
+  "lastUpdate": "2025-07-17T08:02:31.870Z",
   "cdks": [
     {
       "type": "group",
@@ -278,7 +278,8 @@
           "name": "夏活开幕",
           "reward": "成长套件：1H×2",
           "servers": [
-            "global"
+            "global",
+            "tw"
           ],
           "status": "可用",
           "note": "蚊子腿",
@@ -306,7 +307,7 @@
       "reward": "水晶×300,MELODIES OF VICTORY特别称号×1",
       "servers": [
         "global",
-        "cn"
+        "tw"
       ],
       "status": "可用",
       "note": "胜利的旋律*1",
