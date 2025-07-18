@@ -410,11 +410,23 @@ const filteredCdks = computed(() => {
     }
   }
 
-  // 如果选中了角色，按兑换状态排序：未兑换 > 部分兑换 > 已兑换
-  // 否则按可用性排序：可用 > 部分可用 > 已过期
+  // 排序逻辑：优先考虑可用性，然后考虑兑换状态
   result.sort((a, b) => {
+    // 首先按可用性排序：可用 > 部分可用 > 已过期
+    const statusA = getCdkStatus(a)
+    const statusB = getCdkStatus(b)
+    const getPriority = (status: string) => {
+      if (status === '可用') return 3
+      if (status === '部分可用') return 2
+      if (status === '已过期') return 1
+      return 0
+    }
+
+    const statusDiff = getPriority(statusB) - getPriority(statusA)
+    if (statusDiff !== 0) return statusDiff
+
+    // 如果选中了角色，在相同可用性下按兑换状态排序：未兑换 > 部分兑换 > 已兑换
     if (filterForm.value.character) {
-      // 角色筛选模式：按兑换状态排序
       const exchangeStatusA = getCdkExchangeStatus(a)
       const exchangeStatusB = getCdkExchangeStatus(b)
 
@@ -430,19 +442,6 @@ const filteredCdks = computed(() => {
         getExchangePriority(exchangeStatusA)
       if (exchangeDiff !== 0) return exchangeDiff
     }
-
-    // 默认排序：按可用性
-    const statusA = getCdkStatus(a)
-    const statusB = getCdkStatus(b)
-    const getPriority = (status: string) => {
-      if (status === '可用') return 3
-      if (status === '部分可用') return 2
-      if (status === '已过期') return 1
-      return 0
-    }
-
-    const statusDiff = getPriority(statusB) - getPriority(statusA)
-    if (statusDiff !== 0) return statusDiff
 
     // 最后按创建时间排序
     const getCreated = (cdk: any) => {
