@@ -1,12 +1,12 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-18T14:54:19.122Z",
+  "lastUpdate": "2025-07-18T15:28:20.270Z",
   "cdks": [
     {
       "type": "group",
       "groupId": "STELLAR_BLADE_01",
-      "groupName": "剑星联动活动奖励",
-      "note": "国际服剑星联动期间的 CDK 集合",
+      "groupName": "Nikke X 剑星",
+      "note": "收录25年剑星联动期间的 CDK 奖励。",
       "cdks": [
         {
           "code": "NIKKESTELLARBLADE",
@@ -15,7 +15,7 @@
           "servers": [
             "global"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "剑星联动纪念SP生放送奖励CDK",
           "author": "Small-tailqwq",
           "created": "2025-06-07"
@@ -27,7 +27,7 @@
           "servers": [
             "global"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "剑星联动蚊子腿",
           "author": "Small-tailqwq",
           "created": "2025-06-12"
@@ -39,7 +39,7 @@
           "servers": [
             "global"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "剑星联动奖励",
           "author": "kelven666",
           "created": "2025-06-12"
@@ -66,15 +66,15 @@
         "global"
       ],
       "status": "已过期",
-      "note": "蚊子腿也是肉",
+      "note": "无论刮风还是下雨， 无论是特殊时刻还是日常时光， Nikedely都想向各位指挥官传递快乐讯息；来源[NIKKEデイリーニュース\n](https://x.com/nikkedailynews/status/1930429368821592066)",
       "author": "Small-tailqwq",
       "created": "2025-06-05"
     },
     {
       "type": "group",
       "groupId": "CN_OVERZONE_01",
-      "groupName": "OVER ZONE 活动奖励",
-      "note": "国服 over zone 期间的 CDK 集合",
+      "groupName": "[国服]OVER ZONE",
+      "note": "收录25年国服 over zone 期间的 CDK 奖励。",
       "cdks": [
         {
           "code": "DORO888",
@@ -117,7 +117,7 @@
     {
       "type": "group",
       "groupId": "CN_LIVE_STREAM",
-      "groupName": "国服直播 CDK 组合",
+      "groupName": "[国服]直播 CDK 组合",
       "note": "胜利女神新的希望相关直播的 CDK，官方账户[点我](https://space.bilibili.com/3546733590087876)",
       "cdks": [
         {
@@ -220,14 +220,14 @@
     },
     {
       "code": "BECOMMANDERNOW",
-      "name": "Padres X Nikke 门票奖励",
+      "name": "Padres X Nikke",
       "reward": "珠宝×300",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
-      "note": "棒球队联动买票给的，还有一个布兰儿小胸针",
+      "note": "收录25年Padres X Nikke 门票奖励；棒球队联动买票给的，还有一个布兰儿小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17"
     },
@@ -270,8 +270,8 @@
     {
       "type": "group",
       "groupId": "NIKKEsummer2025",
-      "groupName": "25年夏日活动奖励",
-      "note": "收录夏活CDK",
+      "groupName": "BOOM！THE GHOST！",
+      "note": "收录25年夏活CDK",
       "cdks": [
         {
           "code": "NIKKESUMMERKICKOFF",
@@ -308,7 +308,7 @@
             "tw"
           ],
           "status": "可用",
-          "note": "BAWAL：在菲律宾他加禄语（Tagalog）中意为“禁止”或“不可”，常用于表达限制或警告。MANGGHOST：可能是“mang-ghost”的组合，“mang”在Tagalog中是动词前缀，意为“做某事的人”，而“ghost”显然指“幽灵”。结合活动剧情，命名为驱鬼者。",
+          "note": "BAWAL：在菲律宾他加禄语（Tagalog）中意为“禁止”或“不可”，常用于表达限制或警告。MANGGHOST：可能是“mang-ghost”的组合，“mang”在Tagalog中是动词前缀，意为“做某事的人”，而“ghost”显然指“幽灵”。结合活动剧情，命名为驱鬼者。*MANGGHOST还有消失无踪的含义，所以也可以翻译为禁止玩消失、禁止已读不回、禁止冷暴力。",
           "author": "",
           "created": "2025-07-17"
         },
@@ -329,14 +329,14 @@
     },
     {
       "code": "NIKKECONCERT2025",
-      "name": "25年音乐会奖励",
+      "name": "MELODIES OF VICTORY",
       "reward": "水晶×300,MELODIES OF VICTORY特别称号×1",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
-      "note": "胜利的旋律*1",
+      "note": "收录25年音乐会奖励；胜利的旋律。",
       "author": "",
       "created": "2025-07-16"
     }
