@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-18T15:28:20.270Z",
+  "lastUpdate": "2025-07-20T07:05:46.925Z",
   "cdks": [
     {
       "type": "group",
@@ -302,7 +302,7 @@
         {
           "code": "BAWALMANGGHOST",
           "name": "驱鬼者",
-          "reward": "水晶×100",
+          "reward": "珠宝×100",
           "servers": [
             "global",
             "tw"
@@ -315,7 +315,7 @@
         {
           "code": "BASAHBASAHAN",
           "name": "湿身派对",
-          "reward": "水晶×100",
+          "reward": "珠宝×100",
           "servers": [
             "global",
             "tw"
@@ -324,13 +324,25 @@
           "note": "BASAH：在马来语/印尼语中意为“湿的”或“潮湿”，重复形式。结合夏活，故记录为湿身派对。",
           "author": "",
           "created": "2025-07-17"
+        },
+        {
+          "code": "DOROSMTHAI720",
+          "name": "100水-来源待查",
+          "reward": "珠宝×100",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-07-20"
         }
       ]
     },
     {
       "code": "NIKKECONCERT2025",
       "name": "MELODIES OF VICTORY",
-      "reward": "水晶×300,MELODIES OF VICTORY特别称号×1",
+      "reward": "珠宝×300,MELODIES OF VICTORY特别称号×1",
       "servers": [
         "global",
         "tw"
