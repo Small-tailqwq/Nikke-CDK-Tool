@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-20T07:05:46.925Z",
+  "lastUpdate": "2025-07-20T07:27:42.596Z",
   "cdks": [
     {
       "type": "group",
@@ -324,18 +324,6 @@
           "note": "BASAH：在马来语/印尼语中意为“湿的”或“潮湿”，重复形式。结合夏活，故记录为湿身派对。",
           "author": "",
           "created": "2025-07-17"
-        },
-        {
-          "code": "DOROSMTHAI720",
-          "name": "100水-来源待查",
-          "reward": "珠宝×100",
-          "servers": [
-            "global"
-          ],
-          "status": "可用",
-          "note": "",
-          "author": "",
-          "created": "2025-07-20"
         }
       ]
     },
@@ -351,6 +339,18 @@
       "note": "收录25年音乐会奖励；胜利的旋律。",
       "author": "",
       "created": "2025-07-16"
+    },
+    {
+      "code": "DOROSMTHAI720",
+      "name": "DORO FAMILY SUMMER TOUR THAILAND",
+      "reward": "珠宝×100",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "Nikke泰国官方发放的CDK，[来源](https://www.facebook.com/photo/?fbid=716355471161300)；请在泰国时间的7月22日21:59前完成兑换，本CDK不限兑换次数。",
+      "author": "",
+      "created": "2025-07-20"
     }
   ]
 }
