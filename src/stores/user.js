@@ -1,16 +1,21 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { userStorage } from '../utils/storage'
+import { createLogger } from '../utils/logger'
 
 import { autoRenewUserCookie, shouldRenewCookie, getGlobalUserCompleteInfo } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
+
+// 创建用户存储模块的日志记录器
+const logger = createLogger('UserStore')
 
 export const useUserStore = defineStore('user', () => {
   // 状态
   const users = ref(userStorage.loadUsers())
   const loading = ref(false)
 
-
+  // 用于跟踪正在进行的Cookie检测，避免竞态条件
+  const cookieDetectionMap = new Map()
 
   // 计算属性
   const userCount = computed(() => users.value.length)
@@ -23,6 +28,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 获取用户列表
   const fetchUsers = async () => {
+    logger.startOperation('获取用户列表')
     loading.value = true
     try {
       let loadedUsers = userStorage.loadUsers()
@@ -42,7 +48,7 @@ export const useUserStore = defineStore('user', () => {
           }
           // 只有没有cookieActualExpireDate或已过期，且cookie不含expires=时才迁移
           if (!user.cookieActualExpireDate && !user.cookie.includes('expires=')) {
-            console.log(`迁移用户${user.name}的Cookie数据...`)
+            logger.info(`迁移用户${user.name}的Cookie数据`)
             const expireDate = new Date()
             const expireStr = expireDate.toUTCString()
             const migratedUser = {
@@ -69,13 +75,14 @@ export const useUserStore = defineStore('user', () => {
 
       // 如果有数据更新，保存到本地存储
       if (hasUpdates) {
-        console.log('保存迁移后的用户数据...')
+        logger.info('保存迁移后的用户数据')
         userStorage.saveUsers(loadedUsers)
       }
 
       users.value = loadedUsers
+      logger.operationSuccess('获取用户列表', { userCount: loadedUsers.length })
     } catch (error) {
-      console.error('获取用户列表失败:', error)
+      logger.operationError('获取用户列表', error)
       throw error
     } finally {
       loading.value = false
@@ -84,6 +91,7 @@ export const useUserStore = defineStore('user', () => {
 
   // 添加用户
   const addUser = async (userData) => {
+    logger.startOperation('添加用户', { userName: userData.name })
     try {
       const newUser = {
         id: Date.now(),
@@ -92,17 +100,19 @@ export const useUserStore = defineStore('user', () => {
       }
       if (userStorage.addUser(newUser)) {
         users.value.push(newUser)
+        logger.operationSuccess('添加用户', { userId: newUser.id, userName: newUser.name })
         return newUser
       }
       throw new Error('保存失败')
     } catch (error) {
-      console.error('添加用户失败:', error)
+      logger.operationError('添加用户', error, { userData })
       throw error
     }
   }
 
   // 更新用户
   const updateUser = async (id, userData) => {
+    logger.startOperation('更新用户', { userId: id, updateFields: Object.keys(userData) })
     try {
       const index = users.value.findIndex(u => u.id === id)
       if (index !== -1) {
@@ -115,7 +125,7 @@ export const useUserStore = defineStore('user', () => {
 
         // 🔧 修复：如果更新了Cookie，重新检测Cookie状态
         if (userData.cookie && userData.cookie !== users.value[index].cookie) {
-          console.log(`用户 ${updatedUser.name} 的Cookie已更新，重新检测状态...`)
+          logger.info(`用户 ${updatedUser.name} 的Cookie已更新，重新检测状态`)
 
           // 重置Cookie状态，让系统重新检测
           updatedUser.cookieExpireDays = undefined
@@ -131,19 +141,43 @@ export const useUserStore = defineStore('user', () => {
           }
           saveDailyCheckStatus()
 
-          // 异步检测新Cookie状态
-          setTimeout(async () => {
+          // 🔧 修复竞态条件：取消之前的检测任务
+          if (cookieDetectionMap.has(id)) {
+            logger.debug(`取消用户 ${updatedUser.name} 之前的Cookie检测任务`)
+            const previousDetection = cookieDetectionMap.get(id)
+            if (previousDetection.cancel) {
+              previousDetection.cancel()
+            }
+          }
+
+          // 异步检测新Cookie状态，使用Promise避免setTimeout的问题
+          const detectionPromise = (async () => {
             try {
+              // 添加取消标志
+              let isCancelled = false
+              const detection = {
+                cancel: () => { isCancelled = true }
+              }
+              cookieDetectionMap.set(id, detection)
+
               const result = await getGlobalUserCompleteInfo(userData.cookie)
+
+              // 检查是否被取消
+              if (isCancelled) {
+                logger.debug(`用户 ${updatedUser.name} 的Cookie检测被取消`)
+                return
+              }
+
               if (result.success) {
-                console.log(`用户 ${updatedUser.name} 的新Cookie状态正常`)
-                // 更新Cookie状态为正常
+                logger.operationSuccess('用户 Cookie检测', { userName: updatedUser.name, status: '正常' })
+                // 更新Cookie状态为正常，从API响应中获取实际过期时间
+                const expireDays = result.data?.expireDays || 30
                 await updateUser(id, {
-                  cookieExpireDays: 30, // 假设新Cookie有30天有效期
-                  cookieActualExpireDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+                  cookieExpireDays: expireDays,
+                  cookieActualExpireDate: new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000).toISOString()
                 })
               } else {
-                console.log(`用户 ${updatedUser.name} 的新Cookie仍然无效: ${result.message}`)
+                logger.warn(`用户 ${updatedUser.name} 的新Cookie仍然无效`, { message: result.message })
                 // 保持失效状态
                 await updateUser(id, {
                   cookieExpireDays: -1,
@@ -151,34 +185,46 @@ export const useUserStore = defineStore('user', () => {
                 })
               }
             } catch (error) {
-              console.error(`检测用户 ${updatedUser.name} 新Cookie状态失败:`, error)
+              logger.operationError(`检测用户 ${updatedUser.name} 新Cookie状态`, error)
+            } finally {
+              // 清理检测记录
+              cookieDetectionMap.delete(id)
             }
-          }, 100)
+          })()
+
+          // 存储检测Promise
+          cookieDetectionMap.set(id, { ...cookieDetectionMap.get(id), promise: detectionPromise })
         }
 
         users.value[index] = updatedUser
         if (!userStorage.saveUsers(users.value)) {
           throw new Error('保存到本地存储失败')
         }
+        logger.operationSuccess('更新用户', { userId: id, userName: updatedUser.name })
         return true
       }
       throw new Error('用户不存在')
     } catch (error) {
-      console.error('更新用户失败:', error)
+      logger.operationError('更新用户', error, { userId: id, userData })
       throw error
     }
   }
 
   // 删除用户
   const deleteUser = async (id) => {
+    logger.startOperation('删除用户', { userId: id })
     try {
+      const user = users.value.find(u => u.id === id)
+      const userName = user?.name || `ID:${id}`
+
       if (userStorage.deleteUser(id)) {
         users.value = users.value.filter(u => u.id !== id)
+        logger.operationSuccess('删除用户', { userId: id, userName })
         return true
       }
       throw new Error('删除失败')
     } catch (error) {
-      console.error('删除用户失败:', error)
+      logger.operationError('删除用户', error, { userId: id })
       throw error
     }
   }
@@ -187,21 +233,21 @@ export const useUserStore = defineStore('user', () => {
   const getUserById = (id) => {
     // 确保类型匹配，支持字符串和数字类型的ID
     if (id === null || id === undefined) {
-      console.log('getUserById: 无效的ID，为null或undefined');
-      return null;
+      logger.debug('getUserById: 无效的ID，为null或undefined')
+      return null
     }
 
     // 将id转换为字符串进行比较，确保能匹配
-    const idStr = String(id);
-    console.log(`getUserById: 尝试查找ID=${idStr} (类型: ${typeof id})`);
+    const idStr = String(id)
+    logger.debug(`getUserById: 尝试查找ID=${idStr} (类型: ${typeof id})`)
 
-    const user = users.value.find(u => String(u.id) === idStr);
+    const user = users.value.find(u => String(u.id) === idStr)
     if (user) {
-      console.log(`getUserById: 找到用户 ${user.name}, ID=${user.id}`);
-      return user;
+      logger.debug(`getUserById: 找到用户 ${user.name}, ID=${user.id}`)
+      return user
     } else {
-      console.log(`getUserById: 未找到ID为${idStr}的用户`);
-      return null;
+      logger.debug(`getUserById: 未找到ID为${idStr}的用户`)
+      return null
     }
   }
 
@@ -229,8 +275,10 @@ export const useUserStore = defineStore('user', () => {
             dismissedWarnings: []
           }
           saveDailyCheckStatus()
+          logger.info('每日检测状态已重置为今日')
         } else {
           dailyCheckStatus.value = parsed
+          logger.debug('已加载今日的检测状态')
         }
       } else {
         // 首次访问，初始化
@@ -240,9 +288,10 @@ export const useUserStore = defineStore('user', () => {
           dismissedWarnings: []
         }
         saveDailyCheckStatus()
+        logger.info('首次访问，已初始化每日检测状态')
       }
     } catch (error) {
-      console.error('初始化每日检测状态失败:', error)
+      logger.operationError('初始化每日检测状态', error)
       dailyCheckStatus.value = {
         lastCheckDate: new Date().toDateString(),
         checkedUserIds: [],
@@ -256,7 +305,7 @@ export const useUserStore = defineStore('user', () => {
     try {
       localStorage.setItem('nikke_daily_cookie_check', JSON.stringify(dailyCheckStatus.value))
     } catch (error) {
-      console.error('保存每日检测状态失败:', error)
+      logger.operationError('保存每日检测状态失败', error)
     }
   }
 

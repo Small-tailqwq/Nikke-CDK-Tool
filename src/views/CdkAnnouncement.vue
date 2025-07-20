@@ -612,6 +612,42 @@ const openSubmitCdk = () => {
   )
 }
 
+// 自动勾选未兑换的CDK（独立函数避免重复代码）
+const autoSelectUnredeemedCdks = () => {
+  selectedCdks.value = [] // 先清空选中状态
+  filteredCdks.value.forEach((cdk) => {
+    const status = getCdkStatus(cdk)
+    const exchangeStatus = getCdkExchangeStatus(cdk)
+
+    if (isSingleCDK(cdk) && status === '可用' && exchangeStatus === '未兑换') {
+      selectedCdks.value.push(cdk.code)
+    } else if (
+      isCDKGroup(cdk) &&
+      (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
+      (status === '可用' || status === '部分可用')
+    ) {
+      const groupCodes = getGroupCodes(cdk)
+      const redeemed = new Set(
+        selectedUserExchangeHistory.value
+          .filter((record: any) => groupCodes.includes(record.cdk))
+          .map((record: any) => record.cdk)
+      )
+      cdk.cdks.forEach((subCdk: SingleCDK) => {
+        if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
+          selectedCdks.value.push(subCdk.code)
+        }
+      })
+    }
+  })
+
+  if (selectedCdks.value.length > 0) {
+    showCustomMessage(
+      `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,
+      'success'
+    )
+  }
+}
+
 // 处理角色选择变化
 const handleCharacterChange = async (userId: string | null) => {
   if (!userId) {
@@ -645,42 +681,8 @@ const handleCharacterChange = async (userId: string | null) => {
   const syncKey = `cdk_auto_sync_${userId}`
   const lastSyncDate = localStorage.getItem(syncKey)
   if (lastSyncDate === today) {
-    // 今日已自动同步过，跳过
-    // 非国服角色，自动勾选未兑换的CDK
-    selectedCdks.value = [] // 先清空选中状态
-    filteredCdks.value.forEach((cdk) => {
-      const status = getCdkStatus(cdk)
-      const exchangeStatus = getCdkExchangeStatus(cdk)
-      if (
-        isSingleCDK(cdk) &&
-        status === '可用' &&
-        exchangeStatus === '未兑换'
-      ) {
-        selectedCdks.value.push(cdk.code)
-      } else if (
-        isCDKGroup(cdk) &&
-        (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
-        (status === '可用' || status === '部分可用')
-      ) {
-        const groupCodes = getGroupCodes(cdk)
-        const redeemed = new Set(
-          selectedUserExchangeHistory.value
-            .filter((record: any) => groupCodes.includes(record.cdk))
-            .map((record: any) => record.cdk)
-        )
-        cdk.cdks.forEach((subCdk: SingleCDK) => {
-          if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
-            selectedCdks.value.push(subCdk.code)
-          }
-        })
-      }
-    })
-    if (selectedCdks.value.length > 0) {
-      showCustomMessage(
-        `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,
-        'success'
-      )
-    }
+    // 今日已自动同步过，跳过同步直接自动勾选
+    autoSelectUnredeemedCdks()
     return
   }
 
@@ -709,42 +711,14 @@ const handleCharacterChange = async (userId: string | null) => {
     exchangeStore.loading = false
   }
 
-  // 非国服角色，自动勾选未兑换的CDK
-  selectedCdks.value = [] // 先清空选中状态
-  filteredCdks.value.forEach((cdk) => {
-    const status = getCdkStatus(cdk)
-    const exchangeStatus = getCdkExchangeStatus(cdk)
-    if (isSingleCDK(cdk) && status === '可用' && exchangeStatus === '未兑换') {
-      selectedCdks.value.push(cdk.code)
-    } else if (
-      isCDKGroup(cdk) &&
-      (exchangeStatus === '未兑换' || exchangeStatus === '部分兑换') &&
-      (status === '可用' || status === '部分可用')
-    ) {
-      const groupCodes = getGroupCodes(cdk)
-      const redeemed = new Set(
-        selectedUserExchangeHistory.value
-          .filter((record: any) => groupCodes.includes(record.cdk))
-          .map((record: any) => record.cdk)
-      )
-      cdk.cdks.forEach((subCdk: SingleCDK) => {
-        if (subCdk.status === '可用' && !redeemed.has(subCdk.code)) {
-          selectedCdks.value.push(subCdk.code)
-        }
-      })
-    }
-  })
-  if (selectedCdks.value.length > 0) {
-    showCustomMessage(
-      `已自动勾选${selectedCdks.value.length}个未兑换CDK，可直接点击批量兑换`,
-      'success'
-    )
-  }
+  // 同步完成后自动勾选未兑换的CDK
+  autoSelectUnredeemedCdks()
 }
 
 // 页面加载时获取CDK列表
 onMounted(() => {
   console.log('CDK公告组件已挂载')
+
   loadCdkList()
   // 加载用户数据和兑换历史
   userStore.fetchUsers()
