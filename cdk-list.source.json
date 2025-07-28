@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-20T07:27:42.596Z",
+  "lastUpdate": "2025-07-28T11:36:08.219Z",
   "cdks": [
     {
       "type": "group",
@@ -324,6 +324,18 @@
           "note": "BASAH：在马来语/印尼语中意为“湿的”或“潮湿”，重复形式。结合夏活，故记录为湿身派对。",
           "author": "",
           "created": "2025-07-17"
+        },
+        {
+          "code": "WECAUGHTTHEGHOST",
+          "name": "我们抓住了幽灵",
+          "reward": "珠宝×100",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "蚊子腿",
+          "author": "知一",
+          "created": "2025-07-25"
         }
       ]
     },
