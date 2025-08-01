@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-07-28T11:36:08.219Z",
+  "lastUpdate": "2025-08-01T16:04:20.348Z",
   "cdks": [
     {
       "type": "group",
@@ -226,7 +226,7 @@
         "global",
         "tw"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "收录25年Padres X Nikke 门票奖励；棒球队联动买票给的，还有一个布兰儿小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17"
