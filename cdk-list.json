@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-01T16:04:20.348Z",
+  "lastUpdate": "2025-08-04T14:48:53.784Z",
   "cdks": [
     {
       "type": "group",
@@ -369,7 +369,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "Nikke泰国官方发放的CDK，[来源](https://www.facebook.com/photo/?fbid=716355471161300)；请在泰国时间的7月22日21:59前完成兑换，本CDK不限兑换次数。",
       "author": "",
       "created": "2025-07-20",
