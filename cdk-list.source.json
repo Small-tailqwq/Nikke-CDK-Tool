@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-04T14:48:53.784Z",
+  "lastUpdate": "2025-08-09T14:47:49.231Z",
   "cdks": [
     {
       "type": "group",
@@ -363,6 +363,18 @@
       "note": "Nikke泰国官方发放的CDK，[来源](https://www.facebook.com/photo/?fbid=716355471161300)；请在泰国时间的7月22日21:59前完成兑换，本CDK不限兑换次数。",
       "author": "",
       "created": "2025-07-20"
+    },
+    {
+      "code": "KanaeSatoruVol10BQID",
+      "name": "VTB“叶彗 慧”直播奖励",
+      "reward": "珠宝×100",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "新一期的管人直播奖励，这次应该也是第三名。\n点此跳转管人主页：[Kanae Satoru | 叶彗 慧 ](https://www.youtube.com/@KanaeSatoru)",
+      "author": "坦克",
+      "created": "2025-08-09"
     }
   ]
 }
