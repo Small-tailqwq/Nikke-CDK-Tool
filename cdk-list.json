@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-09T14:47:49.231Z",
+  "lastUpdate": "2025-08-09T15:09:18.590Z",
   "cdks": [
     {
       "type": "group",
@@ -340,7 +340,7 @@
           "servers": [
             "global"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "蚊子腿",
           "author": "知一",
           "created": "2025-07-25"
