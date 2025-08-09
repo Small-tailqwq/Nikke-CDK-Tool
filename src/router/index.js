@@ -1,8 +1,4 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import CdkExchange from '../views/CdkExchange.vue'
-import UserManagement from '../views/UserManagement.vue'
-import ExchangeHistory from '../views/ExchangeHistory.vue'
-import CdkAnnouncement from '../views/CdkAnnouncement.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -14,22 +10,22 @@ const router = createRouter({
     {
       path: '/cdk',
       name: 'cdk',
-      component: CdkExchange
+      component: () => import('../views/CdkExchange.vue')
     },
     {
       path: '/user',
       name: 'user',
-      component: UserManagement
+      component: () => import('../views/UserManagement.vue')
     },
     {
       path: '/history',
       name: 'history',
-      component: ExchangeHistory
+      component: () => import('../views/ExchangeHistory.vue')
     },
     {
       path: '/announcement',
       name: 'announcement',
-      component: CdkAnnouncement
+      component: () => import('../views/CdkAnnouncement.vue')
     },
     {
       path: '/rainbow-doro',

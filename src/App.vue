@@ -45,10 +45,7 @@
             </div>
           </div>
           <nav class="nav-wrapper">
-            <div
-              class="nav-menu"
-              :style="navStore.isRainbowMode ? getActiveItemStyle : {}"
-            >
+            <div class="nav-menu" :style="navStore.isRainbowMode ? getActiveItemStyle : {}">
               <router-link
                 v-for="item in menuItems"
                 :key="item.path"
@@ -72,11 +69,7 @@
 
       <el-main>
         <router-view v-slot="{ Component, route: currentRoute }">
-          <transition
-            :name="slideDirection"
-            :duration="slideDuration"
-            mode="out-in"
-          >
+          <transition :name="slideDirection" :duration="slideDuration" mode="out-in">
             <component :is="Component" :key="currentRoute.path" />
           </transition>
         </router-view>
@@ -133,19 +126,13 @@
             <p class="tech-desc">本项目由以下服务提供支持：</p>
             <div class="tech-stack">
               <el-tooltip content="静态页面托管服务" placement="top">
-                <el-tag size="small" type="info" effect="plain"
-                  >GitHub Pages</el-tag
-                >
+                <el-tag size="small" type="info" effect="plain">GitHub Pages</el-tag>
               </el-tooltip>
               <el-tooltip content="自动化构建与部署" placement="top">
-                <el-tag size="small" type="info" effect="plain"
-                  >GitHub Actions</el-tag
-                >
+                <el-tag size="small" type="info" effect="plain">GitHub Actions</el-tag>
               </el-tooltip>
               <el-tooltip content="后端API代理服务" placement="top">
-                <el-tag size="small" type="info" effect="plain"
-                  >Cloudflare Worker</el-tag
-                >
+                <el-tag size="small" type="info" effect="plain">Cloudflare Worker</el-tag>
               </el-tooltip>
               <el-tooltip content="本项目的实际缔造者" placement="top">
                 <el-tag size="small" type="info" effect="plain">Cursor</el-tag>
@@ -224,14 +211,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
 import { useNavStore } from './stores/nav'
 import { useDoroStore } from './stores/doro'
 import { useUserStore } from './stores/user'
 import { theme, toggleTheme, getThemeIcon, getThemeTitle } from './stores/theme'
-import FloatingDoro from './components/FloatingDoro.vue'
-import DoroSummonAnimation from './components/DoroSummonAnimation.vue'
+const FloatingDoro = defineAsyncComponent(() => import('./components/FloatingDoro.vue'))
+const DoroSummonAnimation = defineAsyncComponent(
+  () => import('./components/DoroSummonAnimation.vue')
+)
 import CookieWarningAlert from './components/CookieWarningAlert.vue'
 import './assets/theme.scss'
 
@@ -389,8 +378,7 @@ const currentColorIndex = ref(0)
 // 更新彩虹颜色
 const updateRainbowColor = () => {
   if (navStore.isRainbowMode) {
-    currentColorIndex.value =
-      (currentColorIndex.value + 1) % rainbowColors.length
+    currentColorIndex.value = (currentColorIndex.value + 1) % rainbowColors.length
   }
 }
 
@@ -510,17 +498,23 @@ body {
 
             // 文字描边效果提高辨识度
             -webkit-text-stroke: 1px rgba(0, 0, 0, 0.8);
-            text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.8),
-              -1px 1px 0px rgba(0, 0, 0, 0.8), 1px -1px 0px rgba(0, 0, 0, 0.8),
-              -1px -1px 0px rgba(0, 0, 0, 0.8), 2px 2px 2px rgba(0, 0, 0, 0.3);
+            text-shadow:
+              1px 1px 0px rgba(0, 0, 0, 0.8),
+              -1px 1px 0px rgba(0, 0, 0, 0.8),
+              1px -1px 0px rgba(0, 0, 0, 0.8),
+              -1px -1px 0px rgba(0, 0, 0, 0.8),
+              2px 2px 2px rgba(0, 0, 0, 0.3);
 
             // 在暗色模式下调整颜色
             html.dark & {
               color: #ffff77;
               -webkit-text-stroke: 1px rgba(0, 0, 0, 0.9);
-              text-shadow: 1px 1px 0px rgba(0, 0, 0, 0.9),
-                -1px 1px 0px rgba(0, 0, 0, 0.9), 1px -1px 0px rgba(0, 0, 0, 0.9),
-                -1px -1px 0px rgba(0, 0, 0, 0.9), 2px 2px 2px rgba(0, 0, 0, 0.5);
+              text-shadow:
+                1px 1px 0px rgba(0, 0, 0, 0.9),
+                -1px 1px 0px rgba(0, 0, 0, 0.9),
+                1px -1px 0px rgba(0, 0, 0, 0.9),
+                -1px -1px 0px rgba(0, 0, 0, 0.9),
+                2px 2px 2px rgba(0, 0, 0, 0.5);
             }
           }
         }
@@ -675,13 +669,10 @@ body {
               transform: translateX(-50%);
               width: 6px;
               height: 6px;
-              background-color: var(
-                --nav-active-color,
-                var(--el-menu-active-color)
-              );
+              background-color: var(--nav-active-color, var(--el-menu-active-color));
               border-radius: 50%;
-              box-shadow: 0 0 12px
-                  var(--nav-glow-color, var(--el-menu-active-color)),
+              box-shadow:
+                0 0 12px var(--nav-glow-color, var(--el-menu-active-color)),
                 0 0 20px var(--nav-glow-color, var(--el-menu-active-color)),
                 0 0 25px var(--nav-glow-color, var(--el-menu-active-color));
               animation: glow 2s ease-in-out infinite alternate;
@@ -702,8 +693,8 @@ body {
                 var(--nav-active-color, var(--el-menu-active-color)) 80%,
                 transparent
               );
-              box-shadow: 0 0 10px
-                  var(--nav-glow-color, var(--el-menu-active-color)),
+              box-shadow:
+                0 0 10px var(--nav-glow-color, var(--el-menu-active-color)),
                 0 0 20px var(--nav-glow-color, var(--el-menu-active-color));
               animation: shine 3s ease-in-out infinite;
               z-index: 1;
@@ -722,13 +713,10 @@ body {
               transform: translateX(-50%);
               width: 4px;
               height: 4px;
-              background-color: var(
-                --nav-active-color,
-                var(--el-menu-active-color)
-              );
+              background-color: var(--nav-active-color, var(--el-menu-active-color));
               border-radius: 50%;
-              box-shadow: 0 0 8px
-                  var(--nav-glow-color, var(--el-menu-active-color)),
+              box-shadow:
+                0 0 8px var(--nav-glow-color, var(--el-menu-active-color)),
                 0 0 15px var(--nav-glow-color, var(--el-menu-active-color));
               animation: smallGlow 2s ease-in-out infinite alternate;
               z-index: 2;
@@ -748,8 +736,8 @@ body {
                 var(--nav-active-color, var(--el-menu-active-color)) 80%,
                 transparent
               );
-              box-shadow: 0 0 5px
-                  var(--nav-glow-color, var(--el-menu-active-color)),
+              box-shadow:
+                0 0 5px var(--nav-glow-color, var(--el-menu-active-color)),
                 0 0 10px var(--nav-glow-color, var(--el-menu-active-color));
               animation: smallShine 3s ease-in-out infinite;
               z-index: 1;
@@ -761,8 +749,8 @@ body {
               &::before {
                 width: 6px;
                 height: 6px;
-                box-shadow: 0 0 12px
-                    var(--nav-glow-color, var(--el-menu-active-color)),
+                box-shadow:
+                  0 0 12px var(--nav-glow-color, var(--el-menu-active-color)),
                   0 0 20px var(--nav-glow-color, var(--el-menu-active-color)),
                   0 0 25px var(--nav-glow-color, var(--el-menu-active-color));
                 animation: glow 2s ease-in-out infinite alternate;
@@ -770,8 +758,8 @@ body {
 
               &::after {
                 height: 2px;
-                box-shadow: 0 0 10px
-                    var(--nav-glow-color, var(--el-menu-active-color)),
+                box-shadow:
+                  0 0 10px var(--nav-glow-color, var(--el-menu-active-color)),
                   0 0 20px var(--nav-glow-color, var(--el-menu-active-color));
                 animation: shine 3s ease-in-out infinite;
               }
@@ -784,16 +772,16 @@ body {
         from {
           opacity: 0.6;
           transform: translateX(-50%) scale(0.8);
-          box-shadow: 0 0 12px
-              var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 12px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 20px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 25px var(--nav-glow-color, var(--el-menu-active-color));
         }
         to {
           opacity: 1;
           transform: translateX(-50%) scale(1.2);
-          box-shadow: 0 0 15px
-              var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 15px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 25px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 30px var(--nav-glow-color, var(--el-menu-active-color));
         }
@@ -809,8 +797,7 @@ body {
             var(--nav-active-color, var(--el-menu-active-color)) 80%,
             transparent
           );
-          box-shadow: 0 0 10px
-            var(--nav-glow-color, var(--el-menu-active-color));
+          box-shadow: 0 0 10px var(--nav-glow-color, var(--el-menu-active-color));
         }
         50% {
           opacity: 1;
@@ -821,8 +808,8 @@ body {
             var(--nav-active-color, var(--el-menu-active-color)) 60%,
             transparent
           );
-          box-shadow: 0 0 20px
-              var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 20px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 30px var(--nav-glow-color, var(--el-menu-active-color));
         }
         100% {
@@ -834,8 +821,7 @@ body {
             var(--nav-active-color, var(--el-menu-active-color)) 80%,
             transparent
           );
-          box-shadow: 0 0 10px
-            var(--nav-glow-color, var(--el-menu-active-color));
+          box-shadow: 0 0 10px var(--nav-glow-color, var(--el-menu-active-color));
         }
       }
 
@@ -843,14 +829,15 @@ body {
         from {
           opacity: 0.4;
           transform: translateX(-50%) scale(0.8);
-          box-shadow: 0 0 8px var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 8px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 15px var(--nav-glow-color, var(--el-menu-active-color));
         }
         to {
           opacity: 0.8;
           transform: translateX(-50%) scale(1.1);
-          box-shadow: 0 0 10px
-              var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 10px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 18px var(--nav-glow-color, var(--el-menu-active-color));
         }
       }
@@ -876,7 +863,8 @@ body {
             var(--nav-active-color, var(--el-menu-active-color)) 60%,
             transparent
           );
-          box-shadow: 0 0 8px var(--nav-glow-color, var(--el-menu-active-color)),
+          box-shadow:
+            0 0 8px var(--nav-glow-color, var(--el-menu-active-color)),
             0 0 15px var(--nav-glow-color, var(--el-menu-active-color));
         }
         100% {
@@ -918,7 +906,8 @@ body {
               top: -10px;
               width: 4px;
               height: 4px;
-              box-shadow: 0 0 8px var(--el-menu-active-color),
+              box-shadow:
+                0 0 8px var(--el-menu-active-color),
                 0 0 15px var(--el-menu-active-color),
                 0 0 20px var(--el-menu-active-color);
             }
@@ -1309,7 +1298,9 @@ body {
   cursor: pointer;
   user-select: none;
   overflow: visible;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
   z-index: 99999;
 }
 .doro-float img {
@@ -1329,20 +1320,16 @@ body {
     transform: translate(0, 0) rotate(-8deg) scale(var(--shake-intensity, 1));
   }
   20% {
-    transform: translate(-6px, 2px) rotate(8deg)
-      scale(var(--shake-intensity, 1));
+    transform: translate(-6px, 2px) rotate(8deg) scale(var(--shake-intensity, 1));
   }
   40% {
-    transform: translate(6px, -2px) rotate(-8deg)
-      scale(var(--shake-intensity, 1));
+    transform: translate(6px, -2px) rotate(-8deg) scale(var(--shake-intensity, 1));
   }
   60% {
-    transform: translate(-4px, 4px) rotate(8deg)
-      scale(var(--shake-intensity, 1));
+    transform: translate(-4px, 4px) rotate(8deg) scale(var(--shake-intensity, 1));
   }
   80% {
-    transform: translate(4px, -4px) rotate(-8deg)
-      scale(var(--shake-intensity, 1));
+    transform: translate(4px, -4px) rotate(-8deg) scale(var(--shake-intensity, 1));
   }
   100% {
     transform: translate(0, 0) rotate(8deg) scale(var(--shake-intensity, 1));

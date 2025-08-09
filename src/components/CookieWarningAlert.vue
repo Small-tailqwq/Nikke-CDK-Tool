@@ -106,10 +106,10 @@ const handleCloseAll = () => {
   userStore.dismissAllCookieWarnings()
 }
 
-// 处理编辑用户（跳转到用户管理页面并打开编辑对话框）
-const handleEditUser = (userId) => {
-  // 跳转到用户管理页面
-  router.push('/user-management')
+  // 处理编辑用户（跳转到用户管理页面并打开编辑对话框）
+  const handleEditUser = (userId) => {
+  // 跳转到用户管理页面（修正路由路径，与 router/index.js 保持一致）
+  router.push('/user')
 
   // 延迟触发编辑用户操作（确保页面已加载）
   setTimeout(() => {

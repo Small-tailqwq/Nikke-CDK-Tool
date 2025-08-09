@@ -136,6 +136,7 @@
               v-if="cdk.image"
               :src="getImageUrl(cdk.image)"
               :alt="cdk.name || '未命名CDK'"
+              loading="lazy"
               class="announcement-image"
             />
             <div v-else class="image-placeholder">
@@ -145,17 +146,9 @@
 
             <!-- 状态条（已兑换时隐藏可用状态） -->
             <div
-              v-if="
-                !(
-                  filterForm.character && getCdkExchangeStatus(cdk) === '已兑换'
-                )
-              "
+              v-if="!(filterForm.character && getCdkExchangeStatus(cdk) === '已兑换')"
               class="cdk-status"
-              :class="
-                cdk.status === '可用'
-                  ? 'status-available'
-                  : 'status-unavailable'
-              "
+              :class="cdk.status === '可用' ? 'status-available' : 'status-unavailable'"
             >
               {{ cdk.status }}
             </div>
@@ -208,10 +201,7 @@
                 raw-content
               >
                 <template #content>
-                  <div
-                    class="note-content"
-                    v-html="formatNoteContent(cdk.note)"
-                  ></div>
+                  <div class="note-content" v-html="formatNoteContent(cdk.note)"></div>
                 </template>
                 <div class="note-trigger">
                   <el-icon><InfoFilled /></el-icon>
@@ -221,14 +211,10 @@
             </div>
 
             <!-- 收录时间 -->
-            <div v-if="cdk.created" class="cdk-created">
-              收录时间：{{ cdk.created }}
-            </div>
+            <div v-if="cdk.created" class="cdk-created">收录时间：{{ cdk.created }}</div>
 
             <!-- Footer信息合并到content中 -->
-            <div v-if="cdk.author" class="cdk-author">
-              提供者：{{ cdk.author }}
-            </div>
+            <div v-if="cdk.author" class="cdk-author">提供者：{{ cdk.author }}</div>
           </div>
         </el-card>
       </el-col>
@@ -240,7 +226,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { Document, InfoFilled, Loading, Picture } from '@element-plus/icons-vue'
+import { Document, InfoFilled, Picture } from '@element-plus/icons-vue'
 import {
   fetchCdkList,
   isCDKGroup,
@@ -256,13 +242,14 @@ import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { formatNoteContent } from '../utils/noteUtils'
+import type { CheckboxValueType } from 'element-plus'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
-  server: ServerType | null
+  server: ServerType | '' // 使用空字符串作为未选择状态，避免传递 null 给 el-select
   status: string
   sortOrder: 'desc' | 'asc'
-  character: string | null // 新增角色筛选
+  character: string | '' // 使用空字符串作为未选择状态
 }
 
 const router = useRouter()
@@ -272,10 +259,11 @@ const exchangeStore = useExchangeStore()
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
 const filterForm = ref<FilterForm>({
-  server: null,
+  // 使用空字符串表示未选择，避免与类型不符的 null 引起 TS 报错
+  server: '',
   status: '',
   sortOrder: 'desc',
-  character: null,
+  character: '',
 })
 
 // 选中的CDK列表
@@ -287,15 +275,11 @@ const copiedCode = ref<string | null>(null)
 // 选中角色的兑换记录
 const selectedUserExchangeHistory = computed(() => {
   if (!filterForm.value.character) return []
-  return exchangeStore.history.filter(
-    (record: any) => record.userId === filterForm.value.character
-  )
+  return exchangeStore.history.filter((record: any) => record.userId === filterForm.value.character)
 })
 
 // 获取CDK的兑换状态（仅在选中角色时启用）
-const getCdkExchangeStatus = (
-  cdk: CDK
-): '未兑换' | '部分兑换' | '已兑换' | null => {
+const getCdkExchangeStatus = (cdk: CDK): '未兑换' | '部分兑换' | '已兑换' | null => {
   if (!filterForm.value.character) return null
 
   if (isCDKGroup(cdk)) {
@@ -438,8 +422,7 @@ const filteredCdks = computed(() => {
       }
 
       const exchangeDiff =
-        getExchangePriority(exchangeStatusB) -
-        getExchangePriority(exchangeStatusA)
+        getExchangePriority(exchangeStatusB) - getExchangePriority(exchangeStatusA)
       if (exchangeDiff !== 0) return exchangeDiff
     }
 
@@ -447,8 +430,7 @@ const filteredCdks = computed(() => {
     const getCreated = (cdk: any) => {
       if (isCDKGroup(cdk)) {
         return cdk.cdks.reduce(
-          (max: string, sub: any) =>
-            sub.created && sub.created > max ? sub.created : max,
+          (max: string, sub: any) => (sub.created && sub.created > max ? sub.created : max),
           ''
         )
       } else {
@@ -475,9 +457,7 @@ const filteredCdks = computed(() => {
     )
   }
   if (filterForm.value.status) {
-    result = result.filter(
-      (cdk) => getCdkStatus(cdk) === filterForm.value.status
-    )
+    result = result.filter((cdk) => getCdkStatus(cdk) === filterForm.value.status)
   }
 
   return result
@@ -560,8 +540,9 @@ const copyCdk = async (code: string, e: MouseEvent) => {
 }
 
 // 处理单个CDK的选择/取消选择
-const handleCdkSelection = (cdkCode: string, checked: boolean) => {
-  if (checked) {
+const handleCdkSelection = (cdkCode: string, checked: CheckboxValueType) => {
+  const isChecked = checked === true // 仅当为布尔 true 时视为选中，其它(string/number)不误判
+  if (isChecked) {
     // 选中：如果不在数组中，则添加
     if (!selectedCdks.value.includes(cdkCode)) {
       selectedCdks.value.push(cdkCode)
@@ -661,15 +642,10 @@ const handleCharacterChange = async (userId: string | null) => {
 
   // 检查是否为国服账号且无兑换历史
   if (user.server === 'cn') {
-    const userHistory = exchangeStore.history.filter(
-      (record: any) => record.userId === userId
-    )
+    const userHistory = exchangeStore.history.filter((record: any) => record.userId === userId)
 
     if (userHistory.length === 0) {
-      showCustomMessage(
-        '国服账号此功能基本不可用，因为无法获取云端兑换历史，请慎用。',
-        'warning'
-      )
+      showCustomMessage('国服账号此功能基本不可用，因为无法获取云端兑换历史，请慎用。', 'warning')
     }
 
     // 国服账号不自动勾选CDK
@@ -703,10 +679,7 @@ const handleCharacterChange = async (userId: string | null) => {
       showCustomMessage(result.message || '同步兑换历史失败', 'error')
     }
   } catch (error: any) {
-    showCustomMessage(
-      '同步兑换历史失败: ' + (error.message || '未知错误'),
-      'error'
-    )
+    showCustomMessage('同步兑换历史失败: ' + (error.message || '未知错误'), 'error')
   } finally {
     exchangeStore.loading = false
   }
@@ -813,7 +786,10 @@ onBeforeUnmount(() => {
   border: none;
   height: 100%;
   animation: fadeInUp 0.3s ease-out;
-  transition: transform 0.25s, box-shadow 0.25s, background-color 0.3s ease,
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    background-color 0.3s ease,
     border-color 0.3s ease; /* 添加主题切换动画 */
   background: var(--el-bg-color);
 
@@ -951,11 +927,7 @@ onBeforeUnmount(() => {
 .cdk-checkbox-wrapper {
   --color-checkbox-border-light: rgba(0, 0, 0, 0.2);
   --color-checkbox-border-dark: rgba(255, 255, 255, 0.3);
-  --checkbox-bg: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 0.15) 0%,
-    transparent 70%
-  );
+  --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
   --checkbox-size: 1.5em; /* 24px 转换为相对单位 */
 
   position: absolute;
@@ -991,47 +963,27 @@ onBeforeUnmount(() => {
     box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.25);
 
     &::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(0, 0, 0, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
     }
   }
 
   /* 暗色模式适配 */
   @media (prefers-color-scheme: dark) {
     border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 70%
-    );
+    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
 
     &:hover::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
     }
   }
 
   /* Element Plus 暗色模式 */
   html.dark & {
     border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 70%
-    );
+    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
 
     &:hover::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
     }
   }
 }
@@ -1321,7 +1273,9 @@ onBeforeUnmount(() => {
   font-size: 12px;
   text-align: right;
   border-top: 1px solid var(--el-border-color-lighter);
-  transition: color 0.3s ease, border-color 0.3s ease; /* 添加主题切换动画 */
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease; /* 添加主题切换动画 */
 
   @media screen and (max-width: 768px) {
     margin-top: 8px;

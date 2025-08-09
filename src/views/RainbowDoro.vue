@@ -14,17 +14,15 @@ import doroPng from '@/assets/doro_icon.png'
 const cvs = ref()
 let ctx, rafId, spawnTimer
 const doroImg = new Image()
-doroImg.src = doroPng
+// Prefer webp if available, fallback to bundled png; respect base path
+const baseUrl = import.meta.env.BASE_URL || '/'
+const webpUrl = baseUrl + 'doro_icon.webp'
+const testWebp = new Image()
+testWebp.onload = () => (doroImg.src = webpUrl)
+testWebp.onerror = () => (doroImg.src = doroPng)
+testWebp.src = webpUrl
 
-const colors = [
-  '#ff0033',
-  '#ff7f00',
-  '#ffff00',
-  '#00ff00',
-  '#0000ff',
-  '#4b0082',
-  '#9400d3',
-]
+const colors = ['#ff0033', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3']
 
 // 车道参数
 const DORO_SIZE = 80
@@ -146,8 +144,7 @@ function spawnAlien() {
 
   if (Math.random() < 0.008) {
     // 稍微提高生成频率
-    const specialAlien =
-      specialAliens[Math.floor(Math.random() * specialAliens.length)]
+    const specialAlien = specialAliens[Math.floor(Math.random() * specialAliens.length)]
 
     // 根据类型设置不同的尺寸
     let baseSize = 25
@@ -157,7 +154,8 @@ function spawnAlien() {
 
     // 为不同类型设置不同的运动模式
     let motionType = 'wave' // 默认波浪运动
-    if (specialAlien.type === 'planet') motionType = 'straight' // 星球直线运动
+    if (specialAlien.type === 'planet')
+      motionType = 'straight' // 星球直线运动
     else if (specialAlien.emoji && specialAlien.emoji.includes('🚀'))
       motionType = 'rocket' // 火箭抛物线
     else if (specialAlien.emoji && specialAlien.emoji.includes('🛸'))
@@ -168,10 +166,7 @@ function spawnAlien() {
       x: -150,
       y: Math.random() * h * 0.8 + h * 0.1, // 避开边缘
       specialAlien: specialAlien,
-      speed:
-        specialAlien.type === 'planet'
-          ? 0.3 + Math.random() * 0.7
-          : 1 + Math.random() * 2,
+      speed: specialAlien.type === 'planet' ? 0.3 + Math.random() * 0.7 : 1 + Math.random() * 2,
       size: baseSize + Math.random() * 15,
       motionType: motionType,
       amplitude: 30 + Math.random() * 50, // 波浪幅度
@@ -180,9 +175,7 @@ function spawnAlien() {
       baseY: 0, // 会在下面设置
       rotation: 0,
       rotationSpeed:
-        specialAlien.type === 'planet'
-          ? 0.01 + Math.random() * 0.02
-          : 0.03 + Math.random() * 0.07,
+        specialAlien.type === 'planet' ? 0.01 + Math.random() * 0.02 : 0.03 + Math.random() * 0.07,
     })
 
     // 设置基准Y坐标
@@ -295,10 +288,7 @@ function render() {
 
   // 移除出界doro，释放车道
   for (let i = doros.length - 1; i >= 0; i--) {
-    if (
-      doros[i].x - doros[i].tailLen >
-      canvas.width / (window.devicePixelRatio || 1)
-    ) {
+    if (doros[i].x - doros[i].tailLen > canvas.width / (window.devicePixelRatio || 1)) {
       usedLanes.delete(doros[i].laneIdx)
       doros.splice(i, 1)
     }
@@ -328,13 +318,7 @@ function drawBigDoros() {
       ctx.scale(1 + warp, 1 - warp * 0.2)
     }
 
-    ctx.drawImage(
-      doroImg,
-      -bigDoro.size / 2,
-      -bigDoro.size / 2,
-      bigDoro.size,
-      bigDoro.size
-    )
+    ctx.drawImage(doroImg, -bigDoro.size / 2, -bigDoro.size / 2, bigDoro.size, bigDoro.size)
     ctx.restore()
   })
 }
@@ -378,9 +362,7 @@ function drawAliens() {
     switch (alien.motionType) {
       case 'wave':
         // 波浪运动
-        alien.y =
-          alien.baseY +
-          Math.sin(alien.x * alien.frequency + alien.phase) * alien.amplitude
+        alien.y = alien.baseY + Math.sin(alien.x * alien.frequency + alien.phase) * alien.amplitude
         break
       case 'zigzag':
         // 之字形运动
@@ -422,10 +404,7 @@ function drawAliens() {
     }
 
     // 星球特殊效果：发光
-    if (
-      alien.specialAlien.type === 'planet' &&
-      alien.specialAlien.size === 'huge'
-    ) {
+    if (alien.specialAlien.type === 'planet' && alien.specialAlien.size === 'huge') {
       ctx.shadowColor = 'rgba(255, 255, 255, 0.8)'
       ctx.shadowBlur = 20
       ctx.fillText(alien.specialAlien.emoji, 0, 0)
@@ -484,8 +463,7 @@ function drawShootingStars() {
 
   // 清理出界的🌠流星
   shootingStars = shootingStars.filter(
-    (star) =>
-      star.x >= -200 && star.x <= w + 200 && star.y >= -200 && star.y <= h + 200
+    (star) => star.x >= -200 && star.x <= w + 200 && star.y >= -200 && star.y <= h + 200
   )
 }
 

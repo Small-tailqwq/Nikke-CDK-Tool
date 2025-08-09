@@ -7,10 +7,7 @@
 
   <!-- 血条显示 -->
   <div v-if="doroStore.isInAimingGame" class="health-bar">
-    <div
-      class="health-fill"
-      :style="{ width: `${(doroStore.doroHealth / 10) * 100}%` }"
-    ></div>
+    <div class="health-fill" :style="{ width: `${(doroStore.doroHealth / 10) * 100}%` }"></div>
   </div>
 
   <div
@@ -37,7 +34,10 @@
     @mousedown.stop="doroStore.handleDragStart"
     @touchstart.stop.passive="doroStore.handleDragStart"
   >
-    <img :src="doroIcon" alt="Doro" class="doro-icon" />
+    <picture>
+      <source :srcset="baseUrl + 'doro_icon.webp'" type="image/webp" />
+      <img :src="doroIcon" alt="Doro" class="doro-icon" />
+    </picture>
   </div>
 
   <!-- Explosion Fragments Container -->
@@ -59,6 +59,7 @@ import doroIcon from '@/assets/doro_icon.png'
 import TextDestructionEffect from './TextDestructionEffect.vue'
 
 const doroStore = useDoroStore()
+const baseUrl = import.meta.env.BASE_URL || '/'
 
 // --- Local State for Animations ---
 const longPressIntensity = ref(5)
@@ -94,9 +95,7 @@ function handleMouseMove(event) {
     const halfSize = (60 * doroStore.doroScale) / 2
     const doroX = doroStore.position.x + halfSize
     const doroY = doroStore.position.y + halfSize
-    const distance = Math.sqrt(
-      (mouseX.value - doroX) ** 2 + (mouseY.value - doroY) ** 2
-    )
+    const distance = Math.sqrt((mouseX.value - doroX) ** 2 + (mouseY.value - doroY) ** 2)
 
     // 检查鼠标是否在威胁范围内，并且有接近趋势
     if (distance < 120 && isMouseApproaching(doroX, doroY)) {
@@ -113,12 +112,8 @@ function isMouseApproaching(doroX, doroY) {
   const recent = mouseHistory[mouseHistory.length - 1]
   const previous = mouseHistory[mouseHistory.length - 3]
 
-  const prevDistance = Math.sqrt(
-    (previous.x - doroX) ** 2 + (previous.y - doroY) ** 2
-  )
-  const currentDistance = Math.sqrt(
-    (recent.x - doroX) ** 2 + (recent.y - doroY) ** 2
-  )
+  const prevDistance = Math.sqrt((previous.x - doroX) ** 2 + (previous.y - doroY) ** 2)
+  const currentDistance = Math.sqrt((recent.x - doroX) ** 2 + (recent.y - doroY) ** 2)
 
   return currentDistance < prevDistance // 距离在缩短，说明在接近
 }
@@ -145,10 +140,8 @@ function performEvasiveManeuver(doroX, doroY) {
 
   // 计算机动向量（曲线躲避）
   const evasionDistance = 25 * randomFactor // 机动距离
-  const evasionX =
-    perpX * turnDirection * evasionDistance + normalX * evasionDistance * 0.3
-  const evasionY =
-    perpY * turnDirection * evasionDistance + normalY * evasionDistance * 0.3
+  const evasionX = perpX * turnDirection * evasionDistance + normalX * evasionDistance * 0.3
+  const evasionY = perpY * turnDirection * evasionDistance + normalY * evasionDistance * 0.3
 
   // 应用机动
   const doroSize = 60 * doroStore.doroScale
@@ -158,10 +151,7 @@ function performEvasiveManeuver(doroX, doroY) {
 
   // 边界检查
   newX = Math.max(margin, Math.min(newX, window.innerWidth - doroSize - margin))
-  newY = Math.max(
-    margin,
-    Math.min(newY, window.innerHeight - doroSize - margin)
-  )
+  newY = Math.max(margin, Math.min(newY, window.innerHeight - doroSize - margin))
 
   doroStore.position.x = newX
   doroStore.position.y = newY
@@ -250,9 +240,7 @@ function generateFragments() {
 
         fragment.style.transform = `translate(-50%, -50%) translate(${
           Math.cos(angle) * distance
-        }px, ${
-          Math.sin(angle) * distance
-        }px) scale(${endScale}) rotate(${rotation}deg)`
+        }px, ${Math.sin(angle) * distance}px) scale(${endScale}) rotate(${rotation}deg)`
         fragment.style.opacity = 0
       })
     }, 50) // 稍微延迟确保初始状态被应用
@@ -305,12 +293,7 @@ function generateFragments() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
   border-radius: 0; /* 去掉圆角 */
   animation: health-shine 1.5s ease-in-out infinite;
 }
@@ -352,7 +335,9 @@ function generateFragments() {
 
 .floating-doro.is-long-pressing .doro-icon {
   /* 长按时：停止浮动，开始抖动+变红 */
-  animation: danger-shake 0.25s infinite, grow-red 3s linear forwards;
+  animation:
+    danger-shake 0.25s infinite,
+    grow-red 3s linear forwards;
 }
 
 .floating-doro.is-spinning {
@@ -362,7 +347,9 @@ function generateFragments() {
 
 .floating-doro.is-transitioning .doro-icon {
   /* 过场动画：发动机启动效果 */
-  animation: engine-startup 3s ease-out forwards, transition-shake 0.3s infinite;
+  animation:
+    engine-startup 3s ease-out forwards,
+    transition-shake 0.3s infinite;
 }
 
 .floating-doro.is-spinning:not(.is-transitioning) .doro-icon {
@@ -388,7 +375,9 @@ function generateFragments() {
 .floating-doro.is-exploding .doro-icon {
   transform: scale(0) !important;
   opacity: 0 !important;
-  transition: transform 0.1s, opacity 0.1s;
+  transition:
+    transform 0.1s,
+    opacity 0.1s;
 }
 
 /* Explosion fragments */
@@ -406,7 +395,8 @@ function generateFragments() {
   width: 60px; /* 恢复原始大小 */
   height: 60px; /* 恢复原始大小 */
   will-change: transform, opacity;
-  transition: transform 2s cubic-bezier(0.1, 1, 0.2, 1),
+  transition:
+    transform 2s cubic-bezier(0.1, 1, 0.2, 1),
     opacity 2s cubic-bezier(0.5, 1, 1, 1);
 }
 

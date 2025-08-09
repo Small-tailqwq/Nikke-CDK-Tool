@@ -69,11 +69,7 @@
           </div>
 
           <!-- 添加用户卡片 -->
-          <div
-            key="add-user"
-            class="user-card add-user-card"
-            @click="showAddUserDialog"
-          >
+          <div key="add-user" class="user-card add-user-card" @click="showAddUserDialog">
             <div class="add-user-content">
               <el-icon><Plus /></el-icon>
               <span>添加新用户</span>
@@ -126,16 +122,9 @@
         <!-- 兑换结果展示 -->
         <div v-if="exchangeResults.length" class="exchange-results">
           <el-collapse v-model="activeResults">
-            <el-collapse-item
-              v-for="(result, index) in exchangeResults"
-              :key="index"
-              :name="index"
-            >
+            <el-collapse-item v-for="(result, index) in exchangeResults" :key="index" :name="index">
               <template #title>
-                <el-tag
-                  :type="result.success ? 'success' : 'danger'"
-                  size="small"
-                >
+                <el-tag :type="result.success ? 'success' : 'danger'" size="small">
                   {{ result.userName }}
                 </el-tag>
                 <span class="result-title">
@@ -152,9 +141,7 @@
       <!-- 无用户提示 -->
       <div v-if="!hasUsers" class="no-users-tip">
         <el-empty description="暂无用户，请先添加用户">
-          <el-button type="primary" @click="showAddUserDialog">
-            添加用户
-          </el-button>
+          <el-button type="primary" @click="showAddUserDialog"> 添加用户 </el-button>
         </el-empty>
       </div>
     </el-card>
@@ -164,9 +151,7 @@
       <template #header>
         <div class="card-header">
           <span>最近兑换记录</span>
-          <el-button link @click="$router.push('/history')">
-            查看全部
-          </el-button>
+          <el-button link @click="$router.push('/history')"> 查看全部 </el-button>
         </div>
       </template>
 
@@ -190,12 +175,7 @@
         <el-table-column prop="userName" label="用户" min-width="80" />
 
         <!-- CDK（较长，使用tooltip省略显示） -->
-        <el-table-column
-          prop="cdk"
-          label="CDK"
-          min-width="180"
-          show-overflow-tooltip
-        />
+        <el-table-column prop="cdk" label="CDK" min-width="180" show-overflow-tooltip />
 
         <!-- 状态 -->
         <el-table-column label="状态" width="90">
@@ -207,12 +187,7 @@
         </el-table-column>
 
         <!-- 结果（动态宽度，过长时省略） -->
-        <el-table-column
-          prop="message"
-          label="结果"
-          min-width="220"
-          show-overflow-tooltip
-        />
+        <el-table-column prop="message" label="结果" min-width="220" show-overflow-tooltip />
       </el-table>
     </el-card>
 
@@ -294,12 +269,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { Check, Plus, InfoFilled, Refresh } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { useRoute } from 'vue-router'
-import UserDialog from '../components/UserDialog.vue'
+const UserDialog = defineAsyncComponent(() => import('../components/UserDialog.vue'))
 
 import { exchangeCDK, getCaptchaCN, exchangeCDKCN } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
@@ -346,14 +321,7 @@ const selectUserFromParam = (userId) => {
   // 首先检查用户是否已加载
   const user = userStore.getUserById(userId)
   if (user) {
-    console.log(
-      '找到用户，自动选择:',
-      user.name,
-      '用户ID:',
-      user.id,
-      '类型:',
-      typeof user.id
-    )
+    console.log('找到用户，自动选择:', user.name, '用户ID:', user.id, '类型:', typeof user.id)
     // 直接设置选中状态，不使用nextTick
     selectedUserIds.value = [Number(user.id)]
     console.log('已设置选中用户:', selectedUserIds.value)
@@ -366,12 +334,7 @@ const selectUserFromParam = (userId) => {
         console.log('重新加载后的用户列表:', userStore.users)
         const refreshedUser = userStore.getUserById(userId)
         if (refreshedUser) {
-          console.log(
-            '重新加载后找到用户:',
-            refreshedUser.name,
-            '用户ID:',
-            refreshedUser.id
-          )
+          console.log('重新加载后找到用户:', refreshedUser.name, '用户ID:', refreshedUser.id)
           // 直接设置选中状态
           selectedUserIds.value = [Number(refreshedUser.id)]
           console.log('重新加载后已设置选中用户:', selectedUserIds.value)
@@ -432,12 +395,15 @@ watch(
         }
       }
 
-      // 延迟清除路由参数，确保视图更新完成
+      // 延迟清除路由参数，确保视图更新完成（使用路由器自身 API，兼容 Hash 路由）
       setTimeout(() => {
         try {
           if (Object.keys(route.query).length > 0) {
             console.log('清除路由参数...')
-            window.history.replaceState({}, '', '/cdk')
+            // 仅清除查询参数，保留当前 path
+            const { path, hash } = route
+            // 使用 replace 避免新增历史记录
+            router.replace({ path, hash, query: {} })
           }
         } catch (e) {
           console.error('清除路由参数错误:', e)
@@ -572,9 +538,7 @@ const getSubRegion = (user) => {
     return getCnPlatformText(user)
   } else if (user.playerInfo && user.playerInfo.region_name) {
     // 国际服/港澳台服显示具体区域（日区、韩区等）
-    return (
-      regionMapping[user.playerInfo.region_name] || user.playerInfo.region_name
-    )
+    return regionMapping[user.playerInfo.region_name] || user.playerInfo.region_name
   }
   return null
 }
@@ -610,25 +574,11 @@ const toggleUserSelection = (user) => {
   if (index === -1) {
     // 选中：确保添加数字类型ID
     selectedUserIds.value.push(Number(user.id))
-    console.log(
-      '手动选中用户:',
-      user.name,
-      'ID:',
-      user.id,
-      '当前已选:',
-      selectedUserIds.value
-    )
+    console.log('手动选中用户:', user.name, 'ID:', user.id, '当前已选:', selectedUserIds.value)
   } else {
     // 取消选中
     selectedUserIds.value.splice(index, 1)
-    console.log(
-      '取消选中用户:',
-      user.name,
-      'ID:',
-      user.id,
-      '当前已选:',
-      selectedUserIds.value
-    )
+    console.log('取消选中用户:', user.name, 'ID:', user.id, '当前已选:', selectedUserIds.value)
   }
 }
 
@@ -707,21 +657,14 @@ const handleExchange = async () => {
 
           if (user.server === 'cn') {
             // 国服用户：处理验证码并兑换
-            result = await handleCnUserExchange(
-              user,
-              cdk,
-              cdkIndex,
-              userCdkCount
-            )
+            result = await handleCnUserExchange(user, cdk, cdkIndex, userCdkCount)
           } else {
             // 国际服用户：使用原有逻辑
             result = await exchangeCDK(user.cookie, cdk)
           }
 
           // 动态导入服务器工具函数
-          const { generateHistoryServerInfo } = await import(
-            '../utils/serverUtils.js'
-          )
+          const { generateHistoryServerInfo } = await import('../utils/serverUtils.js')
           const serverInfo = generateHistoryServerInfo(user)
 
           // 使用兑换开始时间作为记录时间
@@ -747,9 +690,7 @@ const handleExchange = async () => {
           })
         } catch (error) {
           // 动态导入服务器工具函数
-          const { generateHistoryServerInfo } = await import(
-            '../utils/serverUtils.js'
-          )
+          const { generateHistoryServerInfo } = await import('../utils/serverUtils.js')
           const serverInfo = generateHistoryServerInfo(user)
 
           // 使用兑换开始时间作为记录时间
@@ -797,10 +738,7 @@ const handleExchange = async () => {
     } else if (successCount === 0) {
       showCustomMessage(`全部兑换失败`, 'error')
     } else {
-      showCustomMessage(
-        `成功 ${successCount} 个，失败 ${failCount} 个`,
-        'warning'
-      )
+      showCustomMessage(`成功 ${successCount} 个，失败 ${failCount} 个`, 'warning')
     }
 
     // 展开结果面板
@@ -940,11 +878,7 @@ const submitCnExchange = async () => {
       cookie: currentCnUser.value.cookie, // 传递完整的用户数据供Worker构建Cookie
     }
 
-    const result = await exchangeCDKCN(
-      exchangeParams,
-      currentCdk.value,
-      captchaForm.captcha
-    )
+    const result = await exchangeCDKCN(exchangeParams, currentCdk.value, captchaForm.captcha)
 
     // 保存结果，但不关闭对话框
     captchaForm.result = result

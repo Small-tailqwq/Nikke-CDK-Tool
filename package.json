@@ -6,7 +6,9 @@
     "dev": "vite",
     "prebuild": "node scripts/prebuild.mjs",
     "build": "npm run prebuild && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint --ext .js,.ts,.vue src",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
@@ -18,9 +20,16 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
+    "@vue/eslint-config-prettier": "^9.0.0",
     "axios": "^1.9.0",
+    "eslint": "^9.9.0",
+    "eslint-plugin-vue": "^9.27.0",
+    "prettier": "^3.3.3",
     "sass": "^1.64.1",
     "sharp": "^0.33.0",
-    "vite": "^4.4.9"
+    "unplugin-auto-import": "^0.17.8",
+    "unplugin-vue-components": "^0.27.5",
+    "vite": "^4.4.9",
+    "vite-plugin-compression": "^0.5.1"
   }
 }

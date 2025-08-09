@@ -7,6 +7,7 @@ import { execSync } from 'node:child_process';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
+const SRC_ASSETS_DIR = path.resolve(__dirname, '../src/assets');
 const SOURCE_LIST_PATH = path.resolve(PUBLIC_DIR, 'cdk-list.source.json');
 const OUTPUT_LIST_PATH = path.resolve(PUBLIC_DIR, 'cdk-list.json');
 const IMAGE_DIR = path.resolve(PUBLIC_DIR, 'announcement-images');
@@ -108,6 +109,44 @@ async function processImages() {
 }
 
 /**
+ * Convert src/assets/doro_icon.png to public/doro_icon.webp for runtime usage
+ */
+async function ensureDoroIconWebp() {
+  try {
+    const pngPath = path.join(SRC_ASSETS_DIR, 'doro_icon.png');
+    const webpOut = path.join(PUBLIC_DIR, 'doro_icon.webp');
+
+    // Check png exists
+    await fs.access(pngPath);
+
+    // If webp already exists, skip
+    try {
+      await fs.access(webpOut);
+      console.log('⏭️  doro_icon.webp 已存在，跳过转换...');
+      return;
+    } catch { }
+
+    // Try sharp first
+    try {
+      const sharp = await import('sharp');
+      await sharp.default(pngPath).webp({ quality: 80 }).toFile(webpOut);
+      console.log('✅ 已生成 public/doro_icon.webp');
+      return;
+    } catch { }
+
+    // Fallback to cwebp
+    try {
+      execSync(`cwebp -q 80 "${pngPath}" -o "${webpOut}"`, { stdio: 'pipe' });
+      console.log('✅ 使用 cwebp 生成 public/doro_icon.webp');
+    } catch (err) {
+      console.warn('⚠️  未能生成 doro_icon.webp，请安装 sharp 或 cwebp');
+    }
+  } catch {
+    // png not found — ignore
+  }
+}
+
+/**
  * Generate local image path for CDK
  * @param {string} cdkCode CDK code or group ID
  * @returns {string} Local image path
@@ -188,11 +227,16 @@ async function main() {
   try {
     // 1. Ensure directories exist
     await fs.mkdir(IMAGE_DIR, { recursive: true });
+    await fs.mkdir(PUBLIC_DIR, { recursive: true });
+    await fs.mkdir(SRC_ASSETS_DIR, { recursive: true });
 
-    // 2. Process and convert images to WebP
+    // 2. Prepare common webp asset for app animations
+    await ensureDoroIconWebp();
+
+    // 3. Process and convert announcement images to WebP
     await processImages();
 
-    // 3. Read the source CDK list
+    // 4. Read the source CDK list
     console.log(`📄 正在读取源 CDK 列表文件：${SOURCE_LIST_PATH}...`);
     const sourceListContent = await fs.readFile(SOURCE_LIST_PATH, 'utf-8');
     const sourceData = JSON.parse(sourceListContent);
@@ -203,14 +247,14 @@ async function main() {
     }
     console.log(`👍 在源文件中找到 ${sourceCdkList.length} 个 CDK 项目。`);
 
-    // 4. Process CDK items and assign local image paths
+    // 5. Process CDK items and assign local image paths
     const finalCdkList = [];
     for (const cdk of sourceCdkList) {
       const processedCdk = await processCDKItem(cdk);
       finalCdkList.push(processedCdk);
     }
 
-    // 5. Write the new, browser-ready cdk-list.json
+    // 6. Write the new, browser-ready cdk-list.json
     const finalData = { ...sourceData, cdks: finalCdkList };
     await fs.writeFile(OUTPUT_LIST_PATH, JSON.stringify(finalData, null, 2));
     console.log(`✅ 已为浏览器创建新的 cdk-list.json 文件：${OUTPUT_LIST_PATH}`);

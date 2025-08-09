@@ -9,11 +9,14 @@
     }"
   >
     <div class="doro-ball-bg">
-      <img
-        :src="doroIcon"
-        class="doro-ball-icon"
-        :style="{ transform: `rotate(${rotation}deg)` }"
-      />
+      <picture>
+        <source :srcset="baseUrl + 'doro_icon.webp'" type="image/webp" />
+        <img
+          :src="doroIcon"
+          class="doro-ball-icon"
+          :style="{ transform: `rotate(${rotation}deg)` }"
+        />
+      </picture>
     </div>
   </div>
 </template>
@@ -23,6 +26,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import doroIcon from '@/assets/doro_icon.png'
 
 const emit = defineEmits(['summonEnd'])
+const baseUrl = import.meta.env.BASE_URL || '/'
 
 // Props for starting position
 const props = defineProps({

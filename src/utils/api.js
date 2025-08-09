@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { showCustomMessage } from './customMessage'
+import { generateHistoryServerInfo } from './serverUtils'
 
 // 🔧 注意：normalizeApplicationCookie函数已移除
 // 现在Cookie在存储时就已经转换为标准格式，API调用时直接使用
@@ -16,6 +17,50 @@ const api = axios.create({
     'Content-Type': 'application/json'
   }
 })
+
+// 请求拦截（保留行为最小化，可用于注入 headers 或 AbortController.signal）
+api.interceptors.request.use((config) => {
+  return config
+})
+
+// 简单的指数退避，仅用于 GET
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+async function retryWithBackoff(fn, { retries = 2, baseDelay = 300 } = {}) {
+  let lastErr
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      const status = err?.response?.status
+      const retriable = !status || status >= 500 || err.code === 'ECONNABORTED'
+      if (i === retries || !retriable) break
+      const delay = baseDelay * Math.pow(2, i) + Math.floor(Math.random() * 100)
+      await sleep(delay)
+    }
+  }
+  throw lastErr
+}
+
+// 统一响应拦截：不直接弹UI，仅规范错误信息
+api.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      error.message = '请求超时，请检查网络或稍后重试'
+    } else if (error.response?.status === 429) {
+      error.message = '请求过于频繁，请稍后再试'
+    } else if (error.response?.status >= 500) {
+      error.message = '服务器繁忙，请稍后重试'
+    }
+    return Promise.reject(error)
+  }
+)
+
+// 对 GET 请求提供自动重试封装，其它方法保持不变
+async function getWithRetry(url, config = {}) {
+  return retryWithBackoff(() => api.get(url, config))
+}
 
 // 🌍 国际服CDK兑换
 export const exchangeCDK = async (cookie, cdk) => {
@@ -141,7 +186,7 @@ export const exchangeCDKCN = async (gameParams, cdk, captchaCode) => {
 export const getCaptchaCN = async () => {
   try {
     const aid = `210001040.${Math.random().toString().slice(2)}`
-    const response = await api.get(`/cn/captcha?aid=${aid}`)
+    const response = await getWithRetry(`/cn/captcha?aid=${aid}`)
 
     return {
       success: true,
@@ -396,9 +441,6 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
         records: []
       }
     }
-
-    // 动态导入服务器工具函数
-    const { generateHistoryServerInfo } = await import('./serverUtils.js')
 
     // 生成服务器信息
     const serverInfo = user ? generateHistoryServerInfo(user) : {
