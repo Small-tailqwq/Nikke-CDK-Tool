@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-09T15:09:18.590Z",
+  "lastUpdate": "2025-08-10T13:56:32.126Z",
   "cdks": [
     {
       "type": "group",
@@ -371,7 +371,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "新一期的管人直播奖励，这次应该也是第三名。\n点此跳转管人主页：[Kanae Satoru | 叶彗 慧 ](https://www.youtube.com/@KanaeSatoru)",
       "author": "坦克",
       "created": "2025-08-09"
