@@ -6,16 +6,21 @@
           <span>用户管理</span>
           <div class="header-actions">
             <el-dropdown trigger="click" class="column-selector">
-              <el-button type="info" size="small" circle>
+              <el-button size="small" circle class="column-selector-trigger" aria-label="列显示设置">
                 <el-icon><View /></el-icon>
               </el-button>
               <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item v-for="(col, index) in visibleColumns" :key="index">
+                <el-dropdown-menu class="column-selector-menu">
+                  <el-dropdown-item
+                    v-for="(col, index) in visibleColumns"
+                    :key="index"
+                    class="column-selector-item"
+                  >
                     <el-checkbox v-model="col.visible" :label="col.label" />
                   </el-dropdown-item>
-                  <el-dropdown-item divided>
-                    <el-button text @click="resetColumns">重置</el-button>
+                  <el-dropdown-item class="dropdown-reset-item" @click="resetColumns">
+                    <el-icon class="reset-icon"><RefreshRight /></el-icon>
+                    <span class="reset-text">重置</span>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
@@ -241,6 +246,7 @@ import { showCustomMessage, ProgressMessage } from '../utils/customMessage'
 import { renewGlobalCookie, shouldRenewCookie, autoRenewUserCookie } from '../utils/api'
 
 import { View } from '@element-plus/icons-vue'
+import { RefreshRight } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -1114,5 +1120,52 @@ onBeforeUnmount(() => {
 }
 .user-table {
   width: 100%;
+}
+</style>
+<style scoped>
+/* 新增：筛选栏下拉样式优化 */
+:deep(.column-selector-trigger) {
+  --_btn-size: 30px;
+  width: var(--_btn-size);
+  height: var(--_btn-size);
+  padding: 0;
+  background: var(--el-fill-color-blank);
+  border: 1px solid var(--el-border-color-light);
+  color: var(--el-text-color-secondary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background-color .18s, color .18s, border-color .18s, box-shadow .25s;
+}
+:deep(.column-selector-trigger:hover) {
+  background: var(--hover-bg);
+  color: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+:deep(.column-selector-trigger:active) {
+  background: var(--active-bg);
+  box-shadow: 0 0 0 1px rgba(var(--el-color-primary-rgb), .15) inset;
+}
+:deep(.column-selector-trigger .el-icon) {
+  font-size: 16px;
+}
+/* 聚焦可访问性 */
+:deep(.column-selector-trigger:focus-visible) {
+  outline: 2px solid rgba(var(--el-color-primary-rgb), .5);
+  outline-offset: 2px;
+}
+/* 暗色模式适配 */
+html.dark :deep(.column-selector-trigger) {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--el-text-color-secondary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+html.dark :deep(.column-selector-trigger:hover) {
+  background: rgba(255,255,255,0.08);
+  color: var(--el-color-primary);
+  border-color: rgba(255,255,255,0.25);
+}
+html.dark :deep(.column-selector-trigger:active) {
+  background: rgba(255,255,255,0.12);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.18) inset;
 }
 </style>
