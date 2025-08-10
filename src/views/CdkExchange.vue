@@ -661,6 +661,25 @@ const handleExchange = async () => {
           } else {
             // 国际服用户：使用原有逻辑
             result = await exchangeCDK(user.cookie, cdk)
+
+            // 针对“已兑换过”与“成功”做区分处理
+            if (result && result.code === 1302016) {
+              // 已兑换过：不标记为 success，但提示用户无需再次兑换
+              result = {
+                ...result,
+                success: false,
+                message: '已兑换过（非本次兑换）',
+              }
+            }
+
+            // 使用次数耗尽翻译
+            if (result && result.code === 1302017) {
+              result = {
+                ...result,
+                success: false,
+                message: 'CDK使用次数已耗尽',
+              }
+            }
           }
 
           // 动态导入服务器工具函数
@@ -668,12 +687,19 @@ const handleExchange = async () => {
           const serverInfo = generateHistoryServerInfo(user)
 
           // 使用兑换开始时间作为记录时间
+          // 规范化 message：区分“未真正发起”与“失败”场景
+          let displayMessage = result.message
+          if (result.code === 300001) {
+            displayMessage = '游戏未登录或Cookie已过期'
+          }
+
           results.push({
             userId: user.id,
             userName: user.name,
             cdk: cdk,
-            success: result.success,
-            message: result.message,
+            success: !!result.success,
+            message: displayMessage,
+            code: result.code,
             source: '本地', // 标记为本地兑换记录
             ...serverInfo,
             date: exchangeStartTime

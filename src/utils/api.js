@@ -75,7 +75,8 @@ export const exchangeCDK = async (cookie, cdk) => {
     if (code === 0) {
       return {
         success: true,
-        message: '兑换成功'
+        message: '兑换成功',
+        code: 0
       }
     }
 
@@ -84,12 +85,16 @@ export const exchangeCDK = async (cookie, cdk) => {
       1302009: 'CDK兑换次数已达上限',
       1302015: 'CDK无效',
       1302016: '该账号已兑换过此CDK',
+      1302017: 'CDK使用次数已耗尽',
       300001: '游戏未登录或Cookie已过期'
     }
 
+    const alreadyRedeemed = code === 1302016
     return {
       success: false,
-      message: errorMessages[code] || msg || '兑换失败'
+      message: errorMessages[code] || msg || '兑换失败',
+      code,
+      alreadyRedeemed
     }
   } catch (error) {
     console.error('CDK兑换失败:', error)
@@ -97,12 +102,14 @@ export const exchangeCDK = async (cookie, cdk) => {
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       return {
         success: false,
-        message: '请求超时，请检查网络连接或稍后重试'
+        message: '请求超时，请检查网络连接或稍后重试',
+        code: -1
       }
     }
     return {
       success: false,
-      message: error.message || '网络错误，请稍后重试'
+      message: error.message || '网络错误，请稍后重试',
+      code: -1
     }
   }
 }

@@ -60,6 +60,7 @@
           :class="{
             'exchange-not-redeemed': exchangeStatus === '未兑换',
             'exchange-partially-redeemed': exchangeStatus === '部分兑换',
+            'exchange-exhausted': exchangeStatus === '已失效',
             'exchange-redeemed': exchangeStatus === '已兑换',
           }"
         >
@@ -101,23 +102,14 @@
         </div>
 
         <div class="cdk-servers">
-          <el-tag
-            v-for="server in getGroupServers(group)"
-            :key="server"
-            size="small"
-          >
+          <el-tag v-for="server in getGroupServers(group)" :key="server" size="small">
             {{ getServerName(server) }}
           </el-tag>
         </div>
 
         <!-- 展开/收起按钮 - 上移 -->
         <div class="expand-button">
-          <el-button
-            type="primary"
-            size="default"
-            plain
-            @click="toggleExpanded"
-          >
+          <el-button type="primary" size="default" plain @click="toggleExpanded">
             <el-icon><Grid /></el-icon>
             查看详情
           </el-button>
@@ -133,10 +125,7 @@
             :append-to-body="true"
           >
             <template #content>
-              <div
-                class="note-content"
-                v-html="formatNoteContent(group.note)"
-              ></div>
+              <div class="note-content" v-html="formatNoteContent(group.note)"></div>
             </template>
             <div class="note-trigger">
               <el-icon class="note-icon"><InfoFilled /></el-icon>
@@ -168,12 +157,7 @@
               <h3 id="overlay-title">
                 {{ group.groupName || '未命名CDK组合' }}
               </h3>
-              <el-button
-                type="primary"
-                circle
-                size="small"
-                @click="closeOverlay"
-              >
+              <el-button type="primary" circle size="small" @click="closeOverlay">
                 <el-icon><Close /></el-icon>
               </el-button>
             </div>
@@ -217,10 +201,8 @@
                       v-if="getSubCdkExchangeStatus(subCdk.code)"
                       class="sub-cdk-exchange-status"
                       :class="{
-                        'exchange-not-redeemed':
-                          getSubCdkExchangeStatus(subCdk.code) === '未兑换',
-                        'exchange-redeemed':
-                          getSubCdkExchangeStatus(subCdk.code) === '已兑换',
+                        'exchange-not-redeemed': getSubCdkExchangeStatus(subCdk.code) === '未兑换',
+                        'exchange-redeemed': getSubCdkExchangeStatus(subCdk.code) === '已兑换',
                       }"
                     >
                       {{ getSubCdkExchangeStatus(subCdk.code) }}
@@ -247,11 +229,7 @@
                 </div>
 
                 <div class="sub-cdk-servers">
-                  <el-tag
-                    v-for="server in subCdk.servers"
-                    :key="server"
-                    size="small"
-                  >
+                  <el-tag v-for="server in subCdk.servers" :key="server" size="small">
                     {{ getServerName(server) }}
                   </el-tag>
                 </div>
@@ -265,10 +243,7 @@
                     :append-to-body="true"
                   >
                     <template #content>
-                      <div
-                        class="note-content"
-                        v-html="formatNoteContent(subCdk.note)"
-                      ></div>
+                      <div class="note-content" v-html="formatNoteContent(subCdk.note)"></div>
                     </template>
                     <div class="note-trigger">
                       <el-icon class="note-icon"><InfoFilled /></el-icon>
@@ -303,14 +278,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import {
-  Document,
-  InfoFilled,
-  Picture,
-  Collection,
-  Grid,
-  Close,
-} from '@element-plus/icons-vue'
+import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
 import type { CDKGroup } from '../utils/fetchCdk'
 import {
   getGroupTotalReward,
@@ -369,9 +337,7 @@ const isGroupSelected = computed({
 
 // 获取组合中可用的CDK代码
 const getAvailableGroupCodes = (): string[] => {
-  return props.group.cdks
-    .filter((cdk) => cdk.status === '可用')
-    .map((cdk) => cdk.code)
+  return props.group.cdks.filter((cdk) => cdk.status === '可用').map((cdk) => cdk.code)
 }
 
 // 处理组合选择
@@ -382,8 +348,7 @@ const handleGroupSelection = (value: boolean) => {
 
   if (value) {
     // 智能选择：如果全部可用，选择所有；如果部分可用，只选择可用的
-    const codesToSelect =
-      getGroupStatus(props.group) === '可用' ? groupCodes : availableCodes
+    const codesToSelect = getGroupStatus(props.group) === '可用' ? groupCodes : availableCodes
 
     codesToSelect.forEach((code) => {
       if (!newSelected.includes(code)) {
@@ -513,8 +478,7 @@ const getDisplayCdkInfo = (): Array<{ code: string; status: string }> => {
   const maxTotal = maxPerRow * 2 // 2行最多6个
 
   // 如果有超出的，预留位置给省略号
-  const displayCount =
-    props.group.cdks.length > maxTotal ? maxTotal - 1 : maxTotal
+  const displayCount = props.group.cdks.length > maxTotal ? maxTotal - 1 : maxTotal
 
   return props.group.cdks.slice(0, displayCount).map((c) => ({
     code: c.code,
@@ -537,18 +501,30 @@ const shouldUseRowLayout = (author?: string): boolean => {
 
 // 获取单个子CDK的兑换状态
 const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
-  if (
-    !props.selectedUserExchangeHistory ||
-    props.selectedUserExchangeHistory.length === 0
-  ) {
+  if (!props.selectedUserExchangeHistory || props.selectedUserExchangeHistory.length === 0) {
     return null
   }
 
-  const isExchanged = props.selectedUserExchangeHistory.some(
-    (record: any) => record.cdk === cdkCode
-  )
-
-  return isExchanged ? '已兑换' : '未兑换'
+  let isExchanged = false
+  let isExhausted = false
+  props.selectedUserExchangeHistory.forEach((record: any) => {
+    if (record.cdk !== cdkCode) return
+    if (
+      record.success === true ||
+      record.source === '云端' ||
+      record.code === 1302016 ||
+      (typeof record.message === 'string' && record.message.includes('已兑换过'))
+    ) {
+      isExchanged = true
+    }
+    const msg = record.message || ''
+    if (record.code === 1302017 || msg.includes('使用次数已耗尽') || msg.includes('无效')) {
+      isExhausted = true
+    }
+  })
+  if (isExchanged) return '已兑换'
+  if (isExhausted) return '已失效'
+  return '未兑换'
 }
 </script>
 
@@ -655,11 +631,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 .cdk-checkbox-wrapper {
   --color-checkbox-border-light: rgba(0, 0, 0, 0.2);
   --color-checkbox-border-dark: rgba(255, 255, 255, 0.3);
-  --checkbox-bg: radial-gradient(
-    circle,
-    rgba(0, 0, 0, 0.15) 0%,
-    transparent 70%
-  );
+  --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
   --checkbox-size: 1.5em; /* 24px 转换为相对单位 */
 
   position: absolute;
@@ -695,47 +667,27 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.25);
 
     &::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(0, 0, 0, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
     }
   }
 
   /* 暗色模式适配 */
   @media (prefers-color-scheme: dark) {
     border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 70%
-    );
+    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
 
     &:hover::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
     }
   }
 
   /* Element Plus 暗色模式 */
   html.dark & {
     border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.15) 0%,
-      transparent 70%
-    );
+    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
 
     &:hover::after {
-      --checkbox-bg: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.25) 0%,
-        transparent 70%
-      );
+      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
     }
   }
 }
@@ -987,6 +939,10 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   &.exchange-redeemed {
     background: var(--el-color-info);
   }
+  &.exchange-exhausted {
+    background: var(--el-color-warning);
+    filter: grayscale(20%);
+  }
 }
 
 .group-badge {
@@ -1149,7 +1105,9 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   font-size: 12px;
   text-align: right;
   border-top: 1px solid var(--el-border-color-lighter);
-  transition: color 0.3s ease, border-color 0.3s ease; /* 添加主题切换动画 */
+  transition:
+    color 0.3s ease,
+    border-color 0.3s ease; /* 添加主题切换动画 */
 
   @media screen and (max-width: 768px) {
     margin-top: 8px;
@@ -1315,8 +1273,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   border-radius: 8px;
   padding: 16px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: cardFloatIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms)
-    both;
+  animation: cardFloatIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms) both;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;

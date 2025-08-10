@@ -160,6 +160,7 @@
               :class="{
                 'exchange-not-redeemed': getCdkExchangeStatus(cdk) === '未兑换',
                 'exchange-redeemed': getCdkExchangeStatus(cdk) === '已兑换',
+                'exchange-exhausted': getCdkExchangeStatus(cdk) === '已失效',
               }"
             >
               {{ getCdkExchangeStatus(cdk) }}
@@ -279,32 +280,73 @@ const selectedUserExchangeHistory = computed(() => {
 })
 
 // 获取CDK的兑换状态（仅在选中角色时启用）
-const getCdkExchangeStatus = (cdk: CDK): '未兑换' | '部分兑换' | '已兑换' | null => {
+const getCdkExchangeStatus = (cdk: CDK): '未兑换' | '部分兑换' | '已兑换' | '已失效' | null => {
   if (!filterForm.value.character) return null
 
   if (isCDKGroup(cdk)) {
     // CDK组合的兑换状态
     const groupCodes = getGroupCodes(cdk)
     // 使用Set去重，避免同一个CDK多次兑换导致重复计算
+    const exhaustedCodes = new Set<string>()
     const exchangedCodes = new Set(
       selectedUserExchangeHistory.value
         .filter((record: any) => groupCodes.includes(record.cdk))
+        .filter((record: any) => {
+          // 只计入真正成功或已在服务器兑换过的记录
+          if (record.success) return true
+          // 任何云端历史（source===云端）即视为已兑换（官方历史列表只出现已兑换）
+          if (record.source === '云端') return true
+          if (record.code === 1302016) return true // 服务器返回已兑换过
+          if (typeof record.message === 'string' && record.message.includes('已兑换过')) return true
+          return false
+        })
         .map((record: any) => record.cdk)
     )
 
+    // 统计失效（次数耗尽/无效）
+    selectedUserExchangeHistory.value
+      .filter((record: any) => groupCodes.includes(record.cdk))
+      .forEach((record: any) => {
+        const msg = record.message || ''
+        if (record.code === 1302017 || msg.includes('使用次数已耗尽') || msg.includes('无效')) {
+          exhaustedCodes.add(record.cdk)
+        }
+      })
+
     if (exchangedCodes.size === 0) {
-      return '未兑换'
+      // 若全部都被判定为失效（或存在失效且无成功），返回已失效
+      if (exhaustedCodes.size > 0 && exhaustedCodes.size === groupCodes.length) return '已失效'
+      if (exhaustedCodes.size === groupCodes.length) return '已失效'
+      return exhaustedCodes.size > 0 ? '部分兑换' : '未兑换'
     } else if (exchangedCodes.size === groupCodes.length) {
       return '已兑换'
     } else {
+      // 如果剩余未兑换部分全部失效，也可视为已失效（但仍提示部分）
+      if (exhaustedCodes.size + exchangedCodes.size === groupCodes.length) return '部分兑换'
       return '部分兑换'
     }
   } else {
     // 单个CDK的兑换状态
-    const isExchanged = selectedUserExchangeHistory.value.some(
-      (record: any) => record.cdk === cdk.code
-    )
-    return isExchanged ? '已兑换' : '未兑换'
+    let isExchanged = false
+    let isExhausted = false
+    selectedUserExchangeHistory.value.forEach((record: any) => {
+      if (record.cdk !== cdk.code) return
+      if (
+        record.success === true ||
+        record.source === '云端' ||
+        record.code === 1302016 ||
+        (typeof record.message === 'string' && record.message.includes('已兑换过'))
+      ) {
+        isExchanged = true
+      }
+      const msg = record.message || ''
+      if (record.code === 1302017 || msg.includes('使用次数已耗尽') || msg.includes('无效')) {
+        isExhausted = true
+      }
+    })
+    if (isExchanged) return '已兑换'
+    if (isExhausted) return '已失效'
+    return '未兑换'
   }
 }
 
@@ -409,14 +451,15 @@ const filteredCdks = computed(() => {
     const statusDiff = getPriority(statusB) - getPriority(statusA)
     if (statusDiff !== 0) return statusDiff
 
-    // 如果选中了角色，在相同可用性下按兑换状态排序：未兑换 > 部分兑换 > 已兑换
+    // 如果选中了角色，在相同可用性下按兑换状态排序：未兑换 > 部分兑换 > 已失效 > 已兑换
     if (filterForm.value.character) {
       const exchangeStatusA = getCdkExchangeStatus(a)
       const exchangeStatusB = getCdkExchangeStatus(b)
 
       const getExchangePriority = (status: string | null) => {
-        if (status === '未兑换') return 3
-        if (status === '部分兑换') return 2
+        if (status === '未兑换') return 4
+        if (status === '部分兑换') return 3
+        if (status === '已失效') return 2
         if (status === '已兑换') return 1
         return 0
       }
@@ -920,6 +963,10 @@ onBeforeUnmount(() => {
 
   &.exchange-redeemed {
     background: var(--el-color-info);
+  }
+  &.exchange-exhausted {
+    background: var(--el-color-warning);
+    filter: grayscale(15%);
   }
 }
 
