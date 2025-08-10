@@ -11,10 +11,7 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item
-                    v-for="(col, index) in visibleColumns"
-                    :key="index"
-                  >
+                  <el-dropdown-item v-for="(col, index) in visibleColumns" :key="index">
                     <el-checkbox v-model="col.visible" :label="col.label" />
                   </el-dropdown-item>
                   <el-dropdown-item divided>
@@ -32,48 +29,27 @@
             >
               批量续期
             </el-button>
-            <el-button type="primary" size="small" @click="showAddUserDialog">
-              添加用户
-            </el-button>
+            <el-button type="primary" size="small" @click="showAddUserDialog"> 添加用户 </el-button>
           </div>
         </div>
       </template>
 
-      <el-table
-        :data="userStore.users"
-        stripe
-        v-loading="userStore.loading"
-        class="user-table"
-      >
-        <el-table-column
-          v-if="getColumnVisible('name')"
-          prop="name"
-          label="用户名"
-          min-width="100"
-        >
+      <el-table :data="userStore.users" stripe v-loading="userStore.loading" class="user-table">
+        <el-table-column v-if="getColumnVisible('name')" prop="name" label="用户名" min-width="100">
           <template #default="{ row }">
             <el-tooltip :content="row.name" placement="top">
               <span class="ellipsis">{{ row.name }}</span>
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column
-          v-if="getColumnVisible('uid')"
-          prop="uid"
-          label="UID"
-          min-width="120"
-        >
+        <el-table-column v-if="getColumnVisible('uid')" prop="uid" label="UID" min-width="120">
           <template #default="{ row }">
             <el-tooltip :content="row.uid" placement="top">
               <span class="ellipsis">{{ row.uid }}</span>
             </el-tooltip>
           </template>
         </el-table-column>
-        <el-table-column
-          v-if="getColumnVisible('server')"
-          label="服务器"
-          min-width="140"
-        >
+        <el-table-column v-if="getColumnVisible('server')" label="服务器" min-width="140">
           <template #default="{ row }">
             <div class="server-display">
               <el-tag
@@ -102,12 +78,7 @@
                   <span class="info-value">{{ getCnRoleName(row) }}</span>
                 </div>
               </div>
-              <div
-                v-else-if="
-                  (row.server === 'global' || row.server === 'tw') &&
-                  row.playerInfo
-                "
-              >
+              <div v-else-if="(row.server === 'global' || row.server === 'tw') && row.playerInfo">
                 <!-- 角色名 -->
                 <div class="info-row">
                   <span class="info-label">角色:</span>
@@ -116,9 +87,7 @@
                 <!-- 战力 -->
                 <div class="info-row">
                   <span class="info-label">战力:</span>
-                  <span class="info-value">{{
-                    row.playerInfo.team_combat?.toLocaleString()
-                  }}</span>
+                  <span class="info-value">{{ row.playerInfo.team_combat?.toLocaleString() }}</span>
                 </div>
               </div>
               <div v-else-if="row.server !== 'cn'" class="no-info">
@@ -151,9 +120,7 @@
         >
           <template #default="{ row }">
             <div class="cookie-status-display">
-              <el-tag v-if="row.server === 'cn'" type="info">
-                国服不适用
-              </el-tag>
+              <el-tag v-if="row.server === 'cn'" type="info"> 国服不适用 </el-tag>
               <template v-else>
                 <el-tag :type="getCookieStatusType(row.cookieExpireDays)">
                   {{
@@ -167,9 +134,7 @@
                   content="Cookie已失效或无法验证，请重新设置完整的Cookie"
                   placement="top"
                 >
-                  <el-icon
-                    style="margin-left: 4px; color: var(--el-color-warning)"
-                  >
+                  <el-icon style="margin-left: 4px; color: var(--el-color-warning)">
                     <WarningFilled />
                   </el-icon>
                 </el-tooltip>
@@ -177,12 +142,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column
-          :width="getActionColumnWidth"
-          :fixed="false"
-          label="操作"
-          align="center"
-        >
+        <el-table-column :width="getActionColumnWidth" :fixed="false" label="操作" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
               <!-- 第一行：编辑 删除 -->
@@ -190,20 +150,13 @@
                 <el-button size="small" type="primary" @click="handleEdit(row)">
                   {{ isCompactScreen ? '编' : '编辑' }}
                 </el-button>
-                <el-button
-                  size="small"
-                  type="danger"
-                  @click="handleDelete(row)"
-                >
+                <el-button size="small" type="danger" @click="handleDelete(row)">
                   {{ isCompactScreen ? '删' : '删除' }}
                 </el-button>
               </div>
 
               <!-- 第二行：续期 同步 -->
-              <div
-                class="button-row"
-                v-if="shouldShowRenewButton(row) || row.server !== 'cn'"
-              >
+              <div class="button-row" v-if="shouldShowRenewButton(row) || row.server !== 'cn'">
                 <el-button
                   v-if="shouldShowRenewButton(row)"
                   size="small"
@@ -248,9 +201,29 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmDelete" :loading="deleting">
-            确定
-          </el-button>
+          <el-button type="danger" @click="confirmDelete" :loading="deleting"> 确定 </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 同步历史记录对话框（替代默认 MessageBox，避免强制水平居中，可与删除弹窗对齐） -->
+    <el-dialog
+      v-model="syncHistoryDialogVisible"
+      title="同步历史记录"
+      :width="isMobile ? '90%' : '420px'"
+      class="sync-history-dialog"
+    >
+      <p>选择 "全部" 会逐页抓取，若数量较多耗时更久。</p>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="syncHistoryDialogVisible = false" :disabled="syncLoading"
+            >取消</el-button
+          >
+          <el-button @click="syncRecentPage" :loading="syncLoading" :disabled="syncLoading"
+            >最近20条</el-button
+          >
+          <el-button type="primary" @click="syncAll" :loading="syncLoading">全部</el-button>
         </span>
       </template>
     </el-dialog>
@@ -265,11 +238,7 @@ import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import UserDialog from '../components/UserDialog.vue'
 import { showCustomMessage, ProgressMessage } from '../utils/customMessage'
-import {
-  renewGlobalCookie,
-  shouldRenewCookie,
-  autoRenewUserCookie,
-} from '../utils/api'
+import { renewGlobalCookie, shouldRenewCookie, autoRenewUserCookie } from '../utils/api'
 
 import { View } from '@element-plus/icons-vue'
 
@@ -278,11 +247,13 @@ const exchangeStore = useExchangeStore()
 
 const dialogVisible = ref(false)
 const deleteDialogVisible = ref(false)
+const syncHistoryDialogVisible = ref(false)
 const deleting = ref(false)
 const isEdit = ref(false)
 const selectedUser = ref(null)
 const selectedUserId = ref(null)
 const syncLoading = ref(false)
+const syncTargetUser = ref(null)
 
 // Cookie续期相关状态
 const renewLoadingMap = ref(new Map()) // 记录每个用户的续期状态
@@ -297,8 +268,7 @@ const visibleColumns = ref([
   { key: 'createTime', label: '添加时间', visible: true },
   { key: 'cookieStatus', label: 'Cookie状态', visible: true },
 ])
-const getColumnVisible = (key) =>
-  visibleColumns.value.find((c) => c.key === key)?.visible || false
+const getColumnVisible = (key) => visibleColumns.value.find((c) => c.key === key)?.visible || false
 const resetColumns = () => {
   visibleColumns.value.forEach((col) => (col.visible = true))
 }
@@ -450,10 +420,7 @@ const handleRenewUserCookie = async (user) => {
       }
 
       // 确保Cookie中没有expires字段（过期时间信息在角色信息卡片中显示）
-      const cookieWithoutExpires = result.data.newCookie.replace(
-        /;\s*expires=[^;]+/i,
-        ''
-      )
+      const cookieWithoutExpires = result.data.newCookie.replace(/;\s*expires=[^;]+/i, '')
 
       // 更新用户数据
       const updateData = {
@@ -479,10 +446,7 @@ const handleRenewUserCookie = async (user) => {
         hasGameToken: result.data.hasGameToken,
       })
     } else {
-      showCustomMessage(
-        `用户 ${user.name} Cookie续期失败：${result.message}`,
-        'error'
-      )
+      showCustomMessage(`用户 ${user.name} Cookie续期失败：${result.message}`, 'error')
       console.error(`用户 ${user.name} Cookie续期失败:`, result)
     }
   } catch (error) {
@@ -497,9 +461,7 @@ const handleRenewUserCookie = async (user) => {
 // 批量Cookie续期
 const handleBatchRenewCookies = async () => {
   // 筛选需要续期的用户
-  const renewableUsers = userStore.users.filter((user) =>
-    shouldShowRenewButton(user)
-  )
+  const renewableUsers = userStore.users.filter((user) => shouldShowRenewButton(user))
 
   if (renewableUsers.length === 0) {
     showCustomMessage('当前没有需要续期的用户', 'info')
@@ -541,9 +503,7 @@ const handleBatchRenewCookies = async () => {
       const progressPercentage = ((i + 1) / renewableUsers.length) * 100
       progressMessage.updateProgress(
         progressPercentage,
-        `正在为 ${user.name} 续期，第${i + 1}个，共${
-          renewableUsers.length
-        }个用户...`
+        `正在为 ${user.name} 续期，第${i + 1}个，共${renewableUsers.length}个用户...`
       )
 
       try {
@@ -552,9 +512,7 @@ const handleBatchRenewCookies = async () => {
         if (result.success) {
           // 🚨 检查是否包含关键的game_token
           if (!result.data.hasGameToken) {
-            console.error(
-              `❌ 批量续期: 用户 ${user.name} 失败：响应中未包含game_token`
-            )
+            console.error(`❌ 批量续期: 用户 ${user.name} 失败：响应中未包含game_token`)
             failCount++
             results.push({
               user: user.name,
@@ -565,10 +523,7 @@ const handleBatchRenewCookies = async () => {
             successCount++
 
             // 确保Cookie中没有expires字段（过期时间信息在角色信息卡片中显示）
-            const cookieWithoutExpires = result.data.newCookie.replace(
-              /;\s*expires=[^;]+/i,
-              ''
-            )
+            const cookieWithoutExpires = result.data.newCookie.replace(/;\s*expires=[^;]+/i, '')
 
             // 更新用户数据
             const updateData = {
@@ -673,9 +628,7 @@ const parseServerTags = (user) => {
 
     // 如果有角色信息，解析具体区域
     if (user.playerInfo && user.playerInfo.region_name) {
-      const regionName =
-        regionMapping[user.playerInfo.region_name] ||
-        user.playerInfo.region_name
+      const regionName = regionMapping[user.playerInfo.region_name] || user.playerInfo.region_name
       tags.push({
         text: regionName,
         type: 'info',
@@ -698,9 +651,7 @@ const parseServerTags = (user) => {
 
     // 如果有角色信息，解析具体区域
     if (user.playerInfo && user.playerInfo.region_name) {
-      const regionName =
-        regionMapping[user.playerInfo.region_name] ||
-        user.playerInfo.region_name
+      const regionName = regionMapping[user.playerInfo.region_name] || user.playerInfo.region_name
       tags.push({
         text: regionName,
         type: 'info',
@@ -745,24 +696,8 @@ const handleSyncHistory = async (user) => {
     showCustomMessage('只支持同步国际服用户的历史记录', 'error')
     return
   }
-
-  // 显示同步选项对话框
-  ElMessageBox.confirm('此功能为同步云端CDK兑换记录', '同步历史记录', {
-    confirmButtonText: '全部',
-    cancelButtonText: '最近20条',
-    distinguishCancelAndClose: true,
-    type: 'info',
-  })
-    .then(async () => {
-      // 用户选择同步全部
-      await syncAllPages(user)
-    })
-    .catch((action) => {
-      if (action === 'cancel') {
-        // 用户选择只同步第一页
-        syncSinglePage(user, 1)
-      }
-    })
+  syncTargetUser.value = user
+  syncHistoryDialogVisible.value = true
 }
 
 // 同步单页历史记录
@@ -789,13 +724,21 @@ const syncSinglePage = async (user, page = 1) => {
     }
   } catch (error) {
     console.error('同步历史记录失败:', error)
-    showCustomMessage(
-      '同步历史记录失败: ' + (error.message || '未知错误'),
-      'error'
-    )
+    showCustomMessage('同步历史记录失败: ' + (error.message || '未知错误'), 'error')
   } finally {
     syncLoading.value = false
   }
+}
+
+// 同步对话框按钮动作
+const syncRecentPage = () => {
+  if (!syncTargetUser.value) return
+  syncSinglePage(syncTargetUser.value, 1)
+  // 不立即关闭，等同步结束后在 syncSinglePage 内部通知
+}
+const syncAll = async () => {
+  if (!syncTargetUser.value) return
+  await syncAllPages(syncTargetUser.value)
 }
 
 // 同步所有页面
@@ -855,9 +798,7 @@ const syncAllPages = async (user) => {
     }
 
     // 显示最终结果
-    progressMessage.complete(
-      `成功同步了 ${totalRecords} 条历史记录，共 ${currentPage} 页`
-    )
+    progressMessage.complete(`成功同步了 ${totalRecords} 条历史记录，共 ${currentPage} 页`)
   } catch (error) {
     console.error('同步所有历史记录失败:', error)
     progressMessage.error('同步失败: ' + (error.message || '未知错误'))
@@ -909,9 +850,7 @@ onMounted(async () => {
   )
 
   if (usersWithInvalidCookies.length > 0) {
-    console.log(
-      `发现 ${usersWithInvalidCookies.length} 个用户的Cookie状态异常，建议重新设置`
-    )
+    console.log(`发现 ${usersWithInvalidCookies.length} 个用户的Cookie状态异常，建议重新设置`)
   }
 
   // 🔧 监听来自Cookie警告组件的编辑用户事件
@@ -1147,6 +1086,15 @@ onBeforeUnmount(() => {
   }
 
   :deep(.delete-dialog) {
+    @media screen and (max-width: 768px) {
+      .el-dialog {
+        width: 90% !important;
+        margin: 20px auto !important;
+      }
+    }
+  }
+  :deep(.sync-history-dialog) {
+    // 与删除弹窗保持相同的水平位置风格（默认 Element Plus 会居中，通过不覆写全局 transform，仅在小屏统一宽度）
     @media screen and (max-width: 768px) {
       .el-dialog {
         width: 90% !important;
