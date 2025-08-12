@@ -26,6 +26,7 @@
                     clearable
                     size="small"
                     style="width: 110px"
+                    @change="handleStatusChange"
                   >
                     <el-option label="可用" value="可用" />
                     <el-option label="部分可用" value="部分可用" />
@@ -719,8 +720,22 @@ const autoSelectUnredeemedCdks = () => {
   }
 }
 
+// 处理状态选择变化
+const handleStatusChange = (status: string) => {
+  // 选择状态时，清空角色筛选
+  if (status) {
+    filterForm.value.character = ''
+    selectedCdks.value = [] // 清空选择的CDK
+  }
+}
+
 // 处理角色选择变化
 const handleCharacterChange = async (userId: string | null) => {
+  // 选择角色时，清空状态筛选
+  if (userId) {
+    filterForm.value.status = ''
+  }
+
   if (!userId) {
     // 清空选择的CDK
     selectedCdks.value = []
