@@ -57,7 +57,7 @@
           "created": "2025-06-14"
         }
       ],
-      "image": "/announcement-images/STELLAR_BLADE_01.webp"
+      "image": "announcement-images/STELLAR_BLADE_01.png"
     },
     {
       "code": "NIKKEDAILYNEWS",
@@ -70,7 +70,7 @@
       "note": "无论刮风还是下雨， 无论是特殊时刻还是日常时光， Nikedely都想向各位指挥官传递快乐讯息；来源[NIKKEデイリーニュース\n](https://x.com/nikkedailynews/status/1930429368821592066)",
       "author": "Small-tailqwq",
       "created": "2025-06-05",
-      "image": "/announcement-images/NIKKEDAILYNEWS.webp"
+      "image": "announcement-images/NIKKEDAILYNEWS.png"
     },
     {
       "type": "group",
@@ -115,7 +115,7 @@
           "created": "2025-06-10"
         }
       ],
-      "image": "/announcement-images/CN_OVERZONE_01.webp"
+      "image": "announcement-images/CN_OVERZONE_01.jpg"
     },
     {
       "type": "group",
@@ -220,7 +220,7 @@
           "created": "2025-06-22"
         }
       ],
-      "image": "/announcement-images/CN_LIVE_STREAM.webp"
+      "image": "announcement-images/CN_LIVE_STREAM.jpg"
     },
     {
       "code": "BECOMMANDERNOW",
@@ -234,7 +234,7 @@
       "note": "收录25年Padres X Nikke 门票奖励；棒球队联动买票给的，还有一个布兰儿小胸针",
       "author": "藤田琴音",
       "created": "2025-06-17",
-      "image": "/announcement-images/BECOMMANDERNOW.webp"
+      "image": "announcement-images/BECOMMANDERNOW.jpg"
     },
     {
       "code": "KanaeSoukaVol9RUXZ",
@@ -247,7 +247,7 @@
       "note": "油管直播活动第二名，官方给的CDK，虽然换完了，但是可以继续去看看管人。\n点此跳转管人主页：[創可の、のんびり日和。-Vlog Souka-](https://www.youtube.com/@SoukaKANAE)。",
       "author": "GME",
       "created": "2025-06-19",
-      "image": "/announcement-images/KanaeSoukaVol9RUXZ.webp"
+      "image": "announcement-images/KanaeSoukaVol9RUXZ.jpg"
     },
     {
       "code": "FuranLilithVol9WZLY",
@@ -260,7 +260,7 @@
       "note": "依旧是管人直播CDK，这次300水应该是第一名，同样欢迎大家支持管人。\n点此跳转管人主页：[Lilith ch. 孵卵リリス -REPLAY LIVE-](https://www.youtube.com/@lilith1117mt)",
       "author": "GME",
       "created": "2025-06-20",
-      "image": "/announcement-images/FuranLilithVol9WZLY.webp"
+      "image": "announcement-images/FuranLilithVol9WZLY.jpg"
     },
     {
       "code": "RubianaVol9SNWR",
@@ -273,7 +273,7 @@
       "note": "依旧是管人直播奖励，这次的应该是第三名了。\n点此跳转管人主页：[Rubiana*ch. ルビアーナ](https://www.youtube.com/@Rubiana_VEYOND)",
       "author": "大哥嫑烎",
       "created": "2025-06-22",
-      "image": "/announcement-images/RubianaVol9SNWR.webp"
+      "image": "announcement-images/RubianaVol9SNWR.jpg"
     },
     {
       "type": "group",
@@ -346,7 +346,7 @@
           "created": "2025-07-25"
         }
       ],
-      "image": "/announcement-images/NIKKEsummer2025.webp"
+      "image": "announcement-images/NIKKEsummer2025.jpg"
     },
     {
       "code": "NIKKECONCERT2025",
@@ -360,7 +360,7 @@
       "note": "收录25年音乐会奖励；胜利的旋律。",
       "author": "",
       "created": "2025-07-16",
-      "image": "/announcement-images/NIKKECONCERT2025.webp"
+      "image": "announcement-images/NIKKECONCERT2025.jpg"
     },
     {
       "code": "DOROSMTHAI720",
@@ -373,7 +373,7 @@
       "note": "Nikke泰国官方发放的CDK，[来源](https://www.facebook.com/photo/?fbid=716355471161300)；请在泰国时间的7月22日21:59前完成兑换，本CDK不限兑换次数。",
       "author": "",
       "created": "2025-07-20",
-      "image": "/announcement-images/DOROSMTHAI720.webp"
+      "image": "announcement-images/DOROSMTHAI720.jpg"
     },
     {
       "code": "KanaeSatoruVol10BQID",
@@ -386,7 +386,7 @@
       "note": "新一期的管人直播奖励，这次应该也是第三名。\n点此跳转管人主页：[Kanae Satoru | 叶彗 慧 ](https://www.youtube.com/@KanaeSatoru)",
       "author": "坦克",
       "created": "2025-08-09",
-      "image": "/announcement-images/KanaeSatoruVol10BQID.webp"
+      "image": "announcement-images/KanaeSatoruVol10BQID.jpg"
     }
   ]
 }
