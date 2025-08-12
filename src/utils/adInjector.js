@@ -13,8 +13,8 @@ const AD_CONFIG = {
   // 广告基本信息
   id: 'github_sponsor_ad',
   name: '试试Doro helper',
-  description: '全网最好的pc端收菜助手（作者自己说的）',
-  image: 'announcement-images/default.webp', // 使用默认图片
+  description: '全网最好的pc端收菜助手\n（作者自己说的）',
+  image: 'announcement-images/DoroHelper.webp',
   status: '广告',
 
   // 跳转链接
@@ -59,6 +59,16 @@ function closeAd() {
  * 创建广告数据对象
  */
 function createAdData() {
+  // 处理描述文本：支持数组格式和字符串格式
+  let noteText = ''
+  if (Array.isArray(AD_CONFIG.description)) {
+    // 数组格式：每个元素为一行
+    noteText = AD_CONFIG.description.join('<br/>')
+  } else if (typeof AD_CONFIG.description === 'string') {
+    // 字符串格式：将换行符转换为 <br/> 标签
+    noteText = AD_CONFIG.description.replace(/\n/g, '<br/>')
+  }
+
   return {
     // 标识这是一个广告
     type: 'ad',
@@ -67,7 +77,8 @@ function createAdData() {
     // 模拟CDK组合结构
     groupId: AD_CONFIG.id,
     groupName: AD_CONFIG.name,
-    note: AD_CONFIG.description,
+    // 处理后的描述文本，支持HTML换行
+    note: noteText,
     image: AD_CONFIG.image,
     status: AD_CONFIG.status,
 

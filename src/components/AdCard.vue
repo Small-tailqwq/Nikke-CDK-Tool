@@ -48,9 +48,7 @@
         <h3 class="cdk-title">{{ adData.groupName }}</h3>
 
         <!-- 广告描述 -->
-        <div v-if="adData.note" class="cdk-description ad-description">
-          {{ adData.note }}
-        </div>
+        <div v-if="adData.note" class="cdk-description ad-description" v-html="adData.note"></div>
 
         <!-- 广告标识 (供广告屏蔽器识别) -->
         <div class="ad-identifier" style="display: none">
@@ -126,9 +124,11 @@ const emit = defineEmits<{
     width: 100%;
     height: 100%;
     border-radius: 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--el-bg-color, #ffffff);
+    border: 1px solid var(--el-border-color-light);
     opacity: 0.1;
     z-index: -1;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     &.card-stack-1 {
       transform: translate(2px, 2px) rotate(0.5deg);
@@ -162,7 +162,7 @@ const emit = defineEmits<{
   overflow: hidden;
   border: 2px solid transparent;
   background:
-    linear-gradient(white, white) padding-box,
+    linear-gradient(var(--el-bg-color, white), var(--el-bg-color, white)) padding-box,
     linear-gradient(135deg, #f093fb 0%, #f5576c 100%) border-box;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   min-height: 280px;
@@ -175,7 +175,7 @@ const emit = defineEmits<{
   &.ad-available {
     border-color: #f093fb;
     background:
-      linear-gradient(white, white) padding-box,
+      linear-gradient(var(--el-bg-color, white), var(--el-bg-color, white)) padding-box,
       linear-gradient(135deg, #f093fb 0%, #f5576c 100%) border-box;
   }
 }
@@ -270,15 +270,17 @@ const emit = defineEmits<{
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--el-text-color-primary, #2c3e50);
   line-height: 1.4;
+  transition: color 0.3s ease; /* 添加主题切换动画 */
 }
 
 .ad-description {
   font-size: 14px;
-  color: #666;
+  color: var(--el-text-color-regular, #666);
   line-height: 1.5;
   flex: 1;
+  transition: color 0.3s ease; /* 添加主题切换动画 */
 }
 
 // 广告标识 (隐藏但供广告屏蔽器识别)
@@ -314,6 +316,70 @@ const emit = defineEmits<{
 
   .ad-description {
     font-size: 13px;
+  }
+}
+
+/* =============== 暗色模式适配 =============== */
+/* 媒体查询暗色模式 */
+@media (prefers-color-scheme: dark) {
+  .cdk-group-card-wrapper.ad-card-wrapper {
+    .card-stack-bg {
+      background: var(--el-bg-color, #141414);
+      border-color: var(--el-border-color-light, rgba(255, 255, 255, 0.1));
+    }
+  }
+
+  .ad-close-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--el-text-color-primary, #e5eaf3);
+    backdrop-filter: blur(8px);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+/* Element Plus 暗色模式 */
+html.dark {
+  .cdk-group-card-wrapper.ad-card-wrapper {
+    .card-stack-bg {
+      background: var(--el-bg-color, #141414);
+      border-color: var(--el-border-color-light, rgba(255, 255, 255, 0.1));
+    }
+
+    &:hover {
+      .card-stack-bg {
+        border-color: var(--el-border-color, rgba(255, 255, 255, 0.15));
+      }
+    }
+  }
+
+  .cdk-group-card.ad-card {
+    /* 暗色模式下的阴影效果调整 */
+    &:hover {
+      box-shadow: 
+        0 12px 32px rgba(240, 147, 251, 0.2),
+        0 0 24px rgba(240, 147, 251, 0.1);
+    }
+  }
+
+  .ad-close-button {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--el-text-color-primary, #e5eaf3);
+    backdrop-filter: blur(8px);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+  }
+
+  .cdk-image {
+    /* 暗色模式下图片占位符的背景 */
+    .image-placeholder {
+      color: rgba(255, 255, 255, 0.8);
+    }
   }
 }
 </style>
