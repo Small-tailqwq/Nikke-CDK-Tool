@@ -89,20 +89,27 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="20">
-      <el-col
-        v-for="cdk in filteredCdks"
-        :key="getCdkKey(cdk)"
-        :xs="24"
-        :sm="12"
-        :md="8"
-        :lg="6"
-        :xl="6"
-        class="mb-4"
-      >
+    <!-- 真正的瀑布流容器 -->
+    <MasonryLayout :items="filteredCdks" :column-width="220" :gap="20" :get-item-key="getCdkKey">
+      <template #default="{ item: cdk, index }">
+        <!-- 广告卡片 -->
+        <AdCard
+          v-if="isAdData(cdk)"
+          :ad-data="{
+            groupName: (cdk as any).groupName,
+            note: (cdk as any).note,
+            image: (cdk as any).image,
+            status: (cdk as any).status,
+            githubUrl: (cdk as any).githubUrl,
+            closeable: (cdk as any).closeable,
+            adBlockerClass: (cdk as any).adBlockerClass,
+          }"
+          @ad-closed="handleAdClosed"
+        />
+
         <!-- CDK组合卡片 -->
         <CDKGroupCard
-          v-if="isCDKGroup(cdk)"
+          v-else-if="isCDKGroup(cdk)"
           :group="cdk"
           v-model:selectedCdks="selectedCdks"
           :exchange-status="getCdkExchangeStatus(cdk)"
@@ -218,8 +225,8 @@
             <div v-if="cdk.author" class="cdk-author">提供者：{{ cdk.author }}</div>
           </div>
         </el-card>
-      </el-col>
-    </el-row>
+      </template>
+    </MasonryLayout>
 
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
   </div>
@@ -239,11 +246,15 @@ import {
 import type { CDK, SingleCDK, CDKGroup } from '../utils/fetchCdk'
 import { useRouter } from 'vue-router'
 import CDKGroupCard from '../components/CDKGroupCard.vue'
+import MasonryLayout from '../components/MasonryLayout.vue'
+import AdCard from '../components/AdCard.vue'
 import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
+// 导入广告注入器
+import { injectAd, isAdData } from '../utils/adInjector.js'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
@@ -382,7 +393,7 @@ const loadCdkList = async () => {
   try {
     const data = await fetchCdkList()
     // 过滤掉状态不是 '可用' 或 '已过期' 或 '部分可用' 的CDK
-    cdkList.value = data.cdks.filter((cdk) => {
+    let filteredCdks = data.cdks.filter((cdk) => {
       if (isCDKGroup(cdk)) {
         const status = getGroupStatus(cdk)
         return status === '可用' || status === '已过期' || status === '部分可用'
@@ -390,6 +401,9 @@ const loadCdkList = async () => {
         return cdk.status === '可用' || cdk.status === '已过期'
       }
     })
+
+    // 注入广告到CDK列表第一位
+    cdkList.value = injectAd(filteredCdks)
   } catch (error) {
     showCustomMessage('获取CDK列表失败', 'error')
     console.error(error)
@@ -421,23 +435,43 @@ const getSelectedUserServer = (): ServerType | null => {
   return user ? (user.server as ServerType) : null
 }
 
+// 检测用户是否进行了手动筛选
+const hasUserFilter = computed(() => {
+  return !!(
+    filterForm.value.server || // 选择了服务器
+    filterForm.value.status || // 选择了状态
+    filterForm.value.character // 选择了角色
+  )
+})
+
 // 过滤CDK列表
 const filteredCdks = computed(() => {
   let result = [...cdkList.value]
 
-  // 如果选中了角色，先按服务器过滤
+  // 首先分离广告和普通CDK
+  const adItems = result.filter((item) => isAdData(item))
+  const normalCdks = result.filter((item) => !isAdData(item))
+
+  // 如果用户进行了筛选，则不显示广告
+  const shouldShowAd = !hasUserFilter.value
+
+  // 如果选中了角色，先按服务器过滤普通CDK
   if (filterForm.value.character) {
     const userServer = getSelectedUserServer()
     if (userServer) {
-      result = result.filter((cdk) => {
-        const cdkServers = getCdkServers(cdk)
-        return cdkServers.includes(userServer)
-      })
+      normalCdks.splice(
+        0,
+        normalCdks.length,
+        ...normalCdks.filter((cdk) => {
+          const cdkServers = getCdkServers(cdk)
+          return cdkServers.includes(userServer)
+        })
+      )
     }
   }
 
-  // 排序逻辑：优先考虑可用性，然后考虑兑换状态
-  result.sort((a, b) => {
+  // 排序逻辑：优先考虑可用性，然后考虑兑换状态（仅对普通CDK排序）
+  normalCdks.sort((a, b) => {
     // 首先按可用性排序：可用 > 部分可用 > 已过期
     const statusA = getCdkStatus(a)
     const statusB = getCdkStatus(b)
@@ -493,17 +527,32 @@ const filteredCdks = computed(() => {
     return 0
   })
 
-  // 应用过滤器
+  // 应用过滤器到普通CDK
   if (filterForm.value.server) {
-    result = result.filter((cdk) =>
-      getCdkServers(cdk).includes(filterForm.value.server as ServerType)
+    normalCdks.splice(
+      0,
+      normalCdks.length,
+      ...normalCdks.filter((cdk) =>
+        getCdkServers(cdk).includes(filterForm.value.server as ServerType)
+      )
     )
   }
+
   if (filterForm.value.status) {
-    result = result.filter((cdk) => getCdkStatus(cdk) === filterForm.value.status)
+    normalCdks.splice(
+      0,
+      normalCdks.length,
+      ...normalCdks.filter((cdk) => getCdkStatus(cdk) === filterForm.value.status)
+    )
   }
 
-  return result
+  // 根据筛选状态决定是否显示广告
+  // 只有在用户没有进行任何筛选时才显示广告
+  if (shouldShowAd) {
+    return [...adItems, ...normalCdks]
+  } else {
+    return normalCdks
+  }
 })
 
 // 添加复制工具函数
@@ -636,6 +685,12 @@ const openSubmitCdk = () => {
   )
 }
 
+// 广告关闭处理
+const handleAdClosed = () => {
+  // 重新加载CDK列表以移除广告
+  loadCdkList()
+}
+
 // 自动勾选未兑换的CDK（独立函数避免重复代码）
 const autoSelectUnredeemedCdks = () => {
   selectedCdks.value = [] // 先清空选中状态
@@ -739,11 +794,17 @@ onMounted(() => {
   // 加载用户数据和兑换历史
   userStore.fetchUsers()
   exchangeStore.fetchHistory()
+
+  // 监听广告关闭事件
+  window.addEventListener('adClosed', handleAdClosed)
 })
 
 // 组件卸载时保存缓存
 onBeforeUnmount(() => {
   // 这里不需要保存缓存，因为缓存是静态的，不会改变
+
+  // 移除广告关闭事件监听
+  window.removeEventListener('adClosed', handleAdClosed)
 })
 </script>
 
@@ -827,7 +888,7 @@ onBeforeUnmount(() => {
   overflow: hidden; /* 确保子元素圆角裁切 */
   border-radius: 8px; /* 四角弧度完全对称 */
   border: none;
-  height: 100%;
+  /* 移除固定高度，让卡片自适应内容高度 */
   animation: fadeInUp 0.3s ease-out;
   transition:
     transform 0.25s,
@@ -1510,5 +1571,29 @@ onBeforeUnmount(() => {
   &:hover {
     color: var(--el-color-primary);
   }
+}
+
+/* =============== 广告样式 =============== */
+.status-ad {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* 广告卡片的额外样式调整 */
+.ad-card-wrapper {
+  /* 确保广告卡片在顶部显示 */
+  order: -1000;
+  /* 确保在flexbox中始终排在最前面 */
+  align-self: flex-start;
+}
+
+/* 为广告屏蔽器提供的标识样式 */
+.advertisement,
+.google-ad,
+.adsense-ad,
+.ad-banner {
+  /* 这些类名会被主流广告屏蔽器识别 */
+  display: block;
 }
 </style>
