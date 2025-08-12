@@ -67,24 +67,106 @@ async function convertToWebP(inputPath, outputPath) {
 }
 
 /**
+ * Generate thumbnails from main announcement images
+ * @returns {Promise<void>}
+ */
+async function generateThumbnails() {
+  try {
+    console.log('🖼️  生成缩略图...');
+
+    const THUMBS_DIR = path.join(IMAGE_DIR, 'thumbs');
+
+    // 确保缩略图目录存在
+    await fs.mkdir(THUMBS_DIR, { recursive: true });
+
+    // 缩略图配置
+    const thumbnailSizes = [
+      { width: 320, height: 180, suffix: '_thumb' },
+      { width: 640, height: 360, suffix: '_thumb@2x' }
+    ];
+
+    const supportedFormats = ['.jpg', '.jpeg', '.png', '.webp'];
+
+    // 读取主目录中的图片文件
+    const files = await fs.readdir(IMAGE_DIR);
+    const imageFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return supportedFormats.includes(ext);
+    });
+
+    if (imageFiles.length === 0) {
+      console.log('📁 未找到支持的图片文件');
+      return;
+    }
+
+    console.log(`📁 发现 ${imageFiles.length} 张图片需要生成缩略图...`);
+
+    // 生成缩略图
+    let successCount = 0;
+    for (const filename of imageFiles) {
+      const inputPath = path.join(IMAGE_DIR, filename);
+      const baseName = path.basename(filename, path.extname(filename));
+
+      try {
+        for (const size of thumbnailSizes) {
+          const outputFilename = `${baseName}${size.suffix}.webp`;
+          const outputPath = path.join(THUMBS_DIR, outputFilename);
+
+          // 使用 sharp 生成缩略图
+          const sharp = await import('sharp');
+          await sharp.default(inputPath)
+            .resize(size.width, size.height, {
+              fit: 'cover',
+              position: 'center'
+            })
+            .webp({ quality: 85 })
+            .toFile(outputPath);
+        }
+
+        console.log(`✅ 已生成 ${baseName} 的缩略图`);
+        successCount++;
+      } catch (error) {
+        console.error(`❌ 生成 ${filename} 缩略图失败:`, error.message);
+      }
+    }
+
+    console.log(`🎉 缩略图生成完成! (${successCount}/${imageFiles.length})`);
+
+  } catch (error) {
+    console.error('❌ 缩略图生成失败:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Process images in the directory - convert to WebP if needed
  * @returns {Promise<void>}
  */
 async function processImages() {
+  // Generate thumbnails from main directory images
+  await generateThumbnails();
+}
+
+/**
+ * Process images in a specific directory
+ * @param {string} directory - Directory to process
+ * @returns {Promise<void>}
+ */
+async function processImageDirectory(directory) {
   try {
-    const files = await fs.readdir(IMAGE_DIR);
+    const files = await fs.readdir(directory);
     const imageFiles = files.filter(file => {
       const ext = path.extname(file).toLowerCase();
       return ['.png', '.jpg', '.jpeg', '.gif'].includes(ext);
     });
 
     if (imageFiles.length > 0) {
-      console.log(`🖼️  发现 ${imageFiles.length} 张图片需要转换...`);
+      console.log(`🖼️  在 ${path.relative(PUBLIC_DIR, directory)} 发现 ${imageFiles.length} 张图片需要转换...`);
 
       for (const file of imageFiles) {
-        const inputPath = path.join(IMAGE_DIR, file);
+        const inputPath = path.join(directory, file);
         const nameWithoutExt = path.parse(file).name;
-        const outputPath = path.join(IMAGE_DIR, `${nameWithoutExt}.webp`);
+        const outputPath = path.join(directory, `${nameWithoutExt}.webp`);
 
         // Check if WebP version already exists
         try {

@@ -28,8 +28,8 @@
         <img
           v-if="adData.image"
           :src="getImageUrl(adData.image)"
+          :srcset="getImageSrcset(adData.image)"
           :alt="adData.groupName || '广告'"
-          class="announcement-image"
         />
         <div v-else class="image-placeholder">
           <el-icon><Picture /></el-icon>
@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Close, Picture } from '@element-plus/icons-vue'
+import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
 import { handleAdClick, handleAdClose } from '../utils/adInjector.js'
 
 // Props
@@ -95,14 +96,6 @@ const handleClose = (event: Event) => {
   handleAdClose(event)
   // 通知父组件刷新列表
   emit('adClosed')
-}
-
-// 拼接完整的图片 URL
-const getImageUrl = (localPath: string): string => {
-  if (!localPath) return ''
-  return `${import.meta.env.BASE_URL}${
-    localPath.startsWith('/') ? localPath.substring(1) : localPath
-  }`
 }
 
 // 定义事件
@@ -219,10 +212,18 @@ const emit = defineEmits<{
     padding: 0;
   }
 
-  .announcement-image {
+  img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    display: block;
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .image-placeholder {
@@ -358,7 +359,7 @@ html.dark {
   .cdk-group-card.ad-card {
     /* 暗色模式下的阴影效果调整 */
     &:hover {
-      box-shadow: 
+      box-shadow:
         0 12px 32px rgba(240, 147, 251, 0.2),
         0 0 24px rgba(240, 147, 251, 0.1);
     }

@@ -44,7 +44,7 @@ const debounceCalculateLayout = () => {
   }
   recalculateTimer = setTimeout(() => {
     calculateLayout()
-  }, 100)
+  }, 50) // 减少防抖时间，提高响应性
 }
 
 // 计算列数
@@ -73,7 +73,7 @@ const getItemStyle = (index: number) => {
     width: `${position.width}px`,
     opacity: '1',
     transform: 'translateY(0)',
-    transition: 'all 0.3s ease',
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', // 使用更平滑的缓动函数
   }
 }
 
@@ -97,8 +97,8 @@ const calculateLayout = async () => {
     const actualColumnWidth = (containerWidth - totalGap) / columnCount.value
 
     // 重置列高度
-    columnHeights.value = new Array(columnCount.value).fill(0)
-    itemPositions.value = []
+    const newColumnHeights = new Array(columnCount.value).fill(0)
+    const newItemPositions: Array<{ left: number; top: number; width: number }> = []
 
     // 等待所有元素渲染完成
     await nextTick()
@@ -122,14 +122,14 @@ const calculateLayout = async () => {
       if (!item) continue
 
       // 找到最矮的列
-      const shortestColumnIndex = columnHeights.value.indexOf(Math.min(...columnHeights.value))
+      const shortestColumnIndex = newColumnHeights.indexOf(Math.min(...newColumnHeights))
 
       // 计算位置
       const left = shortestColumnIndex * (actualColumnWidth + props.gap)
-      const top = columnHeights.value[shortestColumnIndex]
+      const top = newColumnHeights[shortestColumnIndex]
 
-      // 保存位置信息
-      itemPositions.value[i] = {
+      // 保存位置信息到临时数组
+      newItemPositions[i] = {
         left,
         top,
         width: actualColumnWidth,
@@ -138,8 +138,12 @@ const calculateLayout = async () => {
       // 获取元素高度并更新列高度
       await nextTick() // 确保样式已应用
       const itemHeight = item.offsetHeight || 200 // 默认高度
-      columnHeights.value[shortestColumnIndex] += itemHeight + props.gap
+      newColumnHeights[shortestColumnIndex] += itemHeight + props.gap
     }
+
+    // 一次性更新所有位置信息，避免中间状态导致的闪烁
+    itemPositions.value = newItemPositions
+    columnHeights.value = newColumnHeights
 
     // 设置容器高度
     containerHeight.value = Math.max(...columnHeights.value) - props.gap
@@ -152,10 +156,7 @@ const calculateLayout = async () => {
 watch(
   () => props.items,
   () => {
-    // 当items变化时，先清空位置信息和容器高度，避免显示错误的布局
-    itemPositions.value = []
-    containerHeight.value = 0
-
+    // 当items变化时，不清空位置信息，保持现有布局直到新布局计算完成
     nextTick(() => {
       debounceCalculateLayout()
     })
@@ -172,11 +173,18 @@ onMounted(() => {
   nextTick(() => {
     calculateLayout()
     window.addEventListener('resize', handleResize)
+    // 监听缩放事件（通过visualViewport API）
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+    }
   })
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', handleResize)
+  }
   if (recalculateTimer) {
     clearTimeout(recalculateTimer)
   }
@@ -192,10 +200,11 @@ defineExpose({
 .masonry-layout {
   position: relative;
   width: 100%;
-  transition: height 0.3s ease;
+  transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .masonry-item {
   box-sizing: border-box;
+  will-change: transform, opacity; /* 优化动画性能 */
 }
 </style>

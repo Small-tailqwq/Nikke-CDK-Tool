@@ -8,7 +8,9 @@
     "build": "npm run prebuild && vite build",
     "preview": "vite preview",
     "lint": "eslint --ext .js,.ts,.vue src",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "thumbnails": "node scripts/generate-thumbnails.mjs",
+    "update-images": "node scripts/update-image-paths.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

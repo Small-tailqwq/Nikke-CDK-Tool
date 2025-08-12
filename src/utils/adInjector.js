@@ -13,8 +13,8 @@ const AD_CONFIG = {
   // 广告基本信息
   id: 'github_sponsor_ad',
   name: '试试Doro helper',
-  description: '全网最好的pc端收菜助手\n（作者自己说的）',
-  image: 'announcement-images/DoroHelper.webp',
+  description: '全网最好的pc端收菜助手',
+  image: 'announcement-images/thumbs/DoroHelper_thumb.webp',
   status: '广告',
 
   // 跳转链接

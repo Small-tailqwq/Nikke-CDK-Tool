@@ -156,6 +156,32 @@ html.dark {
   --scrollbar-thumb-active: rgba(255, 255, 255, 0.35);
 }
 
+/* ========== 图片质量优化 ========== */
+
+/* 通用图片质量优化 */
+img, .image-optimize {
+  image-rendering: auto;
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  
+  /* 针对小尺寸显示的大图片进行优化 */
+  &.crisp-edges {
+    image-rendering: crisp-edges;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+  }
+  
+  /* 平滑缩放模式 */
+  &.smooth {
+    image-rendering: auto;
+    image-rendering: smooth;
+    image-rendering: high-quality;
+  }
+}
+
 /* ========== 全局美观滚动条样式 ========== */
 
 /* 标准滚动条 - 适用于大部分容器 */

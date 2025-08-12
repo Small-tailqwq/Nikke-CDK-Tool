@@ -142,9 +142,9 @@
             <img
               v-if="cdk.image"
               :src="getImageUrl(cdk.image)"
+              :srcset="getImageSrcset(cdk.image)"
               :alt="cdk.name || '未命名CDK'"
               loading="lazy"
-              class="announcement-image"
             />
             <div v-else class="image-placeholder">
               <el-icon><Picture /></el-icon>
@@ -235,6 +235,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Document, InfoFilled, Picture } from '@element-plus/icons-vue'
+import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
 import {
   fetchCdkList,
   isCDKGroup,
@@ -377,15 +378,6 @@ const getServerName = (server: string): string => {
     cn: '国服',
   }
   return serverNames[server as ServerType] || server
-}
-
-// 拼接完整的图片 URL（处理 base path）
-const getImageUrl = (localPath: string): string => {
-  if (!localPath) return ''
-  // 使用 import.meta.env.BASE_URL 来正确处理应用的 base 路径
-  return `${import.meta.env.BASE_URL}${
-    localPath.startsWith('/') ? localPath.substring(1) : localPath
-  }`
 }
 
 // 加载CDK列表
@@ -945,6 +937,13 @@ onBeforeUnmount(() => {
     height: 100%;
     object-fit: cover;
     display: block;
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .image-placeholder,

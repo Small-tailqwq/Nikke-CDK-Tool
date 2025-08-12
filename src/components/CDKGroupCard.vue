@@ -32,8 +32,8 @@
         <img
           v-if="group.image"
           :src="getImageUrl(group.image)"
+          :srcset="getImageSrcset(group.image)"
           :alt="group.groupName || '未命名CDK组合'"
-          class="announcement-image"
         />
         <div v-else class="image-placeholder">
           <el-icon><Picture /></el-icon>
@@ -279,6 +279,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
+import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
 import type { CDKGroup } from '../utils/fetchCdk'
 import {
   getGroupTotalReward,
@@ -372,14 +373,6 @@ const getServerName = (server: string): string => {
     cn: '国服',
   }
   return serverNames[server] || server
-}
-
-// 拼接完整的图片 URL
-const getImageUrl = (localPath: string): string => {
-  if (!localPath) return ''
-  return `${import.meta.env.BASE_URL}${
-    localPath.startsWith('/') ? localPath.substring(1) : localPath
-  }`
 }
 
 // 获取总奖励
@@ -863,6 +856,13 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     height: 100%;
     object-fit: cover;
     display: block;
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
   }
 
   .image-placeholder {
@@ -1050,6 +1050,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     /* 限制显示2行，超出显示省略号 */
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
