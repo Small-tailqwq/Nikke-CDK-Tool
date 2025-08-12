@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AdCard: typeof import('./components/AdCard.vue')['default']
     CDKGroupCard: typeof import('./components/CDKGroupCard.vue')['default']
     CookieWarningAlert: typeof import('./components/CookieWarningAlert.vue')['default']
     DoroSummonAnimation: typeof import('./components/DoroSummonAnimation.vue')['default']
@@ -40,10 +41,12 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     FloatingDoro: typeof import('./components/FloatingDoro.vue')['default']
+    MasonryLayout: typeof import('./components/MasonryLayout.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TextDestructionEffect: typeof import('./components/TextDestructionEffect.vue')['default']
     UserDialog: typeof import('./components/UserDialog.vue')['default']
+    WaterfallLayout: typeof import('./components/WaterfallLayout.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

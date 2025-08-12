@@ -169,7 +169,7 @@ async function findImageFile(cdkCode) {
     try {
       const filePath = path.join(IMAGE_DIR, `${baseName}${ext}`);
       await fs.access(filePath);
-      return `/announcement-images/${baseName}${ext}`;
+      return `announcement-images/${baseName}${ext}`;
     } catch {
       continue;
     }
@@ -191,7 +191,7 @@ async function processCDKItem(cdk) {
     if (groupImagePath) {
       newCdk.image = groupImagePath;
     } else {
-      newCdk.image = "/announcement-images/default.webp";
+      newCdk.image = "announcement-images/default.webp";
     }
 
     // Process each CDK in the group (usually no individual images for group items)
@@ -213,7 +213,7 @@ async function processCDKItem(cdk) {
     if (cdkImagePath) {
       newCdk.image = cdkImagePath;
     } else {
-      newCdk.image = "/announcement-images/default.webp";
+      newCdk.image = "announcement-images/default.webp";
     }
   }
 

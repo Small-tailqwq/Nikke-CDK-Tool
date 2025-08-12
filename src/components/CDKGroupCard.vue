@@ -288,6 +288,7 @@ import {
 } from '../utils/fetchCdk'
 import { showCustomMessage } from '../utils/customMessage'
 import { formatNoteContent } from '../utils/noteUtils'
+import type { CheckboxValueType } from 'element-plus'
 
 interface Props {
   group: CDKGroup
@@ -397,9 +398,9 @@ const closeOverlay = () => {
 }
 
 // 处理复选框变更
-const handleCheckboxChange = (value: boolean) => {
+const handleCheckboxChange = (value: CheckboxValueType) => {
   // 复选框变更事件，阻止卡片点击事件
-  handleGroupSelection(value)
+  handleGroupSelection(!!value)
 }
 
 // 复制CDK相关功能 - 复用单个CDK卡片的实现
@@ -565,7 +566,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   overflow: hidden;
   border-radius: 8px;
   border: none;
-  height: 100%;
+  /* 移除固定高度，让卡片自适应内容高度 */
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--el-bg-color);
   z-index: 2;
