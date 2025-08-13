@@ -3,67 +3,80 @@
   外观与CDK组合卡片保持一致，但包含特殊的广告功能
 -->
 <template>
-  <div class="cdk-group-card-wrapper ad-card-wrapper" :class="adBlockerClass">
-    <!-- 卡片重叠效果的背景层 -->
-    <div class="card-stack-bg card-stack-1"></div>
-    <div class="card-stack-bg card-stack-2"></div>
-
-    <!-- 主卡片 -->
-    <el-card
-      class="cdk-group-card ad-card"
-      :class="{
-        'ad-available': true,
-        expanding: false,
-      }"
-      body-style="padding: 0; display: flex; flex-direction: column;"
-      @click="handleCardClick"
+  <div>
+    <!-- 真实广告卡片 -->
+    <div
+      ref="adCardRef"
+      class="cdk-group-card-wrapper ad-card-wrapper"
+      :class="adBlockerClass"
+      v-show="!isBlocked"
     >
-      <!-- 关闭按钮 -->
-      <div v-if="closeable" class="ad-close-button" @click="handleClose">
-        <el-icon><Close /></el-icon>
-      </div>
+      <!-- 卡片重叠效果的背景层 -->
+      <div class="card-stack-bg card-stack-1"></div>
+      <div class="card-stack-bg card-stack-2"></div>
 
-      <!-- Header / 图片 -->
-      <div class="cdk-image" :class="{ 'has-image': !!adData.image }">
-        <img
-          v-if="adData.image"
-          :src="getImageUrl(adData.image)"
-          :srcset="getImageSrcset(adData.image)"
-          :alt="adData.groupName || '广告'"
-        />
-        <div v-else class="image-placeholder">
-          <el-icon><Picture /></el-icon>
-          <span>广告内容</span>
+      <!-- 主卡片 -->
+      <el-card
+        class="cdk-group-card ad-card"
+        :class="{
+          'ad-available': true,
+          expanding: false,
+        }"
+        body-style="padding: 0; display: flex; flex-direction: column;"
+        @click="handleCardClick"
+      >
+        <!-- 关闭按钮 -->
+        <div v-if="closeable" class="ad-close-button" @click="handleClose">
+          <el-icon><Close /></el-icon>
         </div>
 
-        <!-- 状态条 -->
-        <div class="cdk-status status-ad">
-          <span>{{ adData.status }}</span>
+        <!-- Header / 图片 -->
+        <div class="cdk-image" :class="{ 'has-image': !!adData.image }">
+          <img
+            v-if="adData.image"
+            :src="getImageUrl(adData.image)"
+            :srcset="getImageSrcset(adData.image)"
+            :alt="adData.groupName || '广告'"
+          />
+          <div v-else class="image-placeholder">
+            <el-icon><Picture /></el-icon>
+            <span>广告内容</span>
+          </div>
+
+          <!-- 状态条 -->
+          <div class="cdk-status status-ad">
+            <span>{{ adData.status }}</span>
+          </div>
         </div>
-      </div>
 
-      <!-- 卡片内容 -->
-      <div class="cdk-content">
-        <!-- 标题 -->
-        <h3 class="cdk-title">{{ adData.groupName }}</h3>
+        <!-- 卡片内容 -->
+        <div class="cdk-content">
+          <!-- 标题 -->
+          <h3 class="cdk-title">{{ adData.groupName }}</h3>
 
-        <!-- 广告描述 -->
-        <div v-if="adData.note" class="cdk-description ad-description" v-html="adData.note"></div>
+          <!-- 广告描述 -->
+          <div v-if="adData.note" class="cdk-description ad-description" v-html="adData.note"></div>
 
-        <!-- 广告标识 (供广告屏蔽器识别) -->
-        <div class="ad-identifier" style="display: none">
-          Advertisement | Sponsored Content | Google Ad
+          <!-- 广告标识 (供广告屏蔽器识别) -->
+          <div class="ad-identifier" style="display: none">
+            Advertisement | Sponsored Content | Google Ad
+          </div>
         </div>
-      </div>
-    </el-card>
+      </el-card>
+    </div>
+
+    <!-- 占位卡片，当广告被拦截时显示 -->
+    <PlaceholderCard v-if="isBlocked" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { Close, Picture } from '@element-plus/icons-vue'
 import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
 import { handleAdClick, handleAdClose } from '../utils/adInjector.js'
+import PlaceholderCard from './PlaceholderCard.vue'
+import { createAdBlockDetector, type AdBlockDetector } from '@/utils/adBlockDetector'
 
 // Props
 interface Props {
@@ -79,6 +92,43 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+
+// 广告拦截检测
+const adCardRef = ref<HTMLElement>()
+const isBlocked = ref(false)
+const detector = ref<AdBlockDetector>()
+
+// 组件挂载后开始检测
+onMounted(async () => {
+  await nextTick()
+
+  if (adCardRef.value) {
+    // 创建广告拦截检测器
+    detector.value = createAdBlockDetector(adCardRef.value)
+
+    // 监听拦截状态变化
+    detector.value.onBlockedChange((blocked) => {
+      isBlocked.value = blocked
+      if (blocked) {
+        console.log('广告被拦截，显示占位卡片')
+      }
+    })
+
+    // 立即检查一次
+    setTimeout(() => {
+      if (detector.value) {
+        isBlocked.value = detector.value.check()
+      }
+    }, 200)
+  }
+})
+
+// 组件卸载时清理
+onUnmounted(() => {
+  if (detector.value) {
+    detector.value.destroy()
+  }
+})
 
 // 关闭功能
 const closeable = computed(() => props.adData.closeable)

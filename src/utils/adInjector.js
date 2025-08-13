@@ -12,7 +12,7 @@
 const AD_CONFIG = {
   // 广告基本信息
   id: 'github_sponsor_ad',
-  name: '试试Doro helper',
+  name: 'DoroHelper',
   description: '全网最好的pc端收菜助手',
   image: 'announcement-images/thumbs/DoroHelper_thumb.webp',
   status: '广告',
@@ -157,6 +157,35 @@ function isAdData(item) {
 }
 
 /**
+ * 检查是否为占位卡片数据
+ * @param {Object} item - 数据项
+ * @returns {boolean} - 是否为占位卡片
+ */
+function isPlaceholderData(item) {
+  return item && item.type === 'placeholder'
+}
+
+/**
+ * 创建占位卡片数据
+ */
+function createPlaceholderData() {
+  return {
+    type: 'placeholder',
+    groupId: 'placeholder_card',
+    groupName: '推荐工具',
+    note: 'DoroHelper - 全网最好的PC端收菜助手<br/>让你的游戏体验更轻松愉快',
+    image: 'announcement-images/thumbs/DoroHelper_thumb.webp',
+    status: '推荐',
+    isPlaceholder: true,
+    cdks: [],
+    meta: {
+      created: new Date().toISOString(),
+      type: 'placeholder'
+    }
+  }
+}
+
+/**
  * 获取广告状态样式类
  */
 function getAdStatusClass() {
@@ -197,6 +226,8 @@ export {
   handleAdClick,
   handleAdClose,
   isAdData,
+  isPlaceholderData,
+  createPlaceholderData,
   getAdStatusClass,
   isAdClosed,
   closeAd,

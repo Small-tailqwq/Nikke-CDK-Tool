@@ -36,6 +36,8 @@ const columnCount = ref(0)
 let resizeObserver: ResizeObserver | null = null
 let isCalculating = false
 let recalculateTimer: number | null = null
+let itemResizeObservers: ResizeObserver[] = []
+let imageUnloaders: Array<() => void> = []
 
 // 防抖函数
 const debounceCalculateLayout = () => {
@@ -116,7 +118,11 @@ const calculateLayout = async () => {
       return
     }
 
-    // 真正的瀑布流算法：每次选择最矮的列放置下一个元素
+  // 清理旧的观察者（每次重算重新绑定，避免残留）
+  cleanupItemObservers()
+  cleanupImageListeners()
+
+  // 真正的瀑布流算法：每次选择最矮的列放置下一个元素
     for (let i = 0; i < props.items.length; i++) {
       const item = items[i] as HTMLElement
       if (!item) continue
@@ -137,8 +143,13 @@ const calculateLayout = async () => {
 
       // 获取元素高度并更新列高度
       await nextTick() // 确保样式已应用
-      const itemHeight = item.offsetHeight || 200 // 默认高度
+  const itemHeight = item.offsetHeight || 200 // 默认高度
       newColumnHeights[shortestColumnIndex] += itemHeight + props.gap
+
+  // 监听单个子项高度变化（例如内部展开、图片加载后高度变化）
+  attachItemObserver(item)
+  // 监听图片加载
+  attachImageLoadListeners(item)
     }
 
     // 一次性更新所有位置信息，避免中间状态导致的闪烁
@@ -185,6 +196,8 @@ onUnmounted(() => {
   if (window.visualViewport) {
     window.visualViewport.removeEventListener('resize', handleResize)
   }
+  cleanupItemObservers()
+  cleanupImageListeners()
   if (recalculateTimer) {
     clearTimeout(recalculateTimer)
   }
@@ -194,6 +207,41 @@ onUnmounted(() => {
 defineExpose({
   recalculate: calculateLayout,
 })
+
+// =================== 动态高度监听逻辑 ===================
+const attachItemObserver = (el: HTMLElement) => {
+  try {
+    const ro = new ResizeObserver(() => {
+      if (!isCalculating) debounceCalculateLayout()
+    })
+    ro.observe(el)
+    itemResizeObservers.push(ro)
+  } catch (e) {
+    // 忽略不支持情况
+  }
+}
+
+const cleanupItemObservers = () => {
+  itemResizeObservers.forEach((ro) => ro.disconnect())
+  itemResizeObservers = []
+}
+
+const attachImageLoadListeners = (root: HTMLElement) => {
+  const imgs = root.querySelectorAll('img')
+  imgs.forEach((img) => {
+    if (img.complete) return // 已完成无需监听
+    const handler = () => {
+      debounceCalculateLayout()
+    }
+    img.addEventListener('load', handler, { once: true })
+    imageUnloaders.push(() => img.removeEventListener('load', handler))
+  })
+}
+
+const cleanupImageListeners = () => {
+  imageUnloaders.forEach((off) => off())
+  imageUnloaders = []
+}
 </script>
 
 <style scoped>

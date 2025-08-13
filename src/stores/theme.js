@@ -71,4 +71,5 @@ getInitialTheme()
 
 watchEffect(() => {
   document.documentElement.classList.toggle('dark', theme.value === 'dark')
+  document.documentElement.classList.toggle('light', theme.value === 'light')
 }) 
