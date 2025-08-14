@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-10T13:56:32.126Z",
+  "lastUpdate": "2025-08-14T12:27:52.407Z",
   "cdks": [
     {
       "type": "group",
@@ -289,7 +289,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "蚊子腿",
           "author": "GME",
           "created": "2025-07-10"
@@ -302,7 +302,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "CDK大意：如果你能抓住我，717",
           "author": "GME",
           "created": "2025-07-10"
@@ -315,7 +315,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "BAWAL：在菲律宾他加禄语（Tagalog）中意为“禁止”或“不可”，常用于表达限制或警告。MANGGHOST：可能是“mang-ghost”的组合，“mang”在Tagalog中是动词前缀，意为“做某事的人”，而“ghost”显然指“幽灵”。结合活动剧情，命名为驱鬼者。*MANGGHOST还有消失无踪的含义，所以也可以翻译为禁止玩消失、禁止已读不回、禁止冷暴力。",
           "author": "",
           "created": "2025-07-17"
@@ -328,7 +328,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "BASAH：在马来语/印尼语中意为“湿的”或“潮湿”，重复形式。结合夏活，故记录为湿身派对。",
           "author": "",
           "created": "2025-07-17"
@@ -356,7 +356,7 @@
         "global",
         "tw"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "收录25年音乐会奖励；胜利的旋律。",
       "author": "",
       "created": "2025-07-16",
