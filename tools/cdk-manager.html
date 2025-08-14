@@ -218,6 +218,7 @@
 
         .form-group {
             margin-bottom: 16px;
+            position: relative; /* 让联想列表可以绝对定位在输入框下方 */
         }
 
         .form-label {
@@ -266,6 +267,105 @@
         .status-expired { color: #F56C6C; }
         .status-partial { color: #E6A23C; }
 
+        /* 状态标签与服务器标签 */
+        .status-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            line-height: 18px;
+            color: #fff;
+        }
+        .status-tag.available { background: #67C23A; }
+        .status-tag.expired { background: #F56C6C; }
+        .server-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+        .server-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 12px;
+            background: #eef2f6;
+            color: #556;
+        }
+
+        /* 表单网格与操作区 */
+        .modal-body form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
+        }
+        .modal-body form .form-group { margin-bottom: 0; }
+        .form-actions { grid-column: 1 / -1; text-align: right; margin-top: 8px; }
+
+        /* 开关组件（左：可用 绿；右：已过期 红） */
+        .switch {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+        }
+        .switch input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .switch .slider {
+            position: relative;
+            width: 56px;
+            height: 28px;
+            background: #F56C6C; /* 默认右侧（不可用）红色 */
+            border-radius: 999px;
+            transition: background 0.25s ease;
+        }
+        .switch .slider::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 22px; height: 22px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.25s ease;
+        }
+        .switch input:checked + .slider {
+            background: #67C23A; /* 左侧（可用）绿色 */
+        }
+        .switch input:checked + .slider::after {
+            transform: translateX(28px);
+        }
+        .switch .on-label { display: none; }
+        .switch .off-label { display: none; }
+
+        /* 奖励内容智能联想 */
+        .suggestion-list {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: calc(100% + 4px);
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            z-index: 1001;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+        .suggestion-item {
+            padding: 8px 10px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .suggestion-item:hover {
+            background: #f5f7fa;
+        }
+        .suggestion-empty {
+            padding: 10px;
+            color: #999;
+            font-size: 12px;
+        }
+
         @media (max-width: 768px) {
             .toolbar {
                 flex-direction: column;
@@ -297,9 +397,12 @@
             <button class="btn btn-primary" onclick="saveFileAdvanced()">💾 保存文件</button>
             <button class="btn btn-primary" onclick="exportJSON()">📥 导出 JSON</button>
             <button class="btn btn-danger" onclick="clearData()">🗑️ 清空数据</button>
+            <button id="restoreDraftBtn" class="btn btn-success" onclick="restoreDraft()" style="display: none;">⏪ 恢复草稿</button>
+            <button id="clearDraftBtn" class="btn btn-danger" onclick="clearAllDrafts()" style="display: none;">🧹 清除草稿</button>
             <div style="margin-top: 10px; font-size: 12px; color: #666;">
                 <span id="fileStatus">未加载文件</span>
                 <span id="browserSupport" style="margin-left: 20px;"></span>
+                <span id="draftStatus" style="margin-left: 20px;"></span>
             </div>
         </div>
 
@@ -329,7 +432,8 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">奖励内容 *</label>
-                        <input type="text" name="reward" class="form-control" required>
+                        <input type="text" name="reward" id="rewardInput" class="form-control" autocomplete="off" required>
+                        <div id="rewardSuggestion" class="suggestion-list" style="display: none;"></div>
                     </div>
                     <div class="form-group">
                         <label class="form-label">适用服务器 *</label>
@@ -350,10 +454,11 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">状态 *</label>
-                        <select name="status" class="form-control" required>
-                            <option value="可用">可用</option>
-                            <option value="已过期">已过期</option>
-                        </select>
+                        <label class="switch" title="左侧为可用（绿色），切换到右侧为已过期（红色）">
+                            <input type="checkbox" name="status_switch" id="statusSwitch" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span id="statusSwitchText" class="status-tag available" style="margin-left: 8px;">可用</span>
                     </div>
                     <div class="form-group">
                         <label class="form-label">备注</label>
@@ -367,7 +472,7 @@
                         <label class="form-label">创建日期 *</label>
                         <input type="date" name="created" class="form-control" required>
                     </div>
-                    <div style="text-align: right; margin-top: 20px;">
+                    <div class="form-actions" style="text-align: right; margin-top: 20px;">
                         <button type="button" class="btn btn-primary" onclick="saveNormalCDK()">保存</button>
                         <button type="button" class="btn" onclick="closeModal('normalCDKModal')" style="margin-left: 10px;">取消</button>
                     </div>
@@ -416,6 +521,194 @@
         let editingGroupIndex = -1;
         let currentFileHandle = null; // 存储当前文件句柄
         let supportsFileSystemAccess = false;
+
+            // 草稿存储键名
+            const NORMAL_DRAFT_KEY = 'cdkManager.normalDraft';
+            const GROUP_DRAFT_KEY = 'cdkManager.groupDraft';
+
+            // 工具函数：草稿存取
+            function getDraft(key) {
+                try {
+                    const raw = localStorage.getItem(key);
+                    return raw ? JSON.parse(raw) : null;
+                } catch (e) {
+                    console.warn('读取草稿失败', e);
+                    return null;
+                }
+            }
+
+            function setDraft(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (e) {
+                    console.warn('保存草稿失败', e);
+                }
+            }
+
+            function removeDraft(key) {
+                try {
+                    localStorage.removeItem(key);
+                } catch (e) {
+                    console.warn('清除草稿失败', e);
+                }
+            }
+
+            function hasAnyDraft() {
+                return !!(getDraft(NORMAL_DRAFT_KEY) || getDraft(GROUP_DRAFT_KEY));
+            }
+
+            function updateDraftStatusUI() {
+                const statusEl = document.getElementById('draftStatus');
+                const restoreBtn = document.getElementById('restoreDraftBtn');
+                const clearBtn = document.getElementById('clearDraftBtn');
+                const normal = getDraft(NORMAL_DRAFT_KEY);
+                const group = getDraft(GROUP_DRAFT_KEY);
+
+                if (normal || group) {
+                    const normalTime = normal ? new Date(normal.updatedAt) : null;
+                    const groupTime = group ? new Date(group.updatedAt) : null;
+                    const latestTime = [normalTime, groupTime].filter(Boolean).sort((a,b) => b - a)[0];
+                    statusEl.textContent = `草稿已自动保存（最近：${latestTime.toLocaleString()}）`;
+                    statusEl.style.color = '#E6A23C';
+                    restoreBtn.style.display = '';
+                    clearBtn.style.display = '';
+                } else {
+                    statusEl.textContent = '无草稿';
+                    statusEl.style.color = '#999';
+                    restoreBtn.style.display = 'none';
+                    clearBtn.style.display = 'none';
+                }
+            }
+
+            function clearAllDrafts() {
+                removeDraft(NORMAL_DRAFT_KEY);
+                removeDraft(GROUP_DRAFT_KEY);
+                updateDraftStatusUI();
+                alert('已清除所有草稿');
+            }
+
+            // 表单序列化与回填
+            function serializeForm(formId) {
+                const form = document.getElementById(formId);
+                const data = {};
+                const inputs = form.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'checkbox') {
+                        data[input.name] = data[input.name] || [];
+                        if (input.checked) data[input.name].push(input.value);
+                    } else {
+                        data[input.name] = input.value || '';
+                    }
+                });
+                return data;
+            }
+
+            function fillNormalForm(draft) {
+                const form = document.getElementById('normalCDKForm');
+                form.code.value = draft.code || '';
+                form.name.value = draft.name || '';
+                form.reward.value = draft.reward || '';
+                const statusSwitch = document.getElementById('statusSwitch');
+                // 兼容旧草稿（status）与新草稿（status_switch）
+                if (draft.hasOwnProperty('status')) {
+                    if (statusSwitch) statusSwitch.checked = (draft.status || '可用') === '可用';
+                } else if (Array.isArray(draft.status_switch)) {
+                    if (statusSwitch) statusSwitch.checked = draft.status_switch.length > 0; // 勾选=可用
+                } else if (typeof draft.status_switch === 'string') {
+                    if (statusSwitch) statusSwitch.checked = !!draft.status_switch; // 容错
+                } else {
+                    if (statusSwitch) statusSwitch.checked = true;
+                }
+                form.note.value = draft.note || '';
+                form.author.value = draft.author || '';
+                form.created.value = draft.created || '';
+                const serverCheckboxes = form.querySelectorAll('[name="servers"]');
+                serverCheckboxes.forEach(checkbox => {
+                    checkbox.checked = Array.isArray(draft.servers) && draft.servers.includes(checkbox.value);
+                });
+            }
+
+            function fillGroupForm(draft) {
+                const form = document.getElementById('groupCDKForm');
+                form.groupId.value = draft.groupId || '';
+                form.groupName.value = draft.groupName || '';
+                form.note.value = draft.note || '';
+            }
+
+            // 保存草稿（在表单变更时触发）
+            function saveDraft(formId) {
+                const now = Date.now();
+                if (formId === 'normalCDKForm') {
+                    const data = serializeForm('normalCDKForm');
+                    setDraft(NORMAL_DRAFT_KEY, {
+                        ...data,
+                        editingIndex,
+                        editingGroupIndex,
+                        formId,
+                        updatedAt: now
+                    });
+                } else if (formId === 'groupCDKForm') {
+                    const data = serializeForm('groupCDKForm');
+                    setDraft(GROUP_DRAFT_KEY, {
+                        ...data,
+                        editingGroupIndex,
+                        formId,
+                        updatedAt: now
+                    });
+                }
+                updateDraftStatusUI();
+            }
+
+            // 恢复草稿（选择最近一条）
+            function restoreDraft() {
+                const normal = getDraft(NORMAL_DRAFT_KEY);
+                const group = getDraft(GROUP_DRAFT_KEY);
+
+                if (!normal && !group) {
+                    alert('没有可恢复的草稿');
+                    return;
+                }
+
+                const candidates = [];
+                if (normal) candidates.push({ type: 'normal', data: normal });
+                if (group) candidates.push({ type: 'group', data: group });
+                candidates.sort((a, b) => (b.data.updatedAt || 0) - (a.data.updatedAt || 0));
+
+                const latest = candidates[0];
+                if (latest.type === 'normal') {
+                    // 恢复普通CDK草稿
+                    editingIndex = typeof latest.data.editingIndex === 'number' ? latest.data.editingIndex : -1;
+                    editingGroupIndex = typeof latest.data.editingGroupIndex === 'number' ? latest.data.editingGroupIndex : -1;
+                    document.getElementById('normalModalTitle').textContent = editingGroupIndex >= 0 ? '向组合中添加 CDK' : (editingIndex >= 0 ? '编辑普通 CDK' : '添加普通 CDK');
+                    showModal('normalCDKModal');
+                    fillNormalForm(latest.data);
+                    clearUnsavedFlag();
+                    saveOriginalFormData('normalCDKForm');
+                    setupFormChangeListeners('normalCDKForm');
+                    alert('已恢复普通 CDK 草稿');
+                } else {
+                    // 恢复组合草稿
+                    editingGroupIndex = typeof latest.data.editingGroupIndex === 'number' ? latest.data.editingGroupIndex : -1;
+                    document.getElementById('groupModalTitle').textContent = editingGroupIndex >= 0 ? '编辑 CDK 组合' : '添加 CDK 组合';
+                    showModal('groupCDKModal');
+                    fillGroupForm(latest.data);
+                    clearUnsavedFlag();
+                    saveOriginalFormData('groupCDKForm');
+                    setupFormChangeListeners('groupCDKForm');
+                    alert('已恢复 CDK 组合 草稿');
+                }
+            }
+
+            function attemptRestoreOnLoad() {
+                if (hasAnyDraft()) {
+                    updateDraftStatusUI();
+                    if (confirm('检测到未保存的草稿，是否恢复？')) {
+                        restoreDraft();
+                    }
+                } else {
+                    updateDraftStatusUI();
+                }
+            }
 
         // 检查浏览器支持
         function checkBrowserSupport() {
@@ -550,6 +843,135 @@
             });
 
             listContainer.innerHTML = html;
+
+            // 每次渲染后重建奖励联想池
+            buildSuggestionPool();
+        }
+
+        // ======== 奖励内容智能联想 ========
+        // 全局奖励池：[{ name, count }]
+        function buildSuggestionPool() {
+            const frequencyMap = new Map();
+
+            function addItemToFrequency(itemName) {
+                const normalized = (itemName || '').trim();
+                if (!normalized) return;
+                frequencyMap.set(normalized, (frequencyMap.get(normalized) || 0) + 1);
+            }
+
+            function parseRewardToItems(rewardStr) {
+                if (!rewardStr || typeof rewardStr !== 'string') return [];
+                const segments = rewardStr.split(',');
+                const items = [];
+                segments.forEach(seg => {
+                    const s = seg.trim();
+                    if (!s) return;
+                    const idx = s.lastIndexOf('×');
+                    if (idx > 0) {
+                        items.push(s.substring(0, idx).trim());
+                    } else {
+                        items.push(s);
+                    }
+                });
+                return items;
+            }
+
+            try {
+                if (Array.isArray(cdkData.cdks)) {
+                    cdkData.cdks.forEach(entry => {
+                        if (entry && entry.type === 'group' && Array.isArray(entry.cdks)) {
+                            entry.cdks.forEach(cdk => {
+                                parseRewardToItems(cdk && cdk.reward).forEach(addItemToFrequency);
+                            });
+                        } else if (entry) {
+                            parseRewardToItems(entry.reward).forEach(addItemToFrequency);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('构建奖励联想池失败:', e);
+            }
+
+            window.__rewardPool = Array.from(frequencyMap.entries())
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count);
+        }
+
+        function getRewardFragment(inputEl) {
+            const value = inputEl.value || '';
+            const caret = inputEl.selectionStart || 0;
+            const start = value.lastIndexOf(',', Math.max(0, caret - 1)) + 1; // -1 -> 0
+            // 片段到光标位置即可
+            const raw = value.substring(start, caret);
+            const fragment = raw.replace(/^\s+/, '');
+            const fragmentStart = start + (raw.length - fragment.length);
+            return { fragment, start: fragmentStart, caret };
+        }
+
+        function renderSuggestionItems(list) {
+            const container = document.getElementById('rewardSuggestion');
+            if (!container) return;
+            if (!list || list.length === 0) {
+                container.innerHTML = `<div class="suggestion-empty">无匹配结果</div>`;
+                return;
+            }
+            container.innerHTML = list.map(item => (
+                `<div class="suggestion-item" data-name="${item.name}">${item.name} <span style="color:#999;">(${item.count})</span></div>`
+            )).join('');
+
+            Array.from(container.querySelectorAll('.suggestion-item')).forEach(el => {
+                el.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    insertSuggestion(el.getAttribute('data-name'));
+                });
+            });
+        }
+
+        function showSuggestions() {
+            const inputEl = document.getElementById('rewardInput');
+            const container = document.getElementById('rewardSuggestion');
+            if (!inputEl || !container) return;
+
+            const pool = Array.isArray(window.__rewardPool) ? window.__rewardPool : [];
+            const { fragment } = getRewardFragment(inputEl);
+            let list = [];
+            if (!fragment) {
+                list = pool.slice(0, 3);
+            } else {
+                const key = fragment.toLowerCase();
+                list = pool.filter(p => p.name.toLowerCase().includes(key)).slice(0, 20);
+            }
+            renderSuggestionItems(list);
+            container.style.display = 'block';
+        }
+
+        function hideSuggestions() {
+            const container = document.getElementById('rewardSuggestion');
+            if (container) container.style.display = 'none';
+        }
+
+        function insertSuggestion(name) {
+            const inputEl = document.getElementById('rewardInput');
+            const container = document.getElementById('rewardSuggestion');
+            if (!inputEl) return;
+            const value = inputEl.value || '';
+            const { start, caret } = getRewardFragment(inputEl);
+
+            // 片段替换为 "道具名×"
+            const prefix = value.substring(0, start);
+            const suffix = value.substring(caret);
+            const insertText = `${name}×`;
+            const nextValue = `${prefix}${insertText}${suffix}`;
+            inputEl.value = nextValue;
+
+            const newCaret = (prefix + insertText).length;
+            inputEl.setSelectionRange(newCaret, newCaret);
+            inputEl.focus();
+            if (container) container.style.display = 'none';
+        }
+
+        function onRewardInput() {
+            showSuggestions();
         }
 
         // 格式化note内容，支持换行和Markdown链接
@@ -582,6 +1004,19 @@
             return formattedNote;
         }
 
+        // 渲染服务器标签
+        function renderServerTags(servers) {
+            if (!servers || servers.length === 0) return '';
+            const nameMap = { global: '国际服', cn: '国服', tw: '港澳台服' };
+            const tags = servers.map(s => `<span class="server-tag">${nameMap[s] || s}</span>`).join('');
+            return `<div class="server-tags">${tags}</div>`;
+        }
+
+        function renderStatusTag(status) {
+            const cls = status === '可用' ? 'available' : 'expired';
+            return `<span class="status-tag ${cls}">${status}</span>`;
+        }
+
         // 渲染普通CDK
         function renderNormalCDK(cdk, index) {
             const statusClass = cdk.status === '可用' ? 'status-available' : 'status-expired';
@@ -609,11 +1044,11 @@
                             </div>
                             <div class="info-item">
                                 <span class="info-label">服务器：</span>
-                                <span class="info-value">${cdk.servers ? cdk.servers.join(', ') : ''}</span>
+                                <span class="info-value">${renderServerTags(cdk.servers)}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">状态：</span>
-                                <span class="info-value ${statusClass}">${cdk.status}</span>
+                                <span class="info-value">${renderStatusTag(cdk.status)}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">贡献者：</span>
@@ -646,8 +1081,9 @@
                                 </div>
                             </div>
                             <div style="font-size: 13px; color: #666;">
-                                <div>代码：${cdk.code} | 奖励：${cdk.reward}</div>
-                                <div>服务器：${cdk.servers ? cdk.servers.join(', ') : ''} | 状态：<span class="${statusClass}">${cdk.status}</span></div>
+                            <div>代码：${cdk.code}</div>
+                            <div>奖励：${cdk.reward}</div>
+                                <div>服务器：${renderServerTags(cdk.servers)} | 状态：${renderStatusTag(cdk.status)}</div>
                                 ${cdk.note ? `<div style="max-width: 100%; word-break: break-word; line-height: 1.6;">备注：${formatNoteContent(cdk.note)}</div>` : ''}
                             </div>
                         </div>
@@ -693,6 +1129,11 @@
             document.getElementById('normalCDKForm').reset();
             // 设置默认创建日期为今天
             document.querySelector('[name="created"]').value = new Date().toISOString().split('T')[0];
+            // 默认可用（开关打开）
+            const statusSwitch = document.getElementById('statusSwitch');
+            if (statusSwitch) statusSwitch.checked = true;
+            const statusText = document.getElementById('statusSwitchText');
+            if (statusText) { statusText.textContent = '可用'; statusText.classList.remove('expired'); statusText.classList.add('available'); }
             showModal('normalCDKModal');
             clearUnsavedFlag();
             saveOriginalFormData('normalCDKForm');
@@ -709,7 +1150,16 @@
             form.code.value = cdk.code || '';
             form.name.value = cdk.name || '';
             form.reward.value = cdk.reward || '';
-            form.status.value = cdk.status || '可用';
+            // 同步开关：可用=true，已过期=false
+            const statusSwitch = document.getElementById('statusSwitch');
+            if (statusSwitch) statusSwitch.checked = (cdk.status || '可用') === '可用';
+            const statusText = document.getElementById('statusSwitchText');
+            if (statusText) {
+                const isOn = (cdk.status || '可用') === '可用';
+                statusText.textContent = isOn ? '可用' : '已过期';
+                statusText.classList.toggle('available', isOn);
+                statusText.classList.toggle('expired', !isOn);
+            }
             form.note.value = cdk.note || '';
             form.author.value = cdk.author || '';
             form.created.value = cdk.created || '';
@@ -741,12 +1191,13 @@
                 return;
             }
 
+            const statusSwitch = document.getElementById('statusSwitch');
             const cdkData_new = {
                 code: formData.get('code'),
                 name: formData.get('name'),
                 reward: formData.get('reward'),
                 servers: servers,
-                status: formData.get('status'),
+                status: statusSwitch && statusSwitch.checked ? '可用' : '已过期',
                 note: formData.get('note'),
                 author: formData.get('author'),
                 created: formData.get('created')
@@ -843,7 +1294,15 @@
             form.code.value = cdk.code || '';
             form.name.value = cdk.name || '';
             form.reward.value = cdk.reward || '';
-            form.status.value = cdk.status || '可用';
+            const statusSwitch = document.getElementById('statusSwitch');
+            if (statusSwitch) statusSwitch.checked = (cdk.status || '可用') === '可用';
+            const statusText = document.getElementById('statusSwitchText');
+            if (statusText) {
+                const isOn = (cdk.status || '可用') === '可用';
+                statusText.textContent = isOn ? '可用' : '已过期';
+                statusText.classList.toggle('available', isOn);
+                statusText.classList.toggle('expired', !isOn);
+            }
             form.note.value = cdk.note || '';
             form.author.value = cdk.author || '';
             form.created.value = cdk.created || '';
@@ -875,12 +1334,13 @@
                 return;
             }
 
+            const statusSwitch = document.getElementById('statusSwitch');
             const cdkData_new = {
                 code: formData.get('code'),
                 name: formData.get('name'),
                 reward: formData.get('reward'),
                 servers: servers,
-                status: formData.get('status'),
+                status: statusSwitch && statusSwitch.checked ? '可用' : '已过期',
                 note: formData.get('note'),
                 author: formData.get('author'),
                 created: formData.get('created')
@@ -968,9 +1428,29 @@
                 input.removeEventListener('change', checkFormChanges);
                 
                 // 添加新监听器
-                input.addEventListener('input', () => checkFormChanges(formId));
-                input.addEventListener('change', () => checkFormChanges(formId));
+                input.addEventListener('input', () => { checkFormChanges(formId); saveDraft(formId); if (input.name === 'reward') onRewardInput(); });
+                input.addEventListener('change', () => { checkFormChanges(formId); saveDraft(formId); if (input.name === 'reward') onRewardInput(); });
             });
+
+            // 同步状态文本与开关
+            const statusSwitch = form.querySelector('#statusSwitch');
+            const statusText = document.getElementById('statusSwitchText');
+            if (statusSwitch && statusText) {
+                statusSwitch.oninput = () => {
+                    const isOn = statusSwitch.checked;
+                    statusText.textContent = isOn ? '可用' : '已过期';
+                    statusText.classList.toggle('available', isOn);
+                    statusText.classList.toggle('expired', !isOn);
+                };
+            }
+
+            // 独立绑定 reward 输入框的联想显示/隐藏
+            const rewardInput = form.querySelector('input[name="reward"]');
+            if (rewardInput) {
+                rewardInput.addEventListener('focus', () => { buildSuggestionPool(); showSuggestions(); });
+                rewardInput.addEventListener('blur', () => { setTimeout(hideSuggestions, 120); });
+                // 初次聚焦时也刷新
+            }
         }
 
         // 模态框管理
@@ -992,24 +1472,13 @@
             clearUnsavedFlag();
         }
 
-        // 点击模态框外部关闭（但要避免误操作）
+        // 禁止点击模态框外部关闭，避免误触
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
                 if (event.target === modal) {
-                    // 检查是否有未保存的修改
-                    if (hasUnsavedChanges()) {
-                        if (confirm('你有未保存的修改，确定要关闭编辑窗口吗？')) {
-                            modal.style.display = 'none';
-                            editingIndex = -1;
-                            editingGroupIndex = -1;
-                            clearUnsavedFlag();
-                        }
-                    } else {
-                        modal.style.display = 'none';
-                        editingIndex = -1;
-                        editingGroupIndex = -1;
-                    }
+                    // 不执行关闭动作，强制用户点击×或取消
+                    // 可根据需要在此处给出轻提示
                 }
             });
         };
@@ -1101,6 +1570,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             checkBrowserSupport();
             renderCDKList();
+            updateDraftStatusUI();
+            attemptRestoreOnLoad();
+        });
+
+        // 离开页面提示（存在未保存修改或草稿时）
+        window.addEventListener('beforeunload', function(e) {
+            if (hasUnsavedChanges() || hasAnyDraft()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
         });
     </script>
 </body>
