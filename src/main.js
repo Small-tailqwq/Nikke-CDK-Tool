@@ -50,4 +50,28 @@ app.use(ElementPlus, {
   locale: zhCn,
 })
 
-app.mount('#app') 
+app.mount('#app')
+
+// 在空闲时间预取常用路由的代码块，减少首次导航卡顿
+const prefetchRouteModules = () => {
+  const loaders = [
+    () => import('./views/CdkExchange.vue'),
+    () => import('./views/UserManagement.vue'),
+    () => import('./views/ExchangeHistory.vue'),
+    // 常用异步子组件/工具预热
+    () => import('./components/UserDialog.vue'),
+  ]
+
+  loaders.forEach((load) => {
+    try {
+      load().catch(() => { })
+    } catch (_) {
+      // 忽略预取失败
+    }
+  })
+}
+
+if (typeof window !== 'undefined') {
+  const schedule = window.requestIdleCallback || ((fn) => setTimeout(fn, 0))
+  schedule(() => prefetchRouteModules())
+}

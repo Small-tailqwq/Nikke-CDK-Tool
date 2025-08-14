@@ -1584,26 +1584,5 @@ onBeforeUnmount(() => {
 }
 
 /* =============== 广告样式 =============== */
-.status-ad {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
-  color: white !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
-}
-
-/* 广告卡片的额外样式调整 */
-.ad-card-wrapper {
-  /* 确保广告卡片在顶部显示 */
-  order: -1000;
-  /* 确保在flexbox中始终排在最前面 */
-  align-self: flex-start;
-}
-
-/* 为广告屏蔽器提供的标识样式 */
-.advertisement,
-.google-ad,
-.adsense-ad,
-.ad-banner {
-  /* 这些类名会被主流广告屏蔽器识别 */
-  display: block;
-}
+/* 广告样式由 `src/components/AdCard.vue` 内部维护，避免重复定义 */
 </style>
