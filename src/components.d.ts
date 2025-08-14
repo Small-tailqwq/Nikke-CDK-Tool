@@ -47,7 +47,6 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     TextDestructionEffect: typeof import('./components/TextDestructionEffect.vue')['default']
     UserDialog: typeof import('./components/UserDialog.vue')['default']
-    WaterfallLayout: typeof import('./components/WaterfallLayout.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

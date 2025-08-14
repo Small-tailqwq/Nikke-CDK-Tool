@@ -118,11 +118,11 @@ const calculateLayout = async () => {
       return
     }
 
-  // 清理旧的观察者（每次重算重新绑定，避免残留）
-  cleanupItemObservers()
-  cleanupImageListeners()
+    // 清理旧的观察者（每次重算重新绑定，避免残留）
+    cleanupItemObservers()
+    cleanupImageListeners()
 
-  // 真正的瀑布流算法：每次选择最矮的列放置下一个元素
+    // 真正的瀑布流算法：每次选择最矮的列放置下一个元素
     for (let i = 0; i < props.items.length; i++) {
       const item = items[i] as HTMLElement
       if (!item) continue
@@ -143,13 +143,13 @@ const calculateLayout = async () => {
 
       // 获取元素高度并更新列高度
       await nextTick() // 确保样式已应用
-  const itemHeight = item.offsetHeight || 200 // 默认高度
+      const itemHeight = item.offsetHeight || 200 // 默认高度
       newColumnHeights[shortestColumnIndex] += itemHeight + props.gap
 
-  // 监听单个子项高度变化（例如内部展开、图片加载后高度变化）
-  attachItemObserver(item)
-  // 监听图片加载
-  attachImageLoadListeners(item)
+      // 监听单个子项高度变化（例如内部展开、图片加载后高度变化）
+      attachItemObserver(item)
+      // 监听图片加载
+      attachImageLoadListeners(item)
     }
 
     // 一次性更新所有位置信息，避免中间状态导致的闪烁

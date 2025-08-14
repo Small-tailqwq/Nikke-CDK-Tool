@@ -108,9 +108,6 @@
           @ad-closed="handleAdClosed"
         />
 
-        <!-- 占位卡片 -->
-        <PlaceholderCard v-else-if="isPlaceholderData(cdk)" />
-
         <!-- CDK组合卡片 -->
         <CDKGroupCard
           v-else-if="isCDKGroup(cdk)"
@@ -259,8 +256,7 @@ import { useExchangeStore } from '../stores/exchange'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
 // 导入广告注入器
-import { injectAd, isAdData, isPlaceholderData } from '../utils/adInjector.js'
-import PlaceholderCard from '../components/PlaceholderCard.vue'
+import { injectAd, isAdData } from '../utils/adInjector.js'
 
 type ServerType = 'global' | 'tw' | 'cn'
 type FilterForm = {
@@ -900,29 +896,9 @@ onBeforeUnmount(() => {
   border-radius: 8px; /* 四角弧度完全对称 */
   border: none;
   /* 移除固定高度，让卡片自适应内容高度 */
-  animation: fadeInUp 0.32s cubic-bezier(0.4, 0.14, 0.3, 1) both;
-  transition:
-    transform 180ms cubic-bezier(0.4, 0.14, 0.3, 1),
-    background-color 240ms ease,
-    border-color 240ms ease;
-  /* 避免直接动画 box-shadow，使用伪元素制造阴影以减轻重绘 */
+  animation: fadeInUp 0.3s ease-out;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--el-bg-color);
-  will-change: transform;
-  backface-visibility: hidden;
-  transform: translateZ(0); /* GPU 加速 */
-
-  /* 阴影伪元素 */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    opacity: 1;
-    transition: opacity 180ms ease, box-shadow 240ms ease;
-    will-change: opacity;
-  }
 
   @media screen and (max-width: 768px) {
     font-size: 14px;
@@ -930,11 +906,9 @@ onBeforeUnmount(() => {
 
   &:hover {
     @media screen and (min-width: 769px) {
-      transform: translateY(-4px) scale(1.01);
-      &::before {
-        box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.18), 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-        opacity: 1;
-      }
+      transform: translateY(-6px) scale(1.02);
+      /* 增强阴影效果以配合圆角 */
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
     }
   }
 
@@ -1431,22 +1405,11 @@ onBeforeUnmount(() => {
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translate3d(0, 14px, 0) scale(.97);
-    filter: blur(2px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-    filter: blur(0);
-  }
-}
-
-/* 减少动画偏好支持 */
-@media (prefers-reduced-motion: reduce) {
-  .cdk-card {
-    animation: none !important;
-    transform: none !important;
-    &::before { transition: none !important; }
+    transform: translateY(0);
   }
 }
 
