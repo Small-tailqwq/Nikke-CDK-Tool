@@ -230,15 +230,22 @@ async function handleGlobalRegionList(request) {
     // 构建目标URL（使用GET请求）
     const finalUrl = `${targetUrl}?game_id=${game_id}`
 
+    // 🔧 修复：简化请求头，避免可能的无效值
+    const safeHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Cookie': cookie,
+      'Origin': 'https://www.blablalink.com',
+      'Referer': 'https://www.blablalink.com/'
+    }
+
     // 构建代理请求
     const proxyRequest = new Request(finalUrl, {
       method: 'GET',
-      headers: {
-        ...GLOBAL_HEADERS,
-        'Cookie': cookie,
-        'Origin': 'https://www.blablalink.com',
-        'Referer': 'https://www.blablalink.com/'
-      }
+      headers: safeHeaders
     })
 
     // 发送请求并获取响应
