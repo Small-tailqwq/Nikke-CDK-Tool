@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-14T12:27:52.407Z",
+  "lastUpdate": "2025-08-18T06:31:50.137Z",
   "cdks": [
     {
       "type": "group",
@@ -387,6 +387,51 @@
       "author": "坦克",
       "created": "2025-08-09",
       "image": "announcement-images/KanaeSatoruVol10BQID.jpg"
+    },
+    {
+      "type": "group",
+      "groupId": "CN_SummerParty",
+      "groupName": "【国服】夏日派对",
+      "note": "收录25年国服夏日派对期间的直播 CDK 奖励。",
+      "cdks": [
+        {
+          "code": "指挥官交个朋友",
+          "name": "指挥官交个朋友",
+          "reward": "不详",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "maki",
+          "created": "2025-08-16"
+        },
+        {
+          "code": "胜利女神夏日补给",
+          "name": "胜利女神夏日补给",
+          "reward": "不详",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "maki",
+          "created": "2025-08-16"
+        },
+        {
+          "code": "夏日派对与妮同行",
+          "name": "夏日派对与妮同行",
+          "reward": "高级招募券×5",
+          "servers": [
+            "cn"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "maki",
+          "created": "2025-08-16"
+        }
+      ],
+      "image": "announcement-images/CN_SummerParty.jpg"
     }
   ]
 }
