@@ -63,8 +63,18 @@ export const useExchangeStore = defineStore('exchange', () => {
       id: record.id || `${record.userId}-${record.cdk}-${record.date}-${Math.random().toString(36).substring(2, 10)}`
     }))
 
-    // 智能融合记录
-    const mergedRecords = mergeRecords(recordsWithId, history.value)
+    // 简化逻辑：只有当添加的是云端记录时，才尝试与本地记录融合
+    const isAddingCloudRecords = recordsWithId.some(record => record.source === '云端')
+
+    let mergedRecords
+    if (isAddingCloudRecords) {
+      console.log('🔄 检测到云端记录，执行与本地记录的智能融合...')
+      mergedRecords = mergeRecords(recordsWithId, history.value)
+    } else {
+      console.log('📝 本地记录直接添加，不执行融合')
+      // 直接合并，不进行融合处理
+      mergedRecords = [...history.value, ...recordsWithId]
+    }
 
     // 合并记录并按时间倒序排序
     history.value = mergedRecords.sort((a, b) => {
@@ -96,8 +106,8 @@ export const useExchangeStore = defineStore('exchange', () => {
         record.cdk === newRecord.cdk &&
         // 相同用户
         record.userId === newRecord.userId &&
-        // 时间接近（5分钟内）
-        Math.abs(new Date(record.date) - new Date(newRecord.date)) < 5 * 60 * 1000
+        // 时间接近（30秒内）
+        Math.abs(new Date(record.date) - new Date(newRecord.date)) < 30 * 1000
       )
 
       if (similarRecords.length > 0) {
@@ -157,10 +167,22 @@ export const useExchangeStore = defineStore('exchange', () => {
             // 标记为已处理
             processedNewRecords.add(newRecord.id)
           } else {
-            // 相同来源的重复记录，跳过新记录，避免重复
-            console.log(`⚠️ 跳过重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
-            console.log(`⚠️ 跳过原因: 相同来源的记录不需要融合，避免重复`)
-            processedNewRecords.add(newRecord.id)
+            // 相同来源的记录，检查是否为真正的重复记录
+            const isDuplicateRecord = closestRecord.success === newRecord.success &&
+              closestRecord.message === newRecord.message &&
+              closestRecord.code === newRecord.code
+
+            if (isDuplicateRecord) {
+              // 真正的重复记录，跳过
+              console.log(`⚠️ 跳过完全重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+              console.log(`⚠️ 跳过原因: 完全相同的记录，避免重复`)
+              processedNewRecords.add(newRecord.id)
+            } else {
+              // 虽然来源相同，但结果不同，应该保留为独立记录
+              console.log(`📝 保留独立记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+              console.log(`📝 保留原因: 虽然来源相同但结果不同，视为不同的尝试`)
+              // 不标记为已处理，让它被添加为新记录
+            }
           }
         }
       }
@@ -255,7 +277,8 @@ export const useExchangeStore = defineStore('exchange', () => {
           const result = await syncUserExchangeHistory(user.cookie, user.name, user.id, {
             page: currentPage,
             pageSize: pageSize,
-            syncAll: false // 每次只获取一页
+            syncAll: false, // 每次只获取一页
+            user: user // 🔧 修复：传递完整的用户对象以正确识别服务器类型
           })
 
           if (!result.success || !result.records || result.records.length === 0) {
@@ -309,7 +332,8 @@ export const useExchangeStore = defineStore('exchange', () => {
         const result = await syncUserExchangeHistory(user.cookie, user.name, user.id, {
           page,
           pageSize,
-          syncAll: false
+          syncAll: false,
+          user: user // 🔧 修复：传递完整的用户对象以正确识别服务器类型
         })
 
         if (result.success && result.records && result.records.length > 0) {

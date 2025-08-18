@@ -5,12 +5,7 @@
         <div class="card-header">
           <span>兑换历史</span>
           <div class="header-actions">
-            <el-select
-              v-model="selectedUser"
-              placeholder="选择用户"
-              clearable
-              size="small"
-            >
+            <el-select v-model="selectedUser" placeholder="选择用户" clearable size="small">
               <el-option
                 v-for="user in userStore.users"
                 :key="user.id"
@@ -18,12 +13,7 @@
                 :value="user.id"
               />
             </el-select>
-            <el-select
-              v-model="selectedServer"
-              placeholder="选择服务器"
-              clearable
-              size="small"
-            >
+            <el-select v-model="selectedServer" placeholder="选择服务器" clearable size="small">
               <el-option
                 v-for="server in serverOptions"
                 :key="server.value"
@@ -31,12 +21,7 @@
                 :value="server.value"
               />
             </el-select>
-            <el-select
-              v-model="selectedSource"
-              placeholder="选择来源"
-              clearable
-              size="small"
-            >
+            <el-select v-model="selectedSource" placeholder="选择来源" clearable size="small">
               <el-option
                 v-for="source in sourceOptions"
                 :key="source.value"
@@ -61,14 +46,10 @@
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item
-                    command="clearFiltered"
-                    :disabled="total === 0"
+                  <el-dropdown-item command="clearFiltered" :disabled="total === 0"
                     >清除筛选后的历史</el-dropdown-item
                   >
-                  <el-dropdown-item command="clearAll" divided
-                    >清除全部历史</el-dropdown-item
-                  >
+                  <el-dropdown-item command="clearAll" divided>清除全部历史</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -93,11 +74,7 @@
         >
           <template #default="{ row }">
             {{ row.date }}
-            <el-tooltip
-              v-if="row.merged && row.mergedAt"
-              content="显示融合时间"
-              placement="top"
-            >
+            <el-tooltip v-if="row.merged && row.mergedAt" content="显示融合时间" placement="top">
               <el-icon class="merge-info-icon"><InfoFilled /></el-icon>
             </el-tooltip>
           </template>
@@ -107,24 +84,21 @@
         <el-table-column
           v-if="!isMobile"
           label="服务器"
-          min-width="100"
-          class-name="hide-on-mobile"
+          min-width="110"
+          class-name="hide-on-mobile server-column"
         >
           <template #default="{ row }">
             <el-tag
               :type="getServerTagType(row.server)"
               size="small"
               effect="plain"
+              class="server-tag"
             >
               {{ row.serverName || getServerName(row.server) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column
-          label="状态"
-          min-width="80"
-          :fixed="isMobile ? false : 'right'"
-        >
+        <el-table-column label="状态" min-width="80" :fixed="isMobile ? false : 'right'">
           <template #default="{ row }">
             <div class="status-column">
               <el-tag :type="row.success ? 'success' : 'danger'" size="small">
@@ -151,12 +125,7 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column
-          prop="message"
-          label="结果"
-          min-width="200"
-          show-overflow-tooltip
-        />
+        <el-table-column prop="message" label="结果" min-width="200" show-overflow-tooltip />
       </el-table>
 
       <div class="pagination-container">
@@ -165,9 +134,7 @@
           v-model:page-size="pageSize"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
-          :layout="
-            isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'
-          "
+          :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
           size="small"
@@ -176,12 +143,7 @@
     </el-card>
 
     <!-- 确认对话框 -->
-    <el-dialog
-      v-model="clearDialogVisible"
-      :title="clearDialogTitle"
-      width="300px"
-      center
-    >
+    <el-dialog v-model="clearDialogVisible" :title="clearDialogTitle" width="300px" center>
       <span>{{ clearDialogMessage }}</span>
       <template #footer>
         <span class="dialog-footer">
@@ -216,15 +178,10 @@
                 : '未知'
             }}
           </p>
-          <p>
-            <strong>融合来源：</strong>{{ selectedRecord.mergedFrom || '未知' }}
-          </p>
+          <p><strong>融合来源：</strong>{{ selectedRecord.mergedFrom || '未知' }}</p>
           <p>
             <strong>状态：</strong>
-            <el-tag
-              :type="selectedRecord.success ? 'success' : 'danger'"
-              size="small"
-            >
+            <el-tag :type="selectedRecord.success ? 'success' : 'danger'" size="small">
               {{ selectedRecord.success ? '成功' : '失败' }}
             </el-tag>
           </p>
@@ -250,11 +207,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { ArrowDown, InfoFilled } from '@element-plus/icons-vue'
-import {
-  serverOptions,
-  getServerName,
-  getServerTagType,
-} from '../utils/serverUtils'
+import { serverOptions, getServerName, getServerTagType } from '../utils/serverUtils'
 import { showCustomMessage } from '../utils/customMessage'
 
 const userStore = useUserStore()
@@ -359,8 +312,7 @@ const handleClearCommand = (command) => {
 
     let filterDesc = []
     if (selectedUser.value) {
-      const userName =
-        userStore.getUserById(selectedUser.value)?.name || '未知用户'
+      const userName = userStore.getUserById(selectedUser.value)?.name || '未知用户'
       filterDesc.push(`用户"${userName}"`)
     }
     if (selectedServer.value) {
@@ -369,13 +321,11 @@ const handleClearCommand = (command) => {
     }
     if (selectedSource.value) {
       const sourceName =
-        sourceOptions.find((s) => s.value === selectedSource.value)?.label ||
-        '未知来源'
+        sourceOptions.find((s) => s.value === selectedSource.value)?.label || '未知来源'
       filterDesc.push(`来源"${sourceName}"`)
     }
 
-    const filterText =
-      filterDesc.length > 0 ? `（${filterDesc.join('、')}）` : ''
+    const filterText = filterDesc.length > 0 ? `（${filterDesc.join('、')}）` : ''
     clearDialogTitle.value = '清除筛选历史'
     clearDialogMessage.value = `确定要清除当前筛选条件下的 ${filteredCount} 条记录${filterText}吗？此操作不可恢复。`
     clearDialogVisible.value = true
@@ -403,10 +353,7 @@ const confirmClear = async () => {
       // 替换历史记录为保留的记录
       await exchangeStore.replaceHistory(remainingRecords)
 
-      showCustomMessage(
-        `已清除 ${filteredRecords.length} 条筛选后的历史记录`,
-        'success'
-      )
+      showCustomMessage(`已清除 ${filteredRecords.length} 条筛选后的历史记录`, 'success')
     }
   } catch (error) {
     showCustomMessage('清除历史记录失败', 'error')
@@ -570,6 +517,37 @@ onMounted(() => {
           &::-webkit-scrollbar-thumb:hover {
             width: 6px;
           }
+        }
+      }
+    }
+
+    // 服务器列样式优化 - 解决黑点问题
+    :deep(.server-column) {
+      .cell {
+        // 方案1：完全禁用overflow hidden（推荐）
+        overflow: visible !important;
+
+        // 方案2：如果需要保持overflow hidden，则确保有足够空间
+        // min-width: 120px;
+        // padding: 0 8px;
+
+        .server-tag {
+          // 确保tag有足够的显示空间
+          max-width: 100%;
+          box-sizing: border-box;
+
+          // 防止内容被意外截断
+          overflow: visible;
+          white-space: nowrap;
+
+          // 如果真的需要截断，使用更明确的省略号
+          // overflow: hidden;
+          // text-overflow: ellipsis;
+
+          // 确保内容垂直居中
+          display: inline-flex;
+          align-items: center;
+          vertical-align: middle;
         }
       }
     }

@@ -44,17 +44,9 @@
       </el-form-item>
 
       <!-- 国际服显示Cookie信息 -->
-      <el-form-item
-        label="Cookie信息"
-        prop="cookie"
-        v-if="form.server !== 'cn'"
-      >
+      <el-form-item label="Cookie信息" prop="cookie" v-if="form.server !== 'cn'">
         <template v-if="isEdit && !showCookie">
-          <el-card
-            class="cookie-mask"
-            shadow="never"
-            @click="showCookie = true"
-          >
+          <el-card class="cookie-mask" shadow="never" @click="showCookie = true">
             <div class="cookie-mask-content">
               <div class="cookie-mask-icon">
                 <el-icon><Lock /></el-icon>
@@ -70,12 +62,7 @@
           <div class="cookie-content">
             <div class="cookie-content-header">
               <span class="cookie-content-title">Cookie 详情</span>
-              <el-button
-                type="primary"
-                link
-                @click="showCookie = false"
-                class="cookie-hide-btn"
-              >
+              <el-button type="primary" link @click="showCookie = false" class="cookie-hide-btn">
                 <el-icon><ArrowLeft /></el-icon>
                 返回
               </el-button>
@@ -162,27 +149,52 @@
         </div>
       </el-form-item>
 
+      <!-- 服务器类型检测警告 -->
+      <el-form-item v-if="showServerMismatchAlert && serverDetectionResult && form.server !== 'cn'">
+        <el-alert
+          :title="`检测到服务器类型可能不匹配`"
+          type="warning"
+          show-icon
+          class="server-detection-alert"
+          :closable="false"
+        >
+          <template #default>
+            <div class="server-detection-content">
+              <p>{{ serverDetectionResult.suggestion }}</p>
+              <p class="server-comparison">
+                当前选择：<el-tag size="small">{{
+                  serverOptions.find((s) => s.value === form.server)?.label
+                }}</el-tag>
+                建议切换到：<el-tag size="small" type="primary">{{
+                  serverOptions.find((s) => s.value === serverDetectionResult.detectedServer)?.label
+                }}</el-tag>
+              </p>
+              <div class="server-detection-actions">
+                <el-button size="small" type="primary" @click="applyDetectedServer">
+                  自动切换
+                </el-button>
+                <el-button size="small" @click="showServerMismatchAlert = false">
+                  忽略建议
+                </el-button>
+              </div>
+            </div>
+          </template>
+        </el-alert>
+      </el-form-item>
+
       <!-- 国服显示角色信息 -->
-      <el-form-item
-        label="角色信息"
-        v-if="form.server === 'cn' && parsedGameInfo"
-      >
+      <el-form-item label="角色信息" v-if="form.server === 'cn' && parsedGameInfo">
         <div class="cn-game-info">
           <div class="info-card">
             <div class="info-row">
               <span class="info-label">游戏服区:</span>
-              <el-tag
-                :type="parsedGameInfo.area_id === '1' ? 'success' : 'primary'"
-                size="small"
-              >
+              <el-tag :type="parsedGameInfo.area_id === '1' ? 'success' : 'primary'" size="small">
                 {{ parsedGameInfo.area_id === '1' ? '微信' : 'QQ' }}
               </el-tag>
             </div>
             <div class="info-row">
               <span class="info-label">角色名称:</span>
-              <span class="info-value">{{
-                parsedGameInfo.role_name_decoded
-              }}</span>
+              <span class="info-value">{{ parsedGameInfo.role_name_decoded }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">角色ID:</span>
@@ -226,21 +238,15 @@
             </div>
             <div class="info-row">
               <span class="info-label">角色等级:</span>
-              <span class="info-value">{{
-                parsedGlobalInfo.player_level
-              }}</span>
+              <span class="info-value">{{ parsedGlobalInfo.player_level }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">拥有角色数:</span>
-              <span class="info-value">{{
-                parsedGlobalInfo.own_nikke_cnt
-              }}</span>
+              <span class="info-value">{{ parsedGlobalInfo.own_nikke_cnt }}</span>
             </div>
             <div class="info-row">
               <span class="info-label">战力:</span>
-              <span class="info-value">{{
-                parsedGlobalInfo.team_combat?.toLocaleString()
-              }}</span>
+              <span class="info-value">{{ parsedGlobalInfo.team_combat?.toLocaleString() }}</span>
             </div>
           </div>
           <div class="loading-placeholder" v-else-if="globalInfoLoading">
@@ -260,9 +266,7 @@
         </div>
         <div class="dialog-footer-right">
           <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="saving">
-            保存
-          </el-button>
+          <el-button type="primary" @click="handleSubmit" :loading="saving"> 保存 </el-button>
         </div>
       </div>
     </template>
@@ -270,15 +274,7 @@
 </template>
 
 <script setup>
-import {
-  ref,
-  reactive,
-  watch,
-  nextTick,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-} from 'vue'
+import { ref, reactive, watch, nextTick, computed, onMounted, onBeforeUnmount } from 'vue'
 import {
   Lock,
   InfoFilled,
@@ -296,10 +292,7 @@ import {
   shouldRenewCookie,
 } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
-import {
-  formatCookieExpireTime,
-  getCookieExpireTagType,
-} from '../utils/dateUtils'
+import { formatCookieExpireTime, getCookieExpireTagType } from '../utils/dateUtils'
 
 const props = defineProps({
   visible: {
@@ -364,6 +357,10 @@ const manualExpireDaysEdit = ref(false)
 
 // Cookie工具相关状态
 const manualValidationLoading = ref(false)
+
+// 服务器检测相关状态
+const serverDetectionResult = ref(null)
+const showServerMismatchAlert = ref(false)
 
 // 服务器选项
 const serverOptions = [
@@ -458,11 +455,7 @@ const parseApplicationCookie = (cookieStr) => {
       cookiePairs.push(`${cookieName}=${cookieValue}`)
 
       // 特别关注game_token的过期时间
-      if (
-        cookieName === 'game_token' &&
-        expireDateStr &&
-        expireDateStr !== 'Session'
-      ) {
+      if (cookieName === 'game_token' && expireDateStr && expireDateStr !== 'Session') {
         try {
           const expireDate = new Date(expireDateStr)
           if (!isNaN(expireDate.getTime()) && expireDate > new Date()) {
@@ -516,9 +509,7 @@ const parseApplicationCookie = (cookieStr) => {
     expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     // 不再在Cookie中添加expires字段，过期时间信息将在角色信息卡片中显示
 
-    console.warn(
-      '无法从Application Cookie中解析到game_token过期时间，设置为30天后'
-    )
+    console.warn('无法从Application Cookie中解析到game_token过期时间，设置为30天后')
     console.warn('⚠️ Cookie过期时间未知，需要通过API验证实际有效性')
   }
 
@@ -543,9 +534,7 @@ const parseStandardCookie = (cookieStr) => {
     'game_channelid',
     'game_user_name',
   ]
-  const missingFields = requiredFields.filter(
-    (field) => !cookieStr.includes(field)
-  )
+  const missingFields = requiredFields.filter((field) => !cookieStr.includes(field))
 
   if (missingFields.length > 0) {
     return {
@@ -594,6 +583,118 @@ const parseStandardCookie = (cookieStr) => {
   }
 }
 
+// 检测Cookie中的服务器类型
+const detectServerFromCookie = async (cookieStr) => {
+  if (!cookieStr || !cookieStr.trim()) {
+    return {
+      detectedServer: null,
+      confidence: 0,
+      channelId: null,
+      suggestion: null,
+    }
+  }
+
+  try {
+    // 从Cookie中提取game_channelid用于日志记录
+    const channelMatch = cookieStr.match(/game_channelid=([^;]+)/)
+    const channelId = channelMatch ? parseInt(channelMatch[1]) : null
+
+    let detectedServer = null
+    let confidence = 0
+    let suggestion = null
+
+    // 🔧 改进：仅通过获取用户信息中的region_name来准确判断服务器类型
+    try {
+      const userInfoResult = await getGlobalUserCompleteInfo(cookieStr)
+
+      if (userInfoResult.success && userInfoResult.data && userInfoResult.data.region_name) {
+        const regionName = userInfoResult.data.region_name
+
+        // 根据region_name的模式判断服务器类型
+        // 国际服区域：全球区、韩区、日区、北美区、东南亚区等
+        if (regionName === '日区' || 
+            regionName === '全球区' || 
+            regionName === '韩区' || 
+            regionName === '北美区' || 
+            regionName === '东南亚区' ||
+            regionName === 'Japan' ||
+            regionName === 'Global' ||
+            regionName === 'Korea' ||
+            regionName === 'NA' ||
+            regionName === 'SEA') {
+          detectedServer = 'global'
+          confidence = 0.95
+          suggestion = `检测到国际服特征 (游戏服区: ${regionName})`
+        } else if (regionName.startsWith('区域')) {
+          detectedServer = 'tw'
+          confidence = 0.95
+          suggestion = `检测到港澳台服特征 (游戏服区: ${regionName})`
+        } else {
+          // 其他情况，根据名称特征进行推测
+          if (regionName.includes('区') && !regionName.startsWith('区域')) {
+            // 包含"区"但不是"区域XX"格式的，可能是国际服的其他区域
+            detectedServer = 'global'
+            confidence = 0.7
+            suggestion = `根据游戏服区"${regionName}"推测为国际服，请确认`
+          } else {
+            // 完全未知的区域名称
+            detectedServer = null
+            confidence = 0
+            suggestion = `未知的游戏服区"${regionName}"，请手动选择服务器类型`
+          }
+        }
+
+        return {
+          detectedServer,
+          confidence,
+          channelId,
+          suggestion,
+          regionName,
+        }
+      } else {
+        // API调用成功但没有获取到region_name
+        return {
+          detectedServer: null,
+          confidence: 0,
+          channelId,
+          suggestion: '无法获取游戏服区信息，请手动选择服务器类型',
+        }
+      }
+    } catch (apiError) {
+      console.warn('通过API检测服务器类型失败:', apiError)
+
+      // API调用失败，无法进行准确检测
+      return {
+        detectedServer: null,
+        confidence: 0,
+        channelId,
+        suggestion: '无法连接到游戏服务器获取服区信息，请手动选择服务器类型',
+      }
+    }
+  } catch (error) {
+    console.warn('服务器类型检测失败:', error)
+    return {
+      detectedServer: null,
+      confidence: 0,
+      channelId: null,
+      suggestion: '检测失败，请手动选择服务器类型',
+    }
+  }
+}
+
+// 应用检测到的服务器类型
+const applyDetectedServer = () => {
+  if (serverDetectionResult.value?.detectedServer) {
+    form.server = serverDetectionResult.value.detectedServer
+    showServerMismatchAlert.value = false
+
+    const serverName = serverOptions.find(
+      (s) => s.value === serverDetectionResult.value.detectedServer
+    )?.label
+    showCustomMessage(`已自动切换到${serverName}`, 'success')
+  }
+}
+
 // 兼容性处理：处理老版本数据
 const migrateOldCookieData = (userData) => {
   if (!userData.cookie) return userData
@@ -601,8 +702,7 @@ const migrateOldCookieData = (userData) => {
   // 🔧 修复：更准确的新格式检查
   // 检查是否已经是新格式（包含expires或者有有效的cookieExpireDays）
   const hasExpires = userData.cookie.includes('expires=')
-  const hasValidExpireDays =
-    userData.cookieExpireDays && userData.cookieExpireDays > 0
+  const hasValidExpireDays = userData.cookieExpireDays && userData.cookieExpireDays > 0
   const hasActualExpireDate = userData.cookieActualExpireDate
 
   // 如果满足以下任一条件，认为是新格式：
@@ -790,16 +890,10 @@ watch(
       // 只有在Cookie内容真正发生变化时才重新解析
       // 避免编辑模式下加载已有数据时触发不必要的解析
       // 避免续期过程中的重复解析
-      if (
-        newValue !== oldValue &&
-        oldValue !== undefined &&
-        !isRenewing.value
-      ) {
+      if (newValue !== oldValue && oldValue !== undefined && !isRenewing.value) {
         // 🔧 关键改进：当Cookie内容变化时，重置手动编辑标志，允许重新解析
         if (manualExpireDaysEdit.value) {
-          console.log(
-            '检测到Cookie内容变化，重置手动编辑标志，将重新解析过期时间'
-          )
+          console.log('检测到Cookie内容变化，重置手动编辑标志，将重新解析过期时间')
           manualExpireDaysEdit.value = false
         }
 
@@ -865,8 +959,7 @@ watch(
           // 如果是国际服或港澳台服，设置过期信息
           if (migratedData.server !== 'cn') {
             form.cookieExpireDays = migratedData.cookieExpireDays || 0
-            form.cookieActualExpireDate =
-              migratedData.cookieActualExpireDate || null
+            form.cookieActualExpireDate = migratedData.cookieActualExpireDate || null
 
             // 如果是迁移后的数据，提示用户更新Cookie
             if (migratedData.needsCookieUpdate) {
@@ -885,10 +978,7 @@ watch(
           }
 
           // 如果是国际服或港澳台服，需要加载角色信息
-          if (
-            (userData.server === 'global' || userData.server === 'tw') &&
-            userData.cookie
-          ) {
+          if ((userData.server === 'global' || userData.server === 'tw') && userData.cookie) {
             // 如果已有存储的角色信息，直接显示
             if (userData.playerInfo) {
               parsedGlobalInfo.value = userData.playerInfo
@@ -952,6 +1042,10 @@ const resetForm = () => {
 // 处理关闭
 const handleClose = () => {
   dialogVisible.value = false
+
+  // 重置服务器检测状态
+  serverDetectionResult.value = null
+  showServerMismatchAlert.value = false
 }
 
 // 打开帮助链接
@@ -1039,9 +1133,7 @@ const handleGlobalCookieParse = async () => {
       'game_user_name',
     ]
 
-    const missingFields = requiredFields.filter(
-      (field) => !form.cookie.includes(field)
-    )
+    const missingFields = requiredFields.filter((field) => !form.cookie.includes(field))
 
     if (missingFields.length > 0) {
       console.warn('Cookie缺少必要字段，跳过角色信息获取:', missingFields)
@@ -1092,17 +1184,11 @@ const handleGlobalCookieParse = async () => {
           nextTick(() => {
             window.isUpdatingExpireDays = false
           })
-          showCustomMessage(
-            '检测到Cookie已失效，请重新设置Cookie信息',
-            'warning'
-          )
+          showCustomMessage('检测到Cookie已失效，请重新设置Cookie信息', 'warning')
         } else {
           // 其他错误（网络问题、服务器问题等），不标记Cookie为无效
           console.warn('API调用失败，但不确定是Cookie问题:', result.message)
-          showCustomMessage(
-            '无法验证Cookie状态，请检查网络连接或稍后重试',
-            'info'
-          )
+          showCustomMessage('无法验证Cookie状态，请检查网络连接或稍后重试', 'info')
         }
       }
     }
@@ -1114,11 +1200,31 @@ const handleGlobalCookieParse = async () => {
   }
 }
 
-// 监听Cookie变化，自动获取角色信息
+// 监听Cookie变化，自动获取角色信息和检测服务器类型
 watch(
   () => form.cookie,
-  (newCookie) => {
+  async (newCookie) => {
     if (form.server !== 'cn' && newCookie) {
+      // 🔧 改进：使用新的异步服务器检测逻辑
+      const detection = await detectServerFromCookie(newCookie)
+      serverDetectionResult.value = detection
+
+      if (detection.detectedServer && detection.confidence > 0.8) {
+        if (detection.detectedServer !== form.server) {
+          // 检测到服务器类型不匹配，显示警告和建议
+          showServerMismatchAlert.value = true
+          console.log(
+            `检测到服务器类型不匹配: 当前选择=${form.server}, 检测结果=${detection.detectedServer} (置信度: ${detection.confidence})`
+          )
+        } else {
+          // 服务器类型匹配，隐藏警告
+          showServerMismatchAlert.value = false
+        }
+      } else {
+        // 检测置信度较低，隐藏警告
+        showServerMismatchAlert.value = false
+      }
+
       // 延迟一点时间执行，避免在表单验证过程中频繁调用
       clearTimeout(window.globalCookieParseTimer)
       window.globalCookieParseTimer = setTimeout(() => {
@@ -1126,16 +1232,50 @@ watch(
       }, 1000)
     } else {
       parsedGlobalInfo.value = null
+      serverDetectionResult.value = null
+      showServerMismatchAlert.value = false
     }
   }
 )
 
-// 监听服务器变化，清理角色信息
+// 监听服务器变化，清理角色信息并检查是否存在历史记录
 watch(
   () => form.server,
-  () => {
+  (newServer, oldServer) => {
     parsedGlobalInfo.value = null
     clearTimeout(window.globalCookieParseTimer)
+
+    // 如果是编辑模式且服务器类型发生变化，警告用户
+    if (props.isEdit && oldServer && newServer !== oldServer) {
+      showCustomMessage(
+        '注意：修改服务器类型可能会影响历史记录的显示。如果之前的历史记录显示错误，建议删除用户后重新添加。',
+        'warning'
+      )
+    }
+
+    // 重新检测服务器类型（如果有Cookie）
+    if (form.cookie && newServer !== 'cn') {
+      // 异步检测服务器类型
+      detectServerFromCookie(form.cookie)
+        .then((detection) => {
+          serverDetectionResult.value = detection
+
+          if (detection.detectedServer && detection.confidence > 0.8) {
+            if (detection.detectedServer !== newServer) {
+              showServerMismatchAlert.value = true
+            } else {
+              showServerMismatchAlert.value = false
+            }
+          }
+        })
+        .catch((error) => {
+          console.warn('异步服务器检测失败:', error)
+          serverDetectionResult.value = null
+        })
+    } else {
+      serverDetectionResult.value = null
+      showServerMismatchAlert.value = false
+    }
   }
 )
 
@@ -1229,10 +1369,7 @@ const validateCookieManually = async () => {
     } else {
       // 验证失败
       console.warn('Cookie验证失败:', result.message)
-      showCustomMessage(
-        `Cookie验证失败：${result.message || '无法获取角色信息'}`,
-        'error'
-      )
+      showCustomMessage(`Cookie验证失败：${result.message || '无法获取角色信息'}`, 'error')
     }
   } catch (error) {
     console.error('Cookie验证异常:', error)
@@ -1272,13 +1409,8 @@ const handleSubmit = async () => {
     // 构建服务器显示名称
     let serverName = serverOptions.find((s) => s.value === form.server)?.label
     if (form.server === 'cn' && parsedGameInfo.value) {
-      serverName = `国服 | ${
-        parsedGameInfo.value.area_id === '1' ? '微信' : 'QQ'
-      }`
-    } else if (
-      (form.server === 'global' || form.server === 'tw') &&
-      parsedGlobalInfo.value
-    ) {
+      serverName = `国服 | ${parsedGameInfo.value.area_id === '1' ? '微信' : 'QQ'}`
+    } else if ((form.server === 'global' || form.server === 'tw') && parsedGlobalInfo.value) {
       serverName = `${
         serverOptions.find((s) => s.value === form.server)?.label
       } | ${parsedGlobalInfo.value.region_name}`
@@ -1301,8 +1433,8 @@ const handleSubmit = async () => {
         const finalExpireDays = form.cookieValidationFailed
           ? -1
           : manualExpireDaysEdit.value
-          ? Number(form.cookieExpireDays)
-          : parseResult.expireDays
+            ? Number(form.cookieExpireDays)
+            : parseResult.expireDays
 
         cookieData = {
           cookie: parseResult.standardCookie, // 存储标准Cookie（供API使用）
@@ -1311,8 +1443,8 @@ const handleSubmit = async () => {
           cookieActualExpireDate: form.cookieValidationFailed
             ? form.cookieActualExpireDate
             : manualExpireDaysEdit.value
-            ? form.cookieActualExpireDate
-            : parseResult.expireDate,
+              ? form.cookieActualExpireDate
+              : parseResult.expireDate,
         }
         console.log('保存Cookie状态:', {
           原始解析结果: parseResult.expireDays,
@@ -1337,10 +1469,7 @@ const handleSubmit = async () => {
     if (form.server === 'cn') {
       userData.gameUrl = form.gameUrl
       userData.cookieExpireDays = 0 // 国服不适用Cookie过期天数
-    } else if (
-      (form.server === 'global' || form.server === 'tw') &&
-      parsedGlobalInfo.value
-    ) {
+    } else if ((form.server === 'global' || form.server === 'tw') && parsedGlobalInfo.value) {
       // 国际服和港澳台服：保存角色详细信息
       userData.playerInfo = {
         player_level: parsedGlobalInfo.value.player_level,
@@ -1387,11 +1516,7 @@ const handleSubmit = async () => {
 
     // 如果是国际服或港澳台服用户，尝试同步历史记录
     // 🔧 修复：只有当Cookie验证通过时才进行自动同步
-    if (
-      savedUser &&
-      savedUser.server !== 'cn' &&
-      !form.cookieValidationFailed
-    ) {
+    if (savedUser && savedUser.server !== 'cn' && !form.cookieValidationFailed) {
       // 使用setTimeout确保对话框关闭后再同步，避免UI阻塞
       setTimeout(() => {
         try {
@@ -1410,11 +1535,7 @@ const handleSubmit = async () => {
           console.warn('同步历史记录出错:', error)
         }
       }, 500)
-    } else if (
-      savedUser &&
-      savedUser.server !== 'cn' &&
-      form.cookieValidationFailed
-    ) {
+    } else if (savedUser && savedUser.server !== 'cn' && form.cookieValidationFailed) {
       console.log('检测到Cookie已失效，跳过自动同步历史记录功能')
     }
 
@@ -1464,21 +1585,16 @@ const handleSubmit = async () => {
   // 为添加模式下的div容器设置宽度（但不影响其他类型的div）
   .el-form-item .el-form-item__content > div {
     // 只有当div直接包含textarea时才设置宽度
-    &:not(.cookie-mask):not(.cookie-content):not(.cookie-info-footer):not(
-        .cn-game-info
-      ):not(.global-game-info):not(.cookie-tools) {
+    &:not(.cookie-mask):not(.cookie-content):not(.cookie-info-footer):not(.cn-game-info):not(
+        .global-game-info
+      ):not(.cookie-tools) {
       width: 100% !important;
       box-sizing: border-box !important;
     }
   }
 
   // 更高权重的强制样式
-  .user-dialog
-    .el-form
-    .el-form-item
-    .el-form-item__content
-    .el-textarea
-    .el-textarea__inner {
+  .user-dialog .el-form .el-form-item .el-form-item__content .el-textarea .el-textarea__inner {
     width: 100% !important;
     min-width: 100% !important;
     max-width: 100% !important;
@@ -2128,6 +2244,39 @@ const handleSubmit = async () => {
   &:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+  }
+}
+
+// 服务器检测警告样式
+.server-detection-alert {
+  margin-top: 12px;
+
+  .server-detection-content {
+    p {
+      margin: 8px 0;
+      font-size: 14px;
+
+      &.server-comparison {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+    }
+
+    .server-detection-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+
+      @media screen and (max-width: 768px) {
+        flex-direction: column;
+
+        .el-button {
+          width: 100%;
+        }
+      }
+    }
   }
 }
 </style>

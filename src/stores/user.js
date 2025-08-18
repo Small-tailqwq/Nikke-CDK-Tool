@@ -80,6 +80,10 @@ export const useUserStore = defineStore('user', () => {
       }
 
       users.value = loadedUsers
+
+      // 🔧 数据修复：检测并修正服务器类型
+      await detectAndFixServerTypes()
+
       logger.operationSuccess('获取用户列表', { userCount: loadedUsers.length })
     } catch (error) {
       logger.operationError('获取用户列表', error)
@@ -568,6 +572,107 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  // 🔧 检测并修复用户的服务器类型
+  const detectAndFixServerTypes = async () => {
+    try {
+      // 检查是否已经执行过修复（避免重复执行）
+      const fixedFlag = localStorage.getItem('server_types_fixed_v1')
+      if (fixedFlag === 'true') {
+        logger.debug('服务器类型修复已执行过，跳过')
+        return
+      }
+
+      logger.startOperation('检测并修复服务器类型')
+      let hasChanges = false
+      const fixedUsers = []
+
+      // 检查每个用户的服务器类型
+      for (const user of users.value) {
+        if (user.server === 'cn' || !user.cookie) {
+          continue // 跳过国服用户和没有Cookie的用户
+        }
+
+        // 从Cookie中检测实际的服务器类型
+        const detectedServer = detectServerFromCookie(user.cookie)
+
+        if (detectedServer && detectedServer !== user.server) {
+          logger.info(`检测到用户 ${user.name} 的服务器类型需要修复: ${user.server} -> ${detectedServer}`)
+
+          // 更新用户的服务器类型
+          const updatedUser = {
+            ...user,
+            server: detectedServer
+          }
+
+          // 更新内存中的用户数据
+          const userIndex = users.value.findIndex(u => u.id === user.id)
+          if (userIndex !== -1) {
+            users.value[userIndex] = updatedUser
+            hasChanges = true
+            fixedUsers.push({
+              name: user.name,
+              from: user.server,
+              to: detectedServer
+            })
+          }
+        }
+      }
+
+      // 如果有变更，保存到存储
+      if (hasChanges) {
+        userStorage.saveUsers(users.value)
+        logger.operationSuccess('服务器类型修复完成', {
+          fixedCount: fixedUsers.length,
+          details: fixedUsers
+        })
+
+        // 显示修复结果给用户
+        if (fixedUsers.length > 0) {
+          const message = `已自动修复 ${fixedUsers.length} 个用户的服务器类型`
+          console.log('🔧 服务器类型自动修复完成:', fixedUsers)
+        }
+      } else {
+        logger.info('所有用户的服务器类型都正确，无需修复')
+      }
+
+      // 标记修复已完成
+      localStorage.setItem('server_types_fixed_v1', 'true')
+
+    } catch (error) {
+      logger.operationError('服务器类型修复失败', error)
+    }
+  }
+
+  // 从Cookie检测服务器类型的辅助函数
+  const detectServerFromCookie = (cookieStr) => {
+    if (!cookieStr || typeof cookieStr !== 'string') {
+      return null
+    }
+
+    try {
+      // 提取game_channelid
+      const channelMatch = cookieStr.match(/game_channelid=([^;]+)/)
+      if (!channelMatch) {
+        return null
+      }
+
+      const channelId = parseInt(channelMatch[1])
+
+      // 根据channelid判断服务器类型
+      switch (channelId) {
+        case 2:
+          return 'global' // 国际服
+        case 6:
+          return 'tw'     // 港澳台服
+        default:
+          return 'global' // 默认国际服
+      }
+    } catch (error) {
+      logger.warn('检测服务器类型失败:', error)
+      return null
+    }
+  }
+
   return {
     // 状态
     users,
@@ -599,7 +704,8 @@ export const useUserStore = defineStore('user', () => {
     dismissCookieWarning,
     dismissAllCookieWarnings,
 
-
+    // 服务器类型修复方法
+    detectAndFixServerTypes,
 
     // Cookie自动续期方法
     performAutoRenewal

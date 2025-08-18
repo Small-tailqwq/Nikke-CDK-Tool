@@ -39,6 +39,15 @@
             >
               批量续期
             </el-button>
+            <el-button
+              type="warning"
+              size="small"
+              @click="handleFixServerTypes"
+              :loading="fixServerTypesLoading"
+              plain
+            >
+              修复服务器类型
+            </el-button>
             <el-button type="primary" size="small" @click="showAddUserDialog"> 添加用户 </el-button>
           </div>
         </div>
@@ -269,6 +278,9 @@ const syncTargetUser = ref(null)
 // Cookie续期相关状态
 const renewLoadingMap = ref(new Map()) // 记录每个用户的续期状态
 const batchRenewLoading = ref(false)
+
+// 服务器类型修复状态
+const fixServerTypesLoading = ref(false)
 
 // 列可见性状态
 const visibleColumns = ref([
@@ -613,6 +625,43 @@ const handleBatchRenewCookies = async () => {
     progressMessage.error('批量续期过程中发生异常')
   } finally {
     batchRenewLoading.value = false
+  }
+}
+
+// 修复服务器类型
+const handleFixServerTypes = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '此操作将检测所有用户的Cookie并自动修正错误的服务器类型，是否继续？',
+      '修复服务器类型确认',
+      {
+        confirmButtonText: '确定修复',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+  } catch {
+    return // 用户取消
+  }
+
+  fixServerTypesLoading.value = true
+
+  try {
+    // 重置修复标记，允许重新修复
+    localStorage.removeItem('server_types_fixed_v1')
+
+    // 调用UserStore的修复函数
+    await userStore.detectAndFixServerTypes()
+
+    // 强制重新获取用户列表以显示最新状态
+    await userStore.fetchUsers()
+
+    showCustomMessage('服务器类型修复完成', 'success')
+  } catch (error) {
+    console.error('修复服务器类型失败:', error)
+    showCustomMessage('修复服务器类型失败', 'error')
+  } finally {
+    fixServerTypesLoading.value = false
   }
 }
 
