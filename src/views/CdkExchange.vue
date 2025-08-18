@@ -215,16 +215,23 @@
           <el-form-item label="验证码">
             <div class="captcha-container">
               <div class="captcha-image-wrapper">
-                <img
-                  v-if="captchaForm.captchaUrl"
-                  :src="captchaForm.captchaUrl"
-                  alt="验证码"
-                  class="captcha-image"
-                  @click="refreshCaptcha"
-                />
-                <div v-else class="captcha-placeholder" @click="refreshCaptcha">
-                  <el-icon><Refresh /></el-icon>
-                  <span>点击获取验证码</span>
+                <div class="captcha-image-container" :class="{ loading: captchaLoading }">
+                  <img
+                    v-if="captchaForm.captchaUrl"
+                    :src="captchaForm.captchaUrl"
+                    alt="验证码"
+                    class="captcha-image"
+                    @click="refreshCaptcha"
+                  />
+                  <div v-else class="captcha-placeholder" @click="refreshCaptcha">
+                    <el-icon><Refresh /></el-icon>
+                    <span>点击获取验证码</span>
+                  </div>
+                  <!-- 加载遮罩 -->
+                  <div v-if="captchaLoading" class="captcha-loading-overlay">
+                    <el-icon class="is-loading"><Loading /></el-icon>
+                    <span>正在获取新验证码...</span>
+                  </div>
                 </div>
               </div>
 
@@ -270,16 +277,17 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick, defineAsyncComponent } from 'vue'
-import { Check, Plus, InfoFilled, Refresh } from '@element-plus/icons-vue'
+import { Check, Plus, InfoFilled, Refresh, Loading } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 const UserDialog = defineAsyncComponent(() => import('../components/UserDialog.vue'))
 
 import { exchangeCDK, getCaptchaCN, exchangeCDKCN } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
 
@@ -791,10 +799,17 @@ const handleCnUserExchange = async (user, cdk, cdkIndex = 0, totalCdks = 1) => {
           if (captchaForm.result) {
             // 兑换完成，返回结果
             const result = captchaForm.result
+            console.log('✅ 国服兑换获取到结果:', {
+              success: result.success,
+              message: result.message,
+              cdk: cdk,
+              user: user.name,
+            })
             captchaForm.result = null // 清空结果，准备下次兑换
             resolve(result)
           } else if (!captchaDialogVisible.value) {
             // 对话框关闭，用户取消
+            console.log('❌ 对话框意外关闭，返回取消结果')
             resolve({
               success: false,
               message: '用户取消兑换',
@@ -812,10 +827,17 @@ const handleCnUserExchange = async (user, cdk, cdkIndex = 0, totalCdks = 1) => {
         if (captchaForm.result) {
           // 兑换完成，返回结果
           const result = captchaForm.result
+          console.log('✅ 国服兑换获取到结果(对话框已显示):', {
+            success: result.success,
+            message: result.message,
+            cdk: cdk,
+            user: user.name,
+          })
           captchaForm.result = null // 清空结果，准备下次兑换
           resolve(result)
         } else if (!captchaDialogVisible.value) {
           // 对话框关闭，用户取消
+          console.log('❌ 对话框意外关闭，返回取消结果(对话框已显示)')
           resolve({
             success: false,
             message: '用户取消兑换',
@@ -882,7 +904,14 @@ const submitCnExchange = async () => {
   }
 
   try {
+    // 🚀 立即显示加载状态，给用户即时反馈
     captchaLoading.value = true
+
+    // 🚀 优化：如果还有更多CDK需要兑换，立即开始预载下一个验证码
+    let preloadCaptchaPromise = null
+    if (globalCdkIndex.value + 1 < globalCdkTotal.value) {
+      preloadCaptchaPromise = getCaptchaCN() // 异步预载，不等待结果
+    }
 
     // 从cookie中解析游戏参数
     let gameParams = {}
@@ -909,60 +938,163 @@ const submitCnExchange = async () => {
     // 保存结果，但不关闭对话框
     captchaForm.result = result
 
-    // 无论成功失败，都增加全局计数器
-    globalCdkIndex.value++
+    console.log('🎯 国服兑换结果:', {
+      success: result.success,
+      message: result.message,
+      globalCdkIndex: globalCdkIndex.value,
+      globalCdkTotal: globalCdkTotal.value,
+      currentCdk: currentCdk.value,
+    })
 
     if (result.success) {
       showCustomMessage('兑换成功', 'success')
       // 成功后清空输入框，准备下一个CDK
       captchaForm.captcha = ''
 
+      // 增加全局计数器
+      globalCdkIndex.value++
+
       // 检查是否所有CDK都兑换完成
       if (globalCdkIndex.value >= globalCdkTotal.value) {
-        // 所有CDK兑换完成，延迟关闭对话框
+        // 所有CDK兑换完成，延迟关闭对话框，确保结果有时间被获取
+        console.log('📝 准备关闭对话框 - 成功分支:', {
+          globalCdkIndex: globalCdkIndex.value,
+          globalCdkTotal: globalCdkTotal.value,
+        })
         setTimeout(() => {
+          console.log('🔒 关闭验证码对话框 - 成功分支')
           captchaDialogVisible.value = false
           // 重置全局状态
           globalCdkIndex.value = 0
           globalCdkTotal.value = 0
-        }, 1000)
+        }, 1500)
       } else {
-        // 还有更多CDK需要兑换，立即自动聚焦
-        nextTick(() => {
-          // 自动聚焦输入框，不强制刷新验证码（让用户可以继续使用当前验证码）
-          if (captchaInputRef.value) {
-            captchaInputRef.value.focus()
+        // 还有更多CDK需要兑换，使用预加载的验证码或重新获取
+        // 🔧 修复：每次兑换成功后都刷新验证码，因为国服验证码通常只能使用一次
+        if (preloadCaptchaPromise) {
+          // 使用预加载的验证码
+          try {
+            const preloadResult = await preloadCaptchaPromise
+            if (preloadResult.success) {
+              captchaForm.captchaUrl = preloadResult.captchaUrl
+              captchaForm.aid = preloadResult.aid
+              captchaForm.verifysession = preloadResult.verifysession
+              captchaForm.captcha = '' // 🔧 修复：清空验证码输入框
+              // 自动聚焦输入框
+              nextTick(() => {
+                if (captchaInputRef.value) {
+                  captchaInputRef.value.focus()
+                }
+              })
+            } else {
+              throw new Error('预加载失败')
+            }
+          } catch (error) {
+            // 预加载失败，回退到原方式
+            refreshCaptchaOnly().then(() => {
+              nextTick(() => {
+                if (captchaInputRef.value) {
+                  captchaInputRef.value.focus()
+                }
+              })
+            })
           }
-        })
+        } else {
+          // 没有预加载，使用原方式
+          refreshCaptchaOnly().then(() => {
+            nextTick(() => {
+              if (captchaInputRef.value) {
+                captchaInputRef.value.focus()
+              }
+            })
+          })
+        }
       }
     } else {
       showCustomMessage(result.message || '兑换失败', 'error')
+
+      // 增加全局计数器
+      globalCdkIndex.value++
+
       // 失败后也要检查是否需要关闭
       if (globalCdkIndex.value >= globalCdkTotal.value) {
-        // 所有CDK处理完成，延迟关闭对话框
+        // 所有CDK处理完成，延迟关闭对话框，确保结果有时间被获取
+        console.log('📝 准备关闭对话框 - 失败分支:', {
+          globalCdkIndex: globalCdkIndex.value,
+          globalCdkTotal: globalCdkTotal.value,
+        })
         setTimeout(() => {
+          console.log('🔒 关闭验证码对话框 - 失败分支')
           captchaDialogVisible.value = false
           // 重置全局状态
           globalCdkIndex.value = 0
           globalCdkTotal.value = 0
-        }, 1000)
+        }, 1500)
       } else {
-        // 失败后立即刷新验证码
-        refreshCaptchaOnly().then(() => {
-          // 自动聚焦输入框
-          nextTick(() => {
-            if (captchaInputRef.value) {
-              captchaInputRef.value.focus()
+        // 失败后也尝试使用预加载的验证码，如果有的话
+        if (preloadCaptchaPromise) {
+          try {
+            const preloadResult = await preloadCaptchaPromise
+            if (preloadResult.success) {
+              captchaForm.captchaUrl = preloadResult.captchaUrl
+              captchaForm.aid = preloadResult.aid
+              captchaForm.verifysession = preloadResult.verifysession
+              captchaForm.captcha = '' // 🔧 修复：清空验证码输入框
+              // 自动聚焦输入框
+              nextTick(() => {
+                if (captchaInputRef.value) {
+                  captchaInputRef.value.focus()
+                }
+              })
+            } else {
+              throw new Error('预加载失败')
             }
+          } catch (error) {
+            // 预加载失败，回退到原方式
+            refreshCaptchaOnly().then(() => {
+              nextTick(() => {
+                if (captchaInputRef.value) {
+                  captchaInputRef.value.focus()
+                }
+              })
+            })
+          }
+        } else {
+          // 没有预加载，使用原方式
+          refreshCaptchaOnly().then(() => {
+            nextTick(() => {
+              if (captchaInputRef.value) {
+                captchaInputRef.value.focus()
+              }
+            })
           })
-        })
+        }
       }
     }
   } catch (error) {
     showCustomMessage('兑换失败', 'error')
+
+    // 增加全局计数器
+    globalCdkIndex.value++
+
     captchaForm.result = {
       success: false,
       message: error.message || '兑换失败',
+    }
+
+    // 检查是否需要关闭对话框
+    if (globalCdkIndex.value >= globalCdkTotal.value) {
+      console.log('📝 准备关闭对话框 - 异常分支:', {
+        globalCdkIndex: globalCdkIndex.value,
+        globalCdkTotal: globalCdkTotal.value,
+      })
+      setTimeout(() => {
+        console.log('🔒 关闭验证码对话框 - 异常分支')
+        captchaDialogVisible.value = false
+        // 重置全局状态
+        globalCdkIndex.value = 0
+        globalCdkTotal.value = 0
+      }, 1500)
     }
   } finally {
     captchaLoading.value = false
@@ -1336,6 +1468,18 @@ onMounted(() => {
         flex-shrink: 0;
       }
 
+      .captcha-image-container {
+        position: relative;
+        width: 120px;
+        height: 40px;
+
+        &.loading {
+          .captcha-image {
+            opacity: 0.5;
+          }
+        }
+      }
+
       .captcha-image {
         width: 120px;
         height: 40px;
@@ -1347,6 +1491,32 @@ onMounted(() => {
         &:hover {
           border-color: var(--el-color-primary);
           box-shadow: 0 0 0 1px var(--el-color-primary-light-7);
+        }
+      }
+
+      .captcha-loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        color: var(--el-color-primary);
+
+        .el-icon {
+          font-size: 14px;
+          margin-bottom: 2px;
+        }
+
+        span {
+          font-size: 10px;
+          white-space: nowrap;
         }
       }
 
