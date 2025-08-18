@@ -612,16 +612,18 @@ const detectServerFromCookie = async (cookieStr) => {
 
         // 根据region_name的模式判断服务器类型
         // 国际服区域：全球区、韩区、日区、北美区、东南亚区等
-        if (regionName === '日区' || 
-            regionName === '全球区' || 
-            regionName === '韩区' || 
-            regionName === '北美区' || 
-            regionName === '东南亚区' ||
-            regionName === 'Japan' ||
-            regionName === 'Global' ||
-            regionName === 'Korea' ||
-            regionName === 'NA' ||
-            regionName === 'SEA') {
+        if (
+          regionName === '日区' ||
+          regionName === '全球区' ||
+          regionName === '韩区' ||
+          regionName === '北美区' ||
+          regionName === '东南亚区' ||
+          regionName === 'Japan' ||
+          regionName === 'Global' ||
+          regionName === 'Korea' ||
+          regionName === 'NA' ||
+          regionName === 'SEA'
+        ) {
           detectedServer = 'global'
           confidence = 0.95
           suggestion = `检测到国际服特征 (游戏服区: ${regionName})`

@@ -576,7 +576,7 @@ export const useUserStore = defineStore('user', () => {
   const detectAndFixServerTypes = async () => {
     try {
       // 检查是否已经执行过修复（避免重复执行）
-      const fixedFlag = localStorage.getItem('server_types_fixed_v1')
+      const fixedFlag = localStorage.getItem('server_types_fixed_v2') // 🔧 更新版本号
       if (fixedFlag === 'true') {
         logger.debug('服务器类型修复已执行过，跳过')
         return
@@ -592,29 +592,38 @@ export const useUserStore = defineStore('user', () => {
           continue // 跳过国服用户和没有Cookie的用户
         }
 
-        // 从Cookie中检测实际的服务器类型
-        const detectedServer = detectServerFromCookie(user.cookie)
+        // 🔧 使用新的异步检测逻辑
+        try {
+          const detectionResult = await detectServerFromCookieAsync(user.cookie)
 
-        if (detectedServer && detectedServer !== user.server) {
-          logger.info(`检测到用户 ${user.name} 的服务器类型需要修复: ${user.server} -> ${detectedServer}`)
+          if (detectionResult && detectionResult.detectedServer &&
+            detectionResult.confidence > 0.8 &&
+            detectionResult.detectedServer !== user.server) {
 
-          // 更新用户的服务器类型
-          const updatedUser = {
-            ...user,
-            server: detectedServer
+            logger.info(`检测到用户 ${user.name} 的服务器类型需要修复: ${user.server} -> ${detectionResult.detectedServer} (${detectionResult.suggestion})`)
+
+            // 更新用户的服务器类型
+            const updatedUser = {
+              ...user,
+              server: detectionResult.detectedServer
+            }
+
+            // 更新内存中的用户数据
+            const userIndex = users.value.findIndex(u => u.id === user.id)
+            if (userIndex !== -1) {
+              users.value[userIndex] = updatedUser
+              hasChanges = true
+              fixedUsers.push({
+                name: user.name,
+                from: user.server,
+                to: detectionResult.detectedServer,
+                reason: detectionResult.suggestion
+              })
+            }
           }
-
-          // 更新内存中的用户数据
-          const userIndex = users.value.findIndex(u => u.id === user.id)
-          if (userIndex !== -1) {
-            users.value[userIndex] = updatedUser
-            hasChanges = true
-            fixedUsers.push({
-              name: user.name,
-              from: user.server,
-              to: detectedServer
-            })
-          }
+        } catch (error) {
+          logger.warn(`检测用户 ${user.name} 的服务器类型失败:`, error)
+          // 继续处理其他用户，不中断整个修复过程
         }
       }
 
@@ -635,40 +644,88 @@ export const useUserStore = defineStore('user', () => {
         logger.info('所有用户的服务器类型都正确，无需修复')
       }
 
-      // 标记修复已完成
-      localStorage.setItem('server_types_fixed_v1', 'true')
+      // 标记修复已完成（使用新版本号）
+      localStorage.setItem('server_types_fixed_v2', 'true')
 
     } catch (error) {
       logger.operationError('服务器类型修复失败', error)
     }
   }
 
-  // 从Cookie检测服务器类型的辅助函数
-  const detectServerFromCookie = (cookieStr) => {
+  // 🔧 新的异步服务器检测函数（基于region_name）
+  const detectServerFromCookieAsync = async (cookieStr) => {
     if (!cookieStr || typeof cookieStr !== 'string') {
       return null
     }
 
     try {
-      // 提取game_channelid
+      // 导入API函数
+      const { getGlobalUserCompleteInfo } = await import('../utils/api.js')
+
+      // 从Cookie中提取game_channelid用于日志记录
       const channelMatch = cookieStr.match(/game_channelid=([^;]+)/)
-      if (!channelMatch) {
+      const channelId = channelMatch ? parseInt(channelMatch[1]) : null
+
+      let detectedServer = null
+      let confidence = 0
+      let suggestion = null
+
+      // 🔧 通过获取用户信息中的region_name来准确判断服务器类型
+      try {
+        const userInfoResult = await getGlobalUserCompleteInfo(cookieStr)
+
+        if (userInfoResult.success && userInfoResult.data && userInfoResult.data.region_name) {
+          const regionName = userInfoResult.data.region_name
+
+          // 根据region_name的模式判断服务器类型
+          // 国际服区域：全球区、韩区、日区、北美区、东南亚区等
+          if (regionName === '日区' ||
+            regionName === '全球区' ||
+            regionName === '韩区' ||
+            regionName === '北美区' ||
+            regionName === '东南亚区' ||
+            regionName === 'Japan' ||
+            regionName === 'Global' ||
+            regionName === 'Korea' ||
+            regionName === 'NA' ||
+            regionName === 'SEA') {
+            detectedServer = 'global'
+            confidence = 0.95
+            suggestion = `检测到国际服特征 (游戏服区: ${regionName})`
+          } else if (regionName.startsWith('区域')) {
+            detectedServer = 'tw'
+            confidence = 0.95
+            suggestion = `检测到港澳台服特征 (游戏服区: ${regionName})`
+          } else {
+            // 其他情况，根据名称特征进行推测
+            if (regionName.includes('区') && !regionName.startsWith('区域')) {
+              // 包含"区"但不是"区域XX"格式的，可能是国际服的其他区域
+              detectedServer = 'global'
+              confidence = 0.7
+              suggestion = `根据游戏服区"${regionName}"推测为国际服`
+            } else {
+              // 完全未知的区域名称
+              return null
+            }
+          }
+
+          return {
+            detectedServer,
+            confidence,
+            channelId,
+            suggestion,
+            regionName
+          }
+        }
+      } catch (apiError) {
+        logger.warn('通过API检测服务器类型失败:', apiError)
+        // API调用失败，不进行修复
         return null
       }
 
-      const channelId = parseInt(channelMatch[1])
-
-      // 根据channelid判断服务器类型
-      switch (channelId) {
-        case 2:
-          return 'global' // 国际服
-        case 6:
-          return 'tw'     // 港澳台服
-        default:
-          return 'global' // 默认国际服
-      }
+      return null
     } catch (error) {
-      logger.warn('检测服务器类型失败:', error)
+      logger.warn('服务器类型检测失败:', error)
       return null
     }
   }
