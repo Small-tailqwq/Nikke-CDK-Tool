@@ -2,6 +2,7 @@ node_modules
 dist
 jietu
 .cursorrules
+CLAUDE.md
 .env.local
 /public/cdk-list.json
 /public/announcement-images/*.webp
