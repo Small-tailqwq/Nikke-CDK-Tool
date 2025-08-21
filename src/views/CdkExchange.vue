@@ -249,6 +249,7 @@
                   @click="refreshCaptcha"
                   :loading="captchaLoading"
                   size="small"
+                  class="captcha-refresh-btn"
                 >
                   刷新
                 </el-button>
@@ -260,15 +261,27 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="cancelCnExchange">取消</el-button>
-          <el-button
-            type="primary"
-            @click="submitCnExchange"
-            :loading="captchaLoading"
-            :disabled="!captchaForm.captcha"
-          >
-            兑换
-          </el-button>
+          <div class="dialog-footer-left">
+            <el-button @click="cancelCnExchange">取消</el-button>
+            <el-button 
+              v-if="globalCdkTotal > 1"
+              type="danger" 
+              plain
+              @click="cancelAllCnExchange"
+            >
+              取消全部
+            </el-button>
+          </div>
+          <div class="dialog-footer-right">
+            <el-button
+              type="primary"
+              @click="submitCnExchange"
+              :loading="captchaLoading"
+              :disabled="!captchaForm.captcha"
+            >
+              兑换
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -314,6 +327,7 @@ const totalCdkCount = ref(0)
 const isRefreshingCaptcha = ref(false)
 const globalCdkIndex = ref(0)
 const globalCdkTotal = ref(0)
+const isCancelledAll = ref(false) // 新增：用户是否取消了全部兑换
 
 const form = reactive({
   cdk: '',
@@ -632,6 +646,7 @@ const handleExchange = async () => {
 
   exchanging.value = true
   exchangeResults.value = []
+  isCancelledAll.value = false // 重置取消状态
 
   try {
     const selectedUsers = selectedUserIds.value
@@ -653,10 +668,22 @@ const handleExchange = async () => {
     globalCdkIndex.value = 0
 
     for (const user of selectedUsers) {
+      // 检查是否用户取消了全部兑换
+      if (isCancelledAll.value) {
+        console.log('用户取消了全部兑换，停止为后续用户兑换')
+        break
+      }
+      
       // 对于国服用户，计算该用户的CDK总数
       const userCdkCount = user.server === 'cn' ? cdkList.length : 1
 
       for (let cdkIndex = 0; cdkIndex < cdkList.length; cdkIndex++) {
+        // 检查是否用户取消了全部兑换
+        if (isCancelledAll.value) {
+          console.log('用户取消了全部兑换，停止后续兑换')
+          break
+        }
+        
         const cdk = cdkList[cdkIndex]
         // 记录兑换开始时间
         const exchangeStartTime = new Date()
@@ -807,12 +834,12 @@ const handleCnUserExchange = async (user, cdk, cdkIndex = 0, totalCdks = 1) => {
             })
             captchaForm.result = null // 清空结果，准备下次兑换
             resolve(result)
-          } else if (!captchaDialogVisible.value) {
-            // 对话框关闭，用户取消
-            console.log('❌ 对话框意外关闭，返回取消结果')
+          } else if (!captchaDialogVisible.value || isCancelledAll.value) {
+            // 对话框关闭或用户取消全部
+            console.log('❌ 对话框关闭或用户取消全部，返回取消结果')
             resolve({
               success: false,
-              message: '用户取消兑换',
+              message: isCancelledAll.value ? '用户取消全部兑换' : '用户取消兑换',
             })
           } else {
             // 继续等待
@@ -835,12 +862,12 @@ const handleCnUserExchange = async (user, cdk, cdkIndex = 0, totalCdks = 1) => {
           })
           captchaForm.result = null // 清空结果，准备下次兑换
           resolve(result)
-        } else if (!captchaDialogVisible.value) {
-          // 对话框关闭，用户取消
-          console.log('❌ 对话框意外关闭，返回取消结果(对话框已显示)')
+        } else if (!captchaDialogVisible.value || isCancelledAll.value) {
+          // 对话框关闭或用户取消全部
+          console.log('❌ 对话框关闭或用户取消全部，返回取消结果(对话框已显示)')
           resolve({
             success: false,
-            message: '用户取消兑换',
+            message: isCancelledAll.value ? '用户取消全部兑换' : '用户取消兑换',
           })
         } else {
           // 继续等待
@@ -1101,11 +1128,28 @@ const submitCnExchange = async () => {
   }
 }
 
-// 取消国服兑换
+// 取消国服兑换（只取消当前CDK）
 const cancelCnExchange = () => {
   captchaForm.result = {
     success: false,
     message: '用户取消兑换',
+  }
+  captchaDialogVisible.value = false
+  // 重置状态
+  currentCdkIndex.value = 0
+  totalCdkCount.value = 0
+  globalCdkIndex.value = 0
+  globalCdkTotal.value = 0
+  isCancelledAll.value = false
+  isRefreshingCaptcha.value = false
+}
+
+// 取消全部CDK兑换
+const cancelAllCnExchange = () => {
+  isCancelledAll.value = true
+  captchaForm.result = {
+    success: false,
+    message: '用户取消全部兑换',
   }
   captchaDialogVisible.value = false
   // 重置状态
@@ -1550,6 +1594,36 @@ onMounted(() => {
         display: flex;
         flex-direction: column;
         gap: 8px;
+
+        // 修复验证码刷新按钮的悬浮热区问题
+        .captcha-refresh-btn {
+          padding: 0 !important;
+          margin: 0 !important;
+          min-width: auto !important;
+          width: fit-content !important;
+          display: inline-flex !important;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+    }
+
+    // 对话框底部按钮布局优化
+    .dialog-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+
+      .dialog-footer-left {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .dialog-footer-right {
+        display: flex;
+        align-items: center;
       }
     }
   }
