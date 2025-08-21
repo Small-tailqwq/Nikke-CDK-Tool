@@ -1000,6 +1000,7 @@ body {
     .el-tag {
       cursor: pointer;
       transition: all 0.2s ease-out;
+      will-change: transform, background-color;
 
       &:hover {
         background-color: var(--hover-bg);
@@ -1018,6 +1019,7 @@ body {
       font-size: 14px;
       vertical-align: -0.125em;
       transition: transform 0.2s ease-out;
+      will-change: transform;
     }
 
     &:hover .github-icon,
@@ -1050,6 +1052,7 @@ body {
     margin: 0;
     cursor: help;
     transition: all 0.2s ease-out;
+    will-change: transform, background-color;
 
     &:hover {
       background-color: var(--hover-bg);
