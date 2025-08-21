@@ -13,6 +13,7 @@
                     clearable
                     size="small"
                     style="width: 120px"
+                    @visible-change="handleDropdownVisibleChange"
                   >
                     <el-option label="国际服" :value="'global'" />
                     <el-option label="港澳台服" :value="'tw'" />
@@ -27,6 +28,7 @@
                     size="small"
                     style="width: 110px"
                     @change="handleStatusChange"
+                    @visible-change="handleDropdownVisibleChange"
                   >
                     <el-option label="可用" value="可用" />
                     <el-option label="部分可用" value="部分可用" />
@@ -41,6 +43,7 @@
                     size="small"
                     style="width: 140px"
                     @change="handleCharacterChange"
+                    @visible-change="handleDropdownVisibleChange"
                   >
                     <el-option
                       v-for="user in userStore.users"
@@ -56,6 +59,7 @@
                     placeholder="选择排序"
                     size="small"
                     style="width: 110px"
+                    @visible-change="handleDropdownVisibleChange"
                   >
                     <el-option label="最新优先" value="desc" />
                     <el-option label="最早优先" value="asc" />
@@ -720,6 +724,16 @@ const autoSelectUnredeemedCdks = () => {
   }
 }
 
+// 处理下拉菜单展开/收起，避免与导航菜单动画冲突
+const handleDropdownVisibleChange = (visible: boolean) => {
+  // 当下拉菜单打开时，给body添加类名暂停导航菜单动画
+  if (visible) {
+    document.body.classList.add('dropdown-open')
+  } else {
+    document.body.classList.remove('dropdown-open')
+  }
+}
+
 // 处理状态选择变化
 const handleStatusChange = (status: string) => {
   // 选择状态时，清空角色筛选
@@ -812,6 +826,9 @@ onBeforeUnmount(() => {
 
   // 移除广告关闭事件监听
   window.removeEventListener('adClosed', handleAdClosed)
+  
+  // 清理下拉菜单状态类名
+  document.body.classList.remove('dropdown-open')
 })
 </script>
 

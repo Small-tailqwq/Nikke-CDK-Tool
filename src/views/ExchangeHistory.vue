@@ -5,7 +5,13 @@
         <div class="card-header">
           <span>兑换历史</span>
           <div class="header-actions">
-            <el-select v-model="selectedUser" placeholder="选择用户" clearable size="small">
+            <el-select 
+              v-model="selectedUser" 
+              placeholder="选择用户" 
+              clearable 
+              size="small"
+              @visible-change="handleDropdownVisibleChange"
+            >
               <el-option
                 v-for="user in userStore.users"
                 :key="user.id"
@@ -13,7 +19,13 @@
                 :value="user.id"
               />
             </el-select>
-            <el-select v-model="selectedServer" placeholder="选择服务器" clearable size="small">
+            <el-select 
+              v-model="selectedServer" 
+              placeholder="选择服务器" 
+              clearable 
+              size="small"
+              @visible-change="handleDropdownVisibleChange"
+            >
               <el-option
                 v-for="server in serverOptions"
                 :key="server.value"
@@ -21,7 +33,13 @@
                 :value="server.value"
               />
             </el-select>
-            <el-select v-model="selectedSource" placeholder="选择来源" clearable size="small">
+            <el-select 
+              v-model="selectedSource" 
+              placeholder="选择来源" 
+              clearable 
+              size="small"
+              @visible-change="handleDropdownVisibleChange"
+            >
               <el-option
                 v-for="source in sourceOptions"
                 :key="source.value"
@@ -203,7 +221,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { ArrowDown, InfoFilled } from '@element-plus/icons-vue'
@@ -278,6 +296,16 @@ const historyList = computed(() => {
   const end = start + pageSize.value
   return list.slice(start, end)
 })
+
+// 处理下拉菜单展开/收起，避免与导航菜单动画冲突
+const handleDropdownVisibleChange = (visible) => {
+  // 当下拉菜单打开时，给body添加类名暂停导航菜单动画
+  if (visible) {
+    document.body.classList.add('dropdown-open')
+  } else {
+    document.body.classList.remove('dropdown-open')
+  }
+}
 
 // 处理页码改变
 const handleCurrentChange = (page) => {
@@ -390,6 +418,12 @@ const handleRowClick = (row) => {
 onMounted(() => {
   userStore.fetchUsers()
   exchangeStore.fetchHistory()
+})
+
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  // 清理下拉菜单状态类名
+  document.body.classList.remove('dropdown-open')
 })
 </script>
 

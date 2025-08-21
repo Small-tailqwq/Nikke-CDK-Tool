@@ -20,7 +20,12 @@
       </el-form-item>
 
       <el-form-item label="服务器" prop="server">
-        <el-select v-model="form.server" placeholder="选择服务器" size="large">
+        <el-select 
+          v-model="form.server" 
+          placeholder="选择服务器" 
+          size="large"
+          @visible-change="handleDropdownVisibleChange"
+        >
           <el-option
             v-for="option in serverOptions"
             :key="option.value"
@@ -859,6 +864,15 @@ const updateScreenSize = () => {
   screenWidth.value = window.innerWidth
 }
 
+// 处理下拉菜单显示状态变化，避免与导航菜单冲突
+const handleDropdownVisibleChange = (visible) => {
+  if (visible) {
+    document.body.classList.add('dropdown-open')
+  } else {
+    document.body.classList.remove('dropdown-open')
+  }
+}
+
 // 添加窗口尺寸监听
 onMounted(() => {
   window.addEventListener('resize', updateScreenSize)
@@ -866,6 +880,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateScreenSize)
+  // 清理下拉菜单状态
+  document.body.classList.remove('dropdown-open')
 })
 
 // 检测Cookie格式
