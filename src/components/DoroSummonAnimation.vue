@@ -14,7 +14,7 @@
         <img
           :src="doroIcon"
           class="doro-ball-icon"
-          :style="{ transform: `rotate(${rotation}deg)` }"
+          :style="{ transform: `translate(-50%, -50%) rotate(${rotation}deg)` }"
         />
       </picture>
     </div>
@@ -156,6 +156,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 .doro-ball-icon {
   width: 80%;
@@ -163,5 +164,8 @@ onUnmounted(() => {
   object-fit: contain;
   border-radius: 50%;
   background: transparent;
+  position: absolute;
+  top: 50%;
+  left: 50%;
 }
 </style>
