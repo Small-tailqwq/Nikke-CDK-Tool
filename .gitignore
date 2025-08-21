@@ -2,6 +2,7 @@ node_modules
 dist
 jietu
 .cursorrules
+.CLAUDE
 CLAUDE.md
 .env.local
 /public/cdk-list.json

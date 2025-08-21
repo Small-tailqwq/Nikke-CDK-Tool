@@ -63,7 +63,7 @@ const getItemStyle = (index: number) => {
   if (!position) {
     return {
       opacity: '0',
-      transform: 'translateY(20px)',
+      transform: 'translateY(20px) translateZ(0) scale(0.95)',
       transition: 'none',
     }
   }
@@ -74,8 +74,8 @@ const getItemStyle = (index: number) => {
     top: `${position.top}px`,
     width: `${position.width}px`,
     opacity: '1',
-    transform: 'translateY(0)',
-    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)', // 使用更平滑的缓动函数
+    transform: 'translateY(0) translateZ(0) scale(1)',
+    transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // 使用更平滑的缓动函数
   }
 }
 
@@ -248,11 +248,13 @@ const cleanupImageListeners = () => {
 .masonry-layout {
   position: relative;
   width: 100%;
-  transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .masonry-item {
   box-sizing: border-box;
   will-change: transform, opacity; /* 优化动画性能 */
+  transform: translateZ(0); /* 开启硬件加速 */
+  backface-visibility: hidden; /* 防止背面闪烁 */
 }
 </style>

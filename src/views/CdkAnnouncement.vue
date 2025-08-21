@@ -896,8 +896,10 @@ onBeforeUnmount(() => {
   border-radius: 8px; /* 四角弧度完全对称 */
   border: none;
   /* 移除固定高度，让卡片自适应内容高度 */
-  animation: fadeInUp 0.3s ease-out;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateZ(0); /* 开启硬件加速 */
+  backface-visibility: hidden; /* 防止背面可见 */
   background: var(--el-bg-color);
 
   @media screen and (max-width: 768px) {
@@ -906,9 +908,9 @@ onBeforeUnmount(() => {
 
   &:hover {
     @media screen and (min-width: 769px) {
-      transform: translateY(-6px) scale(1.02);
-      /* 增强阴影效果以配合圆角 */
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+      transform: translateY(-4px) translateZ(0) scale(1.015);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
   }
 
@@ -1073,12 +1075,14 @@ onBeforeUnmount(() => {
     background: var(--checkbox-bg);
     border-radius: inherit;
     z-index: -1;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   /* 悬停效果 */
   &:hover {
-    box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.25);
+    box-shadow: 0 0.1875em 0.5em rgba(0, 0, 0, 0.2);
+    transform: scale(1.05) translateZ(0);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     &::after {
       --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
@@ -1130,7 +1134,8 @@ onBeforeUnmount(() => {
       border-radius: calc(0.375em - 1px); /* 相应调整内部圆角 */
       border: none; /* 移除伪元素边框，使用容器原生边框 */
       z-index: 2; /* 提高层级，确保覆盖白色层 */
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 更流畅的缓动函数 */
+      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更流畅的缓动函数 */
+      will-change: transform; /* 优化动画性能 */
 
       /* 对勾符号样式 */
       display: flex;
@@ -1142,27 +1147,28 @@ onBeforeUnmount(() => {
       line-height: 1;
 
       /* 初始状态：从中心点开始缩放 */
-      transform: scale(0);
+      transform: scale(0) translateZ(0);
       transform-origin: center;
     }
   }
 
   /* 选中状态的缩放动画 */
   &.is-checked::after {
-    transform: scale(1);
+    transform: scale(1) translateZ(0);
   }
 
   /* 悬停状态增强 */
   &:hover.is-checked::after {
     background: var(--el-color-primary-light-3); /* 使用主题色变量 */
-    transform: scale(1.02); /* 减小放大幅度，避免过度动画 */
+    transform: scale(1.05) translateZ(0); /* 减小放大幅度，添加硬件加速 */
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   /* 激活状态增强 */
   &:active.is-checked::after {
     background: var(--el-color-primary-dark-2); /* 使用主题色变量 */
-    transform: scale(0.98); /* 减小缩放幅度，保持平滑 */
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* 更快的激活反馈 */
+    transform: scale(0.95) translateZ(0); /* 减小缩放幅度，保持平滑 */
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更快的激活反馈 */
   }
 
   /* 聚焦状态：给整个容器添加光晕效果 */
@@ -1192,9 +1198,10 @@ onBeforeUnmount(() => {
     border-radius: calc(0.375em - 1px);
     border: none; /* 无需边框，使用容器原生边框 */
     z-index: 2; /* 保持一致的层级 */
-    transform: scale(0);
+    transform: scale(0) translateZ(0);
     transform-origin: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
   }
 
   /* 未选中状态的交互效果（悬停、激活时也要确保透明） */
@@ -1328,7 +1335,8 @@ onBeforeUnmount(() => {
   font-family: monospace;
   font-size: 16px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateZ(0); /* 硬件加速 */
   &::before {
     content: '';
     position: absolute;
@@ -1403,13 +1411,17 @@ onBeforeUnmount(() => {
 
 /* =============== 动画 & 暗黑适配 =============== */
 @keyframes fadeInUp {
-  from {
+  0% {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(20px) translateZ(0) scale(0.95);
   }
-  to {
+  60% {
+    opacity: 0.8;
+    transform: translateY(-2px) translateZ(0) scale(1.02);
+  }
+  100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) translateZ(0) scale(1);
   }
 }
 
@@ -1496,10 +1508,16 @@ onBeforeUnmount(() => {
   padding: 0 16px;
   font-size: 14px;
   border-radius: 6px;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateZ(0);
 
   &:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px) translateZ(0) scale(1.02);
+  }
+
+  &:active {
+    transform: translateY(0) translateZ(0) scale(0.98);
+    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   @media screen and (max-width: 768px) {
