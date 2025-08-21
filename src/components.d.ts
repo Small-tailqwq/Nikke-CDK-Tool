@@ -8,8 +8,10 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AdCard: typeof import('./components/AdCard.vue')['default']
+    AppIcon: typeof import('./components/AppIcon.vue')['default']
     CDKGroupCard: typeof import('./components/CDKGroupCard.vue')['default']
     CookieWarningAlert: typeof import('./components/CookieWarningAlert.vue')['default']
+    CustomCheckbox: typeof import('./components/CustomCheckbox.vue')['default']
     DoroSummonAnimation: typeof import('./components/DoroSummonAnimation.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElButton: typeof import('element-plus/es')['ElButton']

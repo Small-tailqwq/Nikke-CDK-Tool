@@ -49,11 +49,35 @@ const debounceCalculateLayout = () => {
   }, 50) // 减少防抖时间，提高响应性
 }
 
-// 计算列数
+// 计算列数 - 优化小屏幕适配
 const calculateColumnCount = () => {
   if (!containerRef.value) return 0
   const containerWidth = containerRef.value.offsetWidth
-  const count = Math.floor((containerWidth + props.gap) / (props.columnWidth + props.gap)) || 1
+  
+  // 根据屏幕尺寸智能调整最小列宽和列数范围
+  let minColumnWidth = props.columnWidth
+  let maxColumns = 4
+  
+  if (containerWidth <= 480) {
+    // 超小屏幕：强制单列或双列
+    minColumnWidth = Math.max(props.columnWidth * 0.8, 200) // 最小200px
+    maxColumns = containerWidth < 360 ? 1 : 2
+  } else if (containerWidth <= 768) {
+    // 小屏幕：适度减小列宽，限制最大列数
+    minColumnWidth = props.columnWidth * 0.85
+    maxColumns = 3
+  } else if (containerWidth <= 1024) {
+    // 中等屏幕：轻微调整
+    minColumnWidth = props.columnWidth * 0.9
+    maxColumns = 4
+  }
+  
+  // 基础计算
+  const baseCount = Math.floor((containerWidth + props.gap) / (minColumnWidth + props.gap)) || 1
+  
+  // 应用最大列数限制
+  const count = Math.min(baseCount, maxColumns)
+  
   return Math.max(1, count)
 }
 

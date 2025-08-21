@@ -304,4 +304,388 @@ img, .image-optimize {
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ========== 统一按钮样式 ========== */
+
+/* 全局按钮增强样式 */
+.el-button {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+  
+  /* 悬停效果 */
+  &:hover:not(.is-disabled):not(.is-loading) {
+    transform: translateY(-1px) translateZ(0) scale(1.02);
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  /* 激活效果 */
+  &:active:not(.is-disabled):not(.is-loading) {
+    transform: translateY(0) translateZ(0) scale(0.98);
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  }
+  
+  /* 聚焦效果 */
+  &:focus-visible {
+    outline: none;
+    box-shadow: 
+      0 0 0 2px var(--el-color-primary-light-8),
+      0 0 0 4px var(--el-color-primary-light-5);
+  }
+  
+  /* 禁用状态 */
+  &.is-disabled {
+    transform: none !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  /* 加载状态 */
+  &.is-loading {
+    transform: none !important;
+    
+    .el-icon {
+      animation: el-loading-rotate 2s linear infinite;
+    }
+  }
+  
+  /* 圆形按钮特殊处理 */
+  &.is-circle {
+    &:hover:not(.is-disabled):not(.is-loading) {
+      transform: translateY(-2px) translateZ(0) scale(1.08);
+    }
+    
+    &:active:not(.is-disabled):not(.is-loading) {
+      transform: translateY(0) translateZ(0) scale(0.95);
+    }
+  }
+  
+  /* 不同类型按钮的特殊悬停效果 */
+  &--primary:hover:not(.is-disabled):not(.is-loading) {
+    box-shadow: 
+      0 6px 16px rgba(64, 158, 255, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  &--success:hover:not(.is-disabled):not(.is-loading) {
+    box-shadow: 
+      0 6px 16px rgba(103, 194, 58, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  &--warning:hover:not(.is-disabled):not(.is-loading) {
+    box-shadow: 
+      0 6px 16px rgba(230, 162, 60, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  &--danger:hover:not(.is-disabled):not(.is-loading) {
+    box-shadow: 
+      0 6px 16px rgba(245, 108, 108, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  &--info:hover:not(.is-disabled):not(.is-loading) {
+    box-shadow: 
+      0 6px 16px rgba(144, 147, 153, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* 特殊按钮组合样式 */
+.el-button-group {
+  .el-button {
+    &:hover:not(.is-disabled):not(.is-loading) {
+      z-index: 2;
+      transform: translateY(-1px) translateZ(0);
+    }
+    
+    &:active:not(.is-disabled):not(.is-loading) {
+      z-index: 1;
+      transform: translateY(0) translateZ(0);
+    }
+  }
+}
+
+/* 暗色模式下的按钮样式调整 */
+html.dark {
+  .el-button {
+    &:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &--primary:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 6px 16px rgba(82, 155, 46, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &--success:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 6px 16px rgba(103, 194, 58, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &--warning:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 6px 16px rgba(230, 162, 60, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &--danger:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 6px 16px rgba(245, 108, 108, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &--info:hover:not(.is-disabled):not(.is-loading) {
+      box-shadow: 
+        0 6px 16px rgba(144, 147, 153, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+  }
+}
+
+/* 加载动画 */
+@keyframes el-loading-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== Element Plus 下拉菜单层级修复 ========== */
+
+/* 修复下拉菜单展开时与导航菜单的层级冲突 */
+.el-select-dropdown,
+.el-popper {
+  z-index: 3000 !important; /* 确保下拉菜单在导航菜单之上 */
+}
+
+/* 确保下拉菜单容器不影响其他层级 */
+.el-select .el-input__wrapper {
+  z-index: auto; /* 重置输入框的层级 */
+}
+
+/* 修复可能的弹出层层级问题 */
+.el-overlay,
+.el-popup-parent--hidden {
+  z-index: 4000 !important;
+}
+
+/* 特别处理CdkAnnouncement页面的下拉菜单 */
+.cdk-announcement .el-select {
+  .el-input__wrapper {
+    position: relative;
+    z-index: auto; /* 确保不干扰导航菜单 */
+  }
+}
+
+/* 当下拉菜单打开时，暂停导航菜单的动画以避免冲突 */
+body:has(.el-select-dropdown.el-popper) {
+  .nav-item.active {
+    &::before,
+    &::after {
+      animation-play-state: paused !important;
+    }
+  }
+}
+
+/* 备用方案：使用类选择器（如果:has不被支持） */
+.dropdown-open .nav-item.active {
+  &::before,
+  &::after {
+    animation-play-state: paused !important;
+  }
+}
+
+/* ========== 增强操作反馈效果 ========== */
+
+/* 成功操作反馈动画 */
+@keyframes success-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 错误操作反馈动画 */
+@keyframes error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px);
+  }
+}
+
+/* 点击波纹效果 */
+@keyframes ripple-effect {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* 通用交互反馈类 */
+.feedback-success {
+  animation: success-pulse 0.4s ease-out;
+}
+
+.feedback-error {
+  animation: error-shake 0.5s ease-out;
+}
+
+.feedback-ripple {
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    animation: ripple-effect 0.6s ease-out;
+    pointer-events: none;
+  }
+}
+
+/* 卡片交互增强 */
+.interactive-card {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateZ(0);
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-2px) translateZ(0) scale(1.01);
+    box-shadow: 
+      0 8px 24px rgba(0, 0, 0, 0.12),
+      0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  
+  &:active {
+    transform: translateY(-1px) translateZ(0) scale(0.99);
+    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  &.selected {
+    transform: translateY(-3px) translateZ(0) scale(1.02);
+    box-shadow: 
+      0 12px 32px rgba(64, 158, 255, 0.2),
+      0 0 0 2px var(--el-color-primary);
+  }
+}
+
+/* 输入框焦点增强 */
+.el-input__wrapper {
+  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  
+  &:hover {
+    box-shadow: 0 0 0 1px var(--el-border-color-hover) !important;
+  }
+  
+  &.is-focus {
+    box-shadow: 
+      0 0 0 1px var(--el-color-primary) !important,
+      0 0 8px rgba(64, 158, 255, 0.2) !important;
+    transform: translateZ(0) scale(1.01);
+  }
+}
+
+/* 选择器增强 */
+.el-select .el-input__wrapper {
+  &.is-focus {
+    transform: translateZ(0) scale(1.005);
+  }
+}
+
+/* 标签点击反馈 */
+.el-tag {
+  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  transform: translateZ(0);
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-1px) translateZ(0) scale(1.02);
+  }
+  
+  &:active {
+    transform: translateY(0) translateZ(0) scale(0.98);
+    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+  }
+}
+
+/* 切换开关增强 */
+.el-switch {
+  &:hover .el-switch__core {
+    transform: scale(1.05);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  &:active .el-switch__core {
+    transform: scale(0.95);
+    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+}
+
+/* 复选框和单选框增强 */
+.el-checkbox, .el-radio {
+  &:hover .el-checkbox__inner, &:hover .el-radio__inner {
+    transform: scale(1.1);
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  
+  &:active .el-checkbox__inner, &:active .el-radio__inner {
+    transform: scale(0.9);
+    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+}
+
+/* 暗色模式下的交互增强 */
+html.dark {
+  .interactive-card {
+    &:hover {
+      box-shadow: 
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    &.selected {
+      box-shadow: 
+        0 12px 32px rgba(82, 155, 46, 0.3),
+        0 0 0 2px var(--el-color-primary);
+    }
+  }
+  
+  .el-input__wrapper.is-focus {
+    box-shadow: 
+      0 0 0 1px var(--el-color-primary) !important,
+      0 0 8px rgba(82, 155, 46, 0.3) !important;
+  }
 } 
