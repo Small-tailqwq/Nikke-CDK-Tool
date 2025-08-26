@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-26T09:43:18.374Z",
+  "lastUpdate": "2025-08-26T15:43:18.374Z",
   "cdks": [
     {
       "type": "group",
@@ -427,7 +427,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "第十期的第一名总算出来了。\n点此跳转管人主页：[\nほしより ch / hoshiyori](https://www.youtube.com/@hoooshiyori)",
       "author": "Reiny",
       "created": "2025-08-26"
