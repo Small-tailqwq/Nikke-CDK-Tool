@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-19T01:16:27.290Z",
+  "lastUpdate": "2025-08-26T09:43:18.374Z",
   "cdks": [
     {
       "type": "group",
@@ -432,6 +432,19 @@
         }
       ],
       "image": "announcement-images/CN_SummerParty.jpg"
+    },
+    {
+      "code": "HoshiyoriVol10QNFI",
+      "name": "VTB\"ほしより\"直播奖励",
+      "reward": "珠宝×300",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "第十期的第一名总算出来了。\n点此跳转管人主页：[\nほしより ch / hoshiyori](https://www.youtube.com/@hoooshiyori)",
+      "author": "Reiny",
+      "created": "2025-08-26",
+      "image": "announcement-images/HoshiyoriVol10QNFI.jpg"
     }
   ]
 }
