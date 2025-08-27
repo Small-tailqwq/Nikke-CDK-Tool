@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-26T15:43:18.374Z",
+  "lastUpdate": "2025-08-27T14:13:01.890Z",
   "cdks": [
     {
       "type": "group",
@@ -445,6 +445,19 @@
       "author": "Reiny",
       "created": "2025-08-26",
       "image": "announcement-images/HoshiyoriVol10QNFI.jpg"
+    },
+    {
+      "code": "KOHANAIHINAVOL10GWSF",
+      "name": "VTB\"小花衣ひな\"直播奖励",
+      "reward": "珠宝×200",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "第十期的第二名，第10期所有CDK发放结束。点此跳转管人主页：[小花衣ひな / Kohanai Hina](https://www.youtube.com/@pi_hina3)",
+      "author": "坦克",
+      "created": "2025-08-27",
+      "image": "announcement-images/KOHANAIHINAVOL10GWSF.jpg"
     }
   ]
 }
