@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-27T14:13:01.890Z",
+  "lastUpdate": "2025-08-28T06:16:40.819Z",
   "cdks": [
     {
       "type": "group",
@@ -422,7 +422,7 @@
     },
     {
       "code": "HoshiyoriVol10QNFI",
-      "name": "VTB\"ほしより\"直播奖励",
+      "name": "VTB“ほしより”直播奖励",
       "reward": "珠宝×300",
       "servers": [
         "global"
@@ -434,13 +434,13 @@
     },
     {
       "code": "KOHANAIHINAVOL10GWSF",
-      "name": "VTB\"小花衣ひな\"直播奖励",
+      "name": "VTB“小花衣ひな”直播奖励",
       "reward": "珠宝×200",
       "servers": [
         "global"
       ],
-      "status": "可用",
-      "note": "第十期的第二名，第10期所有CDK发放结束。点此跳转管人主页：[小花衣ひな / Kohanai Hina](https://www.youtube.com/@pi_hina3)",
+      "status": "已过期",
+      "note": "第十期的第二名，第10期所有CDK发放结束。点此跳转管人主页：\n[小花衣ひな / Kohanai Hina](https://www.youtube.com/@pi_hina3)",
       "author": "坦克",
       "created": "2025-08-27"
     }
