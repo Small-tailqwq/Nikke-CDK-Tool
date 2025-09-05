@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-28T06:16:40.819Z",
+  "lastUpdate": "2025-09-05T09:23:20.093Z",
   "cdks": [
     {
       "type": "group",
@@ -458,6 +458,19 @@
       "author": "坦克",
       "created": "2025-08-27",
       "image": "announcement-images/KOHANAIHINAVOL10GWSF.jpg"
+    },
+    {
+      "code": "thxfor960000",
+      "name": "96万关注奖励",
+      "reward": "珠宝×100",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "96万就给这个蚊子腿",
+      "author": "坦克",
+      "created": "2025-09-05",
+      "image": "announcement-images/thxfor960000.jpeg"
     }
   ]
 }
