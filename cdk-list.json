@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-09-19T03:07:39.103Z",
+  "lastUpdate": "2025-09-19T09:06:33.635Z",
   "cdks": [
     {
       "type": "group",
@@ -477,13 +477,28 @@
       "name": "NIKKE x RESIDENT EVIL 联动预热",
       "reward": "珠宝×300",
       "servers": [
-        "global"
+        "global",
+        "tw"
       ],
       "status": "可用",
       "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）\n\n",
       "author": "知一",
       "created": "2025-09-19",
       "image": "announcement-images/STOPN0924.jpg"
+    },
+    {
+      "code": "DWAVECOMING",
+      "name": "联动预热",
+      "reward": "芯尘盒：1H×2",
+      "servers": [
+        "global",
+        "tw"
+      ],
+      "status": "可用",
+      "note": "解密蚊子腿。奖励内容可能不对（反正就两箱子，纯蚊子腿）。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
+      "author": "流影飞雪",
+      "created": "2025-09-19",
+      "image": "announcement-images/default.webp"
     }
   ]
 }
