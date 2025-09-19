@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-09-05T09:23:20.093Z",
+  "lastUpdate": "2025-09-19T03:07:39.103Z",
   "cdks": [
     {
       "type": "group",
@@ -466,11 +466,24 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "96万就给这个蚊子腿",
       "author": "坦克",
       "created": "2025-09-05",
       "image": "announcement-images/thxfor960000.jpeg"
+    },
+    {
+      "code": "STOPN0924",
+      "name": "NIKKE x RESIDENT EVIL 联动预热",
+      "reward": "珠宝×300",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）\n\n",
+      "author": "知一",
+      "created": "2025-09-19",
+      "image": "announcement-images/STOPN0924.jpg"
     }
   ]
 }
