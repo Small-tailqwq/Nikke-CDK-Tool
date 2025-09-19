@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-09-19T09:06:33.635Z",
+  "lastUpdate": "2025-09-19T09:18:13.918Z",
   "cdks": [
     {
       "type": "group",
@@ -451,36 +451,44 @@
       "servers": [
         "global"
       ],
-      "status": "已过期",
-      "note": "96万就给这个蚊子腿",
+      "status": "可用",
+      "note": "X平台96万奖励；就给这个蚊子腿",
       "author": "坦克",
       "created": "2025-09-05"
     },
     {
-      "code": "STOPN0924",
-      "name": "NIKKE x RESIDENT EVIL 联动预热",
-      "reward": "珠宝×300",
-      "servers": [
-        "global",
-        "tw"
-      ],
-      "status": "可用",
-      "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）\n\n",
-      "author": "知一",
-      "created": "2025-09-19"
-    },
-    {
-      "code": "DWAVECOMING",
-      "name": "联动预热",
-      "reward": "芯尘盒：1H×2",
-      "servers": [
-        "global",
-        "tw"
-      ],
-      "status": "可用",
-      "note": "解密蚊子腿。奖励内容可能不对（反正就两箱子，纯蚊子腿）。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
-      "author": "流影飞雪",
-      "created": "2025-09-19"
+      "type": "group",
+      "groupId": "NIKKERESIDENTEVIL2025",
+      "groupName": "NIKKE x RESIDENT EVIL",
+      "note": "",
+      "cdks": [
+        {
+          "code": "STOPN0924",
+          "name": "联动预热",
+          "reward": "珠宝×300",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）",
+          "author": "知一",
+          "created": "2025-09-19"
+        },
+        {
+          "code": "DWAVECOMING",
+          "name": "联动预热 - 解谜",
+          "reward": "",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "解密蚊子腿。奖励内容可能不对（反正就两箱子，纯蚊子腿）。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
+          "author": "流影飞雪",
+          "created": "2025-09-19"
+        }
+      ]
     }
   ]
 }
