@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-08-28T06:16:40.819Z",
+  "lastUpdate": "2025-09-19T03:07:39.103Z",
   "cdks": [
     {
       "type": "group",
@@ -443,6 +443,18 @@
       "note": "第十期的第二名，第10期所有CDK发放结束。点此跳转管人主页：\n[小花衣ひな / Kohanai Hina](https://www.youtube.com/@pi_hina3)",
       "author": "坦克",
       "created": "2025-08-27"
+    },
+    {
+      "code": "STOPN0924",
+      "name": "NIKKE x RESIDENT EVIL 联动预热",
+      "reward": "珠宝×300",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）\n\n",
+      "author": "知一",
+      "created": "2025-09-19"
     }
   ]
 }
