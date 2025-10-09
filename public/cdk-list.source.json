@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-09-19T09:18:13.918Z",
+  "lastUpdate": "2025-10-09T00:56:25.435Z",
   "cdks": [
     {
       "type": "group",
@@ -83,7 +83,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "仅国服可用",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
@@ -95,7 +95,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "仅国服可用",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
@@ -107,7 +107,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "活动奖励",
           "author": "Small-tailqwq",
           "created": "2025-06-10"
@@ -389,7 +389,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "",
           "author": "maki",
           "created": "2025-08-16"
@@ -401,7 +401,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "",
           "author": "maki",
           "created": "2025-08-16"
@@ -413,7 +413,7 @@
           "servers": [
             "cn"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "",
           "author": "maki",
           "created": "2025-08-16"
