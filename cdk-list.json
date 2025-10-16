@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-10-09T00:56:25.435Z",
+  "lastUpdate": "2025-10-16T00:59:30.277Z",
   "cdks": [
     {
       "type": "group",
@@ -494,7 +494,7 @@
         {
           "code": "DWAVECOMING",
           "name": "联动预热 - 解谜",
-          "reward": "",
+          "reward": "成长套件：1H×2",
           "servers": [
             "global",
             "tw"
@@ -506,6 +506,19 @@
         }
       ],
       "image": "announcement-images/NIKKERESIDENTEVIL2025.jpg"
+    },
+    {
+      "code": "thxfor970000",
+      "name": "97万关注奖励",
+      "reward": "成长套件：1H×1",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "究极蚊子腿，甚至感觉不如100水",
+      "author": "知一",
+      "created": "2025-10-15",
+      "image": "announcement-images/thxfor970000.jpg"
     }
   ]
 }
