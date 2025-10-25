@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-10-16T00:59:30.277Z",
+  "lastUpdate": "2025-10-25T11:56:10.718Z",
   "cdks": [
     {
       "type": "group",
@@ -484,7 +484,7 @@
             "tw"
           ],
           "status": "可用",
-          "note": "解密蚊子腿。奖励内容可能不对（反正就两箱子，纯蚊子腿）。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
+          "note": "解密蚊子腿。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
           "author": "流影飞雪",
           "created": "2025-09-19"
         }
@@ -501,6 +501,66 @@
       "note": "究极蚊子腿，甚至感觉不如100水",
       "author": "知一",
       "created": "2025-10-15"
+    },
+    {
+      "type": "group",
+      "groupId": "NIKKE3rdAnniversary",
+      "groupName": "3周年直播",
+      "note": "3周年直播 CDK",
+      "cdks": [
+        {
+          "code": "IAMNAYUTA",
+          "name": "吾乃那由塔",
+          "reward": "招募券×5,同步扩充x2,代码手册选择宝箱x60",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "IIIIIIIIIIIIIIIII",
+          "created": "2025-10-25"
+        },
+        {
+          "code": "3YEARSWITHCOMMANDER",
+          "name": "与指挥官的三年",
+          "reward": "珠宝×900,成长套件：24H×1,模组高级增强器×60,指挥官自由使用卷×5",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "劳知,IIIIIIIIIIIIIIIII",
+          "created": "2025-10-25"
+        },
+        {
+          "code": "PUNYQUEEN",
+          "name": "渺小的女王",
+          "reward": "招募券×10",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-10-25"
+        },
+        {
+          "code": "GODDESSASSEMBLE",
+          "name": "谦卑女神",
+          "reward": "招募券×1,3周年纪念蛋糕x1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "蛋糕记得上锁",
+          "author": "IIIIIIIIIIIIIIIII",
+          "created": "2025-10-25"
+        }
+      ]
     }
   ]
 }
