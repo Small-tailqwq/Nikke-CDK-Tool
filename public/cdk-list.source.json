@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-10-25T11:56:10.718Z",
+  "lastUpdate": "2025-10-25T12:35:39.512Z",
   "cdks": [
     {
       "type": "group",
@@ -510,7 +510,7 @@
       "cdks": [
         {
           "code": "IAMNAYUTA",
-          "name": "吾乃那由塔",
+          "name": "在下娜由塔",
           "reward": "招募券×5,同步扩充x2,代码手册选择宝箱x60",
           "servers": [
             "global",
