@@ -8,6 +8,18 @@ const router = createRouter({
       redirect: '/announcement'
     },
     {
+      path: '/helper/bookmarklet',
+      name: 'bookmarklet',
+      component: () => import('../views/Bookmarklet.vue'),
+      meta: { hidden: true }
+    },
+    {
+      path: '/auth/callback',
+      name: 'auth-callback',
+      component: () => import('../views/CallbackAuth.vue'),
+      meta: { hidden: true }
+    },
+    {
       path: '/cdk',
       name: 'cdk',
       component: () => import('../views/CdkExchange.vue')

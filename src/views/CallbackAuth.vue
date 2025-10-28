@@ -1,0 +1,352 @@
+<template>
+  <div class="page">
+    <h2>官方登录回调</h2>
+    <div v-if="error" class="error">{{ error }}</div>
+    <div v-else>
+      <el-card class="summary" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span>登录信息摘要</span>
+            <el-tag size="small" type="info"
+              >来源: {{ parsed?.href?.split('?')[0] || '未知' }}</el-tag
+            >
+          </div>
+        </template>
+
+        <div class="summary-grid">
+          <div class="row">
+            <span class="label">账号：</span
+            ><span class="value">{{ derived.user_name || '(未知)' }}</span>
+          </div>
+          <div class="row">
+            <span class="label">UID：</span><span class="value">{{ derived.uid || '(未知)' }}</span>
+          </div>
+          <div class="row">
+            <span class="label">OpenID：</span
+            ><span class="value mono">{{ derived.openid || '(未知)' }}</span>
+          </div>
+          <div class="row">
+            <span class="label">Channel：</span
+            ><span class="value">{{ derived.channelid || '(未知)' }}</span>
+          </div>
+          <div class="row">
+            <span class="label">GameID：</span
+            ><span class="value">{{ derived.game_id || '29080' }}</span>
+          </div>
+        </div>
+
+        <div class="actions">
+          <el-button type="primary" :loading="saving" @click="applyToUser">{{
+            applyBtnText
+          }}</el-button>
+          <el-button @click="goUsers">前往用户管理</el-button>
+          <el-button @click="toggleRaw" text>{{
+            showRaw ? '收起原始数据' : '展开原始数据'
+          }}</el-button>
+        </div>
+      </el-card>
+
+      <el-card v-if="playerInfo" class="player" shadow="never">
+        <template #header><span>角色信息</span></template>
+        <div class="summary-grid">
+          <div class="row">
+            <span class="label">角色名：</span><span class="value">{{ playerInfo.role_name }}</span>
+          </div>
+          <div class="row">
+            <span class="label">等级：</span
+            ><span class="value">{{ playerInfo.player_level }}</span>
+          </div>
+          <div class="row">
+            <span class="label">战力：</span
+            ><span class="value">{{ playerInfo.team_combat?.toLocaleString?.() }}</span>
+          </div>
+          <div class="row">
+            <span class="label">区域：</span><span class="value">{{ playerInfo.region_name }}</span>
+          </div>
+        </div>
+      </el-card>
+
+      <el-card v-if="creatingNew" class="create" shadow="never">
+        <template #header><span>新建用户</span></template>
+        <div class="form">
+          <el-radio-group v-model="server">
+            <el-radio-button label="global">国际服</el-radio-button>
+            <el-radio-button label="tw">港澳台服</el-radio-button>
+          </el-radio-group>
+          <el-input v-model="remark" placeholder="备注名（默认使用角色名或账号名）" />
+          <div>
+            <el-button type="success" :loading="saving" @click="confirmCreate"
+              >创建并保存</el-button
+            >
+          </div>
+        </div>
+      </el-card>
+
+      <el-input v-if="showRaw" v-model="raw" type="textarea" :autosize="{ minRows: 8 }" />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '../stores/user'
+import { getGlobalUserCompleteInfo } from '../utils/api'
+import { ElMessage } from 'element-plus'
+
+const router = useRouter()
+const route = useRoute()
+
+const error = ref('')
+const raw = ref('')
+const parsed = ref(null)
+const standardCookie = ref('')
+const derived = ref({})
+const playerInfo = ref(null)
+const saving = ref(false)
+const creatingNew = ref(false)
+const server = ref('global')
+const remark = ref('')
+const showRaw = ref(false)
+const userStore = useUserStore()
+
+const existingUser = computed(() => {
+  const uid = derived.value?.uid
+  if (!uid) return null
+  const all = userStore.users
+  return all.find((u) => String(u.uid) === String(uid)) || null
+})
+
+const applyBtnText = computed(() =>
+  existingUser.value ? '更新此用户的Cookie' : '将登录态保存为新用户'
+)
+
+onMounted(() => {
+  try {
+    const b64 = route.query.data
+    if (!b64) {
+      error.value = '缺少 data'
+      return
+    }
+    const json = decodeURIComponent(escape(atob(String(b64))))
+    raw.value = json
+    parsed.value = JSON.parse(json)
+
+    // 优先使用书签携带的标准Cookie，否则尝试从LS推导
+    standardCookie.value = parsed.value.standardCookie || deriveCookieFromLS(parsed.value.ls)
+    derived.value = parsed.value.derived || deriveCore(parsed.value.ls)
+
+    // 静默写入快照，供“从快照填充”使用
+    writeToStorage()
+
+    // 拉取角色信息用于展示
+    if (standardCookie.value) {
+      fetchPlayer()
+    }
+  } catch (e) {
+    error.value = '解析失败: ' + (e && e.message)
+  }
+})
+
+function writeToStorage() {
+  try {
+    const payload = {
+      ts: Date.now(),
+      source: parsed.value?.href,
+      cookie: parsed.value?.cookie || '',
+      standardCookie: standardCookie.value || '',
+      ls: parsed.value?.ls || {},
+      derived: derived.value,
+    }
+    localStorage.setItem('nikke_official_login_snapshot', JSON.stringify(payload))
+  } catch (e) {
+    // 忽略本地存储错误
+    console.warn('写入快照失败:', e)
+  }
+}
+
+function goUsers() {
+  router.replace({ path: '/user' })
+}
+
+function toggleRaw() {
+  showRaw.value = !showRaw.value
+}
+
+function deriveCore(ls) {
+  try {
+    let lip = {}
+    try {
+      lip = JSON.parse(ls?.['lip-user-info'] || '{}')
+    } catch {}
+    const ci = lip.channel_info || {}
+    let extra = lip.extra_json || {}
+    if (typeof extra === 'string') {
+      try {
+        extra = JSON.parse(extra)
+      } catch {
+        extra = {}
+      }
+    }
+    const nn = (extra && extra.need_notify_rsp) || {}
+    const game_id = '29080'
+    return {
+      game_id,
+      openid: ci.openid || lip.openid || '',
+      channelid: ci.channelId || ci.channel_id || '',
+      uid: nn.game_sacc_uid || nn.li_uid || '',
+      user_name: lip.user_name || (ci.account ? String(ci.account).split('@')[0] : ''),
+    }
+  } catch {
+    return {}
+  }
+}
+
+function deriveCookieFromLS(ls) {
+  try {
+    let lip = {}
+    try {
+      lip = JSON.parse(ls?.['lip-user-info'] || '{}')
+    } catch {}
+    const ci = lip.channel_info || {}
+    let extra = lip.extra_json || {}
+    if (typeof extra === 'string') {
+      try {
+        extra = JSON.parse(extra)
+      } catch {
+        extra = {}
+      }
+    }
+    const nn = (extra && extra.need_notify_rsp) || {}
+    const kv = [
+      ['game_token', ci.token || lip.token || ''],
+      ['game_openid', ci.openid || lip.openid || ''],
+      ['game_gameid', '29080'],
+      ['game_channelid', ci.channelId || ci.channel_id || ''],
+      ['game_uid', nn.game_sacc_uid || nn.li_uid || ''],
+      ['game_user_name', lip.user_name || (ci.account ? String(ci.account).split('@')[0] : '')],
+      ['game_adult_status', 1],
+    ].filter(([k, v]) => v !== undefined && v !== null && String(v) !== '')
+    return kv.map(([k, v]) => `${k}=${String(v)}`).join('; ')
+  } catch {
+    return ''
+  }
+}
+
+async function fetchPlayer() {
+  try {
+    const res = await getGlobalUserCompleteInfo(standardCookie.value)
+    if (res.success) {
+      playerInfo.value = res.data
+      if (!remark.value) remark.value = res.data.role_name || derived.value.user_name || ''
+    }
+  } catch (e) {
+    // 忽略展示失败
+  }
+}
+
+async function applyToUser() {
+  try {
+    if (!standardCookie.value) {
+      ElMessage.warning('未获取到有效 Cookie')
+      return
+    }
+    saving.value = true
+    const user = existingUser.value
+    if (user) {
+      await userStore.updateUser(user.id, {
+        cookie: standardCookie.value,
+        cookieOriginal: standardCookie.value,
+        server: user.server,
+        uid: user.uid || derived.value.uid,
+        userName: user.userName || derived.value.user_name,
+        playerInfo: playerInfo.value || user.playerInfo,
+      })
+      ElMessage.success('已更新此用户的 Cookie')
+      router.replace({ path: '/user' })
+    } else {
+      creatingNew.value = true
+    }
+  } catch (e) {
+    console.error('更新用户失败:', e)
+    ElMessage.error('更新失败：' + (e && e.message ? e.message : '请稍后重试'))
+  } finally {
+    saving.value = false
+  }
+}
+
+async function confirmCreate() {
+  try {
+    if (!standardCookie.value) {
+      ElMessage.warning('未获取到有效 Cookie')
+      return
+    }
+    saving.value = true
+    const name = remark.value || playerInfo.value?.role_name || derived.value.user_name || '新用户'
+    await userStore.addUser({
+      name,
+      server: server.value,
+      serverName: server.value === 'tw' ? '港澳台服' : '国际服',
+      uid: derived.value.uid || '',
+      userName: derived.value.user_name || '',
+      cookie: standardCookie.value,
+      cookieOriginal: standardCookie.value,
+      playerInfo: playerInfo.value || undefined,
+      cookieExpireDays: 30,
+      cookieActualExpireDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    })
+    ElMessage.success('已创建并保存用户')
+    router.replace({ path: '/user' })
+  } catch (e) {
+    console.error('创建用户失败:', e)
+    ElMessage.error('创建失败：' + (e && e.message ? e.message : '请稍后重试'))
+  } finally {
+    saving.value = false
+  }
+}
+</script>
+
+<style scoped>
+.page {
+  padding: 16px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.summary .card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+  padding: 8px 0;
+}
+.row .label {
+  color: var(--el-text-color-secondary);
+  margin-right: 6px;
+}
+.row .value {
+  color: var(--el-text-color-primary);
+}
+.mono {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.error {
+  color: #c00;
+  margin-bottom: 12px;
+}
+</style>

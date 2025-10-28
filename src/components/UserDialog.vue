@@ -20,9 +20,9 @@
       </el-form-item>
 
       <el-form-item label="服务器" prop="server">
-        <el-select 
-          v-model="form.server" 
-          placeholder="选择服务器" 
+        <el-select
+          v-model="form.server"
+          placeholder="选择服务器"
           size="large"
           @visible-change="handleDropdownVisibleChange"
         >
@@ -88,6 +88,19 @@
                 </span>
               </div>
               <div class="cookie-tools-right">
+                <el-button size="small" @click="openBookmarkletHelper" type="info" link>
+                  <el-icon><Link /></el-icon>
+                  官方登录助手
+                </el-button>
+                <el-button
+                  size="small"
+                  type="warning"
+                  plain
+                  @click="importFromSnapshot"
+                  :icon="Download"
+                >
+                  从快照填充
+                </el-button>
                 <el-button
                   size="small"
                   type="primary"
@@ -129,6 +142,19 @@
               </span>
             </div>
             <div class="cookie-tools-right">
+              <el-button size="small" @click="openBookmarkletHelper" type="info" link>
+                <el-icon><Link /></el-icon>
+                官方登录助手
+              </el-button>
+              <el-button
+                size="small"
+                type="warning"
+                plain
+                @click="importFromSnapshot"
+                :icon="Download"
+              >
+                从快照填充
+              </el-button>
               <el-button
                 size="small"
                 type="primary"
@@ -268,6 +294,10 @@
             <el-icon><QuestionFilled /></el-icon>
             获取帮助
           </el-button>
+          <el-button type="primary" link @click="openBookmarkletHelper" class="help-button">
+            <el-icon><Link /></el-icon>
+            官方登录助手
+          </el-button>
         </div>
         <div class="dialog-footer-right">
           <el-button @click="handleClose">取消</el-button>
@@ -287,6 +317,8 @@ import {
   QuestionFilled,
   Refresh,
   Check,
+  Download,
+  Link,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
@@ -1064,6 +1096,36 @@ const handleClose = () => {
   // 重置服务器检测状态
   serverDetectionResult.value = null
   showServerMismatchAlert.value = false
+}
+
+// 打开书签助手页
+const openBookmarkletHelper = () => {
+  const url = `${location.origin}${location.pathname}#/helper/bookmarklet`
+  window.open(url, '_blank')
+}
+
+// 从官方登录回调页写入的本地快照导入 Cookie
+const importFromSnapshot = () => {
+  try {
+    const raw = localStorage.getItem('nikke_official_login_snapshot')
+    if (!raw) {
+      showCustomMessage('未找到官方登录快照，请先前往“官方登录助手”并执行登录与回传', 'warning')
+      return
+    }
+    const payload = JSON.parse(raw)
+    const cookieStr = String(payload.standardCookie || payload.cookie || '').trim()
+    if (!cookieStr) {
+      showCustomMessage('快照中未包含 Cookie 内容', 'warning')
+      return
+    }
+    // 直接填充为表单 Cookie，后续可点“验证Cookie”确认
+    form.cookie = cookieStr
+    // 清除手动编辑标记以便重新解析
+    manualExpireDaysEdit.value = false
+    showCustomMessage('已从快照填充 Cookie，请点击“验证Cookie”确认有效性', 'success')
+  } catch (e) {
+    showCustomMessage(`读取快照失败：${e?.message || e}`, 'error')
+  }
 }
 
 // 打开帮助链接
