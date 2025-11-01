@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-10-25T13:45:29.980Z",
+  "lastUpdate": "2025-11-01T05:16:13.261Z",
   "cdks": [
     {
       "type": "group",
@@ -580,6 +580,19 @@
         }
       ],
       "image": "announcement-images/NIKKE3rdAnniversary.jpg"
+    },
+    {
+      "code": "thxfor980000",
+      "name": "98万关注奖励",
+      "reward": "成长套件：1H×1",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "",
+      "author": " 知一",
+      "created": "2025-11-01",
+      "image": "announcement-images/default.webp"
     }
   ]
 }
