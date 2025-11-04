@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-11-01T05:16:13.261Z",
+  "lastUpdate": "2025-11-04T06:18:39.629Z",
   "cdks": [
     {
       "type": "group",
@@ -577,6 +577,19 @@
           "note": "蛋糕记得上锁；根据B站网友：Ice_cream__的提示：本CDK大概率是neta的美队的经典台词：“Avengers, assemble!(复仇者，集结)”",
           "author": "IIIIIIIIIIIIIIIII",
           "created": "2025-10-25"
+        },
+        {
+          "code": "3YEARSWITHNIKKE",
+          "name": "与妮姬的三年",
+          "reward": "成长套件：1H×6,技能手册自选宝箱×5,招募券×10,模组高级增强器×10,简介个性化礼包×50",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "三周年社区追加奖励，另附有11张彩卷，需要登陆游戏邮箱领取。",
+          "author": "知一",
+          "created": "2025-11-04"
         }
       ],
       "image": "announcement-images/NIKKE3rdAnniversary.jpg"
