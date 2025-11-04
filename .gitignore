@@ -3,6 +3,7 @@ dist
 jietu
 .cursorrules
 .CLAUDE
+.codex
 CLAUDE.md
 .env.local
 /public/cdk-list.json

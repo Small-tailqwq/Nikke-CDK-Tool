@@ -106,8 +106,8 @@
               <el-tooltip content="后端API代理服务" placement="top">
                 <el-tag size="small" type="info" effect="plain">Cloudflare Worker</el-tag>
               </el-tooltip>
-              <el-tooltip content="本项目的实际缔造者" placement="top">
-                <el-tag size="small" type="info" effect="plain">Cursor</el-tag>
+              <el-tooltip content="Cursor的后继者" placement="top">
+                <el-tag size="small" type="info" effect="plain">VS Code</el-tag>
               </el-tooltip>
               <el-tooltip
                 v-if="doroStore.shouldShowButton"
@@ -456,6 +456,9 @@ body {
             user-select: none;
             cursor: default;
             white-space: nowrap;
+            // padding: 2px 10px;
+            // border-radius: 999px;
+            // transition: color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
 
             // 文字描边效果提高辨识度
             -webkit-text-stroke: 1px rgba(0, 0, 0, 0.8);
@@ -468,14 +471,11 @@ body {
 
             // 在暗色模式下调整颜色
             html.dark & {
-              color: #ffff77;
-              -webkit-text-stroke: 1px rgba(0, 0, 0, 0.9);
+              color: #fff4a3;
+              -webkit-text-stroke: 1px rgba(255, 255, 255, 0.7);
               text-shadow:
-                1px 1px 0px rgba(0, 0, 0, 0.9),
-                -1px 1px 0px rgba(0, 0, 0, 0.9),
-                1px -1px 0px rgba(0, 0, 0, 0.9),
-                -1px -1px 0px rgba(0, 0, 0, 0.9),
-                2px 2px 2px rgba(0, 0, 0, 0.5);
+                1px 1px 3px rgba(0, 0, 0, 0.5),
+                0 0 8px rgba(255, 224, 102, 0.35);
             }
           }
         }
