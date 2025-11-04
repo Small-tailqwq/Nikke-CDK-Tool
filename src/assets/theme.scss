@@ -29,6 +29,11 @@
   --el-fill-color-dark: #ebedf0;
   --el-fill-color-darker: #e6e8eb;
   --el-fill-color-blank: #fff;
+
+  // 遮罩颜色（Loading、弹层等）
+  --el-mask-color: rgba(255, 255, 255, 0.86);
+  --el-mask-color-extra-light: rgba(255, 255, 255, 0.4);
+  --el-loading-spinner-color: var(--el-color-primary);
   
   // 主题色
   --el-color-primary: #409eff;
@@ -108,6 +113,11 @@ html.dark {
   --el-fill-color-dark: #39393a;
   --el-fill-color-darker: #424243;
   --el-fill-color-blank: #141414;
+
+  // 遮罩颜色（Loading、弹层等）
+  --el-mask-color: rgba(12, 12, 12, 0.88);
+  --el-mask-color-extra-light: rgba(12, 12, 12, 0.5);
+  --el-loading-spinner-color: var(--el-color-primary);
   
   // 主题色 (暗色模式下使用绿色系)
   --el-color-primary: #529b2e;
@@ -154,6 +164,40 @@ html.dark {
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
   --scrollbar-thumb-active: rgba(255, 255, 255, 0.35);
+}
+
+/* ========== Loading 遮罩与卡片暗色优化 ========== */
+
+.el-loading-mask {
+  background-color: var(--el-mask-color);
+  transition: background-color 0.2s ease;
+}
+
+.el-loading-spinner {
+  color: var(--el-loading-spinner-color);
+}
+
+.el-loading-spinner .path {
+  stroke: var(--el-loading-spinner-color);
+}
+
+html.dark {
+  .el-loading-mask {
+    background-color: var(--el-mask-color);
+  }
+
+  .el-card {
+    background-color: var(--el-bg-color-secondary);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .el-card__header {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .el-card__body {
+    background-color: transparent;
+  }
 }
 
 /* ========== 图片质量优化 ========== */
@@ -612,7 +656,7 @@ body:has(.el-select-dropdown.el-popper) {
   
   &.is-focus {
     box-shadow: 
-      0 0 0 1px var(--el-color-primary) !important,
+      0 0 0 1px var(--el-color-primary),
       0 0 8px rgba(64, 158, 255, 0.2) !important;
     transform: translateZ(0) scale(1.01);
   }
@@ -685,7 +729,7 @@ html.dark {
   
   .el-input__wrapper.is-focus {
     box-shadow: 
-      0 0 0 1px var(--el-color-primary) !important,
+      0 0 0 1px var(--el-color-primary),
       0 0 8px rgba(82, 155, 46, 0.3) !important;
   }
 } 

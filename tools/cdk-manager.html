@@ -1285,7 +1285,7 @@
                 listContainer.innerHTML = html;
             }
 
-            // ÿ����Ⱦ���ؽ����������
+            // 每次渲染后重建奖励联想池
             buildSuggestionPool();
         }
 
@@ -1890,7 +1890,7 @@ function addNormalCDK() {
 
         // 删除CDK
         function deleteCDK(index) {
-            if (confirm('ȷ��Ҫɾ����� CDK ��')) {
+            if (confirm('确定要删除这个 CDK 吗？')) {
                 const target = cdkData.cdks[index];
                 if (target && target.type === 'group') {
                     collapsedGroupKeys.delete(getGroupKey(target, index));
