@@ -88,19 +88,6 @@
                 </span>
               </div>
               <div class="cookie-tools-right">
-                <el-button size="small" @click="openBookmarkletHelper" type="info" link>
-                  <el-icon><Link /></el-icon>
-                  官方登录助手
-                </el-button>
-                <el-button
-                  size="small"
-                  type="warning"
-                  plain
-                  @click="importFromSnapshot"
-                  :icon="Download"
-                >
-                  从快照填充
-                </el-button>
                 <el-button
                   size="small"
                   type="primary"
@@ -142,19 +129,6 @@
               </span>
             </div>
             <div class="cookie-tools-right">
-              <el-button size="small" @click="openBookmarkletHelper" type="info" link>
-                <el-icon><Link /></el-icon>
-                官方登录助手
-              </el-button>
-              <el-button
-                size="small"
-                type="warning"
-                plain
-                @click="importFromSnapshot"
-                :icon="Download"
-              >
-                从快照填充
-              </el-button>
               <el-button
                 size="small"
                 type="primary"
@@ -298,6 +272,16 @@
             <el-icon><Link /></el-icon>
             官方登录助手
           </el-button>
+          <el-button
+            type="success"
+            link
+            @click="openProxyLogin"
+            class="help-button"
+            :loading="proxyLoginLoading"
+          >
+            <el-icon><Upload /></el-icon>
+            官方代理登录
+          </el-button>
         </div>
         <div class="dialog-footer-right">
           <el-button @click="handleClose">取消</el-button>
@@ -317,17 +301,12 @@ import {
   QuestionFilled,
   Refresh,
   Check,
-  Download,
   Link,
+  Upload,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import {
-  parseGameUrlCN,
-  getGlobalUserCompleteInfo,
-  renewGlobalCookie,
-  shouldRenewCookie,
-} from '../utils/api'
+import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 import { formatCookieExpireTime, getCookieExpireTagType } from '../utils/dateUtils'
 
@@ -354,6 +333,11 @@ const formRef = ref(null)
 const saving = ref(false)
 const dialogVisible = ref(false)
 const showCookie = ref(false)
+
+// 官方代理登录状态
+const proxyLoginLoading = ref(false)
+const proxyLoginWindow = ref(null)
+const proxyLoginSid = ref(null)
 
 // 国服游戏信息解析
 const parsedGameInfo = ref(null)
@@ -386,7 +370,6 @@ const cookieExpireDate = computed(() => {
 const parsedCookieInfo = ref(null)
 
 // Cookie续期功能
-const renewLoading = ref(false)
 const isRenewing = ref(false) // 标记是否正在续期，避免重复解析
 
 // 新增：标记用户是否手动修改了过期天数
@@ -394,6 +377,8 @@ const manualExpireDaysEdit = ref(false)
 
 // Cookie工具相关状态
 const manualValidationLoading = ref(false)
+
+// 镜像登录工具已下线，相关状态与方法已移除
 
 // 服务器检测相关状态
 const serverDetectionResult = ref(null)
@@ -1104,29 +1089,48 @@ const openBookmarkletHelper = () => {
   window.open(url, '_blank')
 }
 
-// 从官方登录回调页写入的本地快照导入 Cookie
-const importFromSnapshot = () => {
-  try {
-    const raw = localStorage.getItem('nikke_official_login_snapshot')
-    if (!raw) {
-      showCustomMessage('未找到官方登录快照，请先前往“官方登录助手”并执行登录与回传', 'warning')
-      return
-    }
-    const payload = JSON.parse(raw)
-    const cookieStr = String(payload.standardCookie || payload.cookie || '').trim()
-    if (!cookieStr) {
-      showCustomMessage('快照中未包含 Cookie 内容', 'warning')
-      return
-    }
-    // 直接填充为表单 Cookie，后续可点“验证Cookie”确认
-    form.cookie = cookieStr
-    // 清除手动编辑标记以便重新解析
-    manualExpireDaysEdit.value = false
-    showCustomMessage('已从快照填充 Cookie，请点击“验证Cookie”确认有效性', 'success')
-  } catch (e) {
-    showCustomMessage(`读取快照失败：${e?.message || e}`, 'error')
-  }
+// 生成唯一的登录会话 SID
+const generateLoginSID = () => {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).substring(2, 10) // 8位随机字符
+  return `login-${timestamp}-${random}`
 }
+
+// 官方代理登录
+const openProxyLogin = () => {
+  if (proxyLoginLoading.value) {
+    showCustomMessage('登录流程进行中，请勿重复操作', 'warning')
+    return
+  }
+
+  // 生成唯一 SID
+  proxyLoginSid.value = generateLoginSID()
+
+  // 构造登录引导页 URL (默认正式环境，测试环境读取env)
+  const workerBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
+  // 将当前主站基址作为回调基址传给助手页（支持本地 127.0.0.1/localhost 和 GitHub Pages 子路径）
+  const callbackBase = `${location.origin}${location.pathname}`
+  const loginUrl = `${workerBaseUrl}/login?sid=${proxyLoginSid.value}&cb=${encodeURIComponent(callbackBase)}`
+
+  // 打开登录窗口
+  // 第一个窗口：作为“登录助手”使用，采用新标签页，避免被当作小窗后再被浏览器限制
+  proxyLoginWindow.value = window.open(loginUrl, '_blank')
+
+  if (!proxyLoginWindow.value) {
+    showCustomMessage('无法打开登录窗口，请检查浏览器弹窗设置', 'error')
+    return
+  }
+
+  // 不再在主站轮询/监听；让“登录助手”窗口承担后续工作（打开官网登录 -> 登录 -> 点击发送 -> 回调并关闭）
+  proxyLoginLoading.value = false
+  showCustomMessage(
+    '已打开“官方登录助手”窗口：先点击“前往官网登录”，登录完成后点“发送到 CallbackAuth”',
+    'info'
+  )
+}
+
+// 旧版代理登录轮询与自动跳转逻辑已移除，改由助手页内手动“发送到 CallbackAuth”完成后续流程
+
 
 // 打开帮助链接
 const openHelpLink = () => {
@@ -1989,6 +1993,26 @@ const handleSubmit = async () => {
         }
 
         @media screen and (max-width: 768px) {
+          font-size: 11px;
+        }
+      }
+
+      .mirror-session-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--el-color-primary);
+        white-space: nowrap;
+        padding-left: 8px;
+        border-left: 1px solid var(--el-border-color-lighter);
+        margin-left: 8px;
+
+        @media screen and (max-width: 768px) {
+          margin-left: 0;
+          border-left: none;
+          padding-left: 0;
+          justify-content: center;
           font-size: 11px;
         }
       }
