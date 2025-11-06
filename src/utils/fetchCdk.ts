@@ -45,13 +45,48 @@ export function isSingleCDK(cdk: CDK): cdk is SingleCDK {
   return !cdk.type || cdk.type === 'single';
 }
 
-// 获取CDK组合的总奖励
+// 获取CDK组合的总奖励（合并相同奖励项）
 export function getGroupTotalReward(group: CDKGroup): string {
   if (group.cdks.length === 0) return '';
-  return group.cdks
-    .map(cdk => cdk.reward || '')
-    .filter(reward => reward)
-    .join(', ');
+  
+  // 收集所有奖励项
+  const rewardMap = new Map<string, number>();
+  
+  group.cdks.forEach(cdk => {
+    if (!cdk.reward) return;
+    
+    // 分割奖励项（支持中文逗号和英文逗号）
+    const items = cdk.reward.split(/[,、，]/).map(item => item.trim()).filter(item => item);
+    
+    items.forEach(item => {
+      // 尝试解析 "物品名×数量" 或 "物品名x数量" 格式
+      const match = item.match(/^(.+?)[×x](\d+)$/);
+      
+      if (match) {
+        const [, itemName, quantityStr] = match;
+        const name = itemName.trim();
+        const quantity = parseInt(quantityStr, 10);
+        
+        rewardMap.set(name, (rewardMap.get(name) || 0) + quantity);
+      } else {
+        // 没有数量标识的物品，默认数量为1
+        rewardMap.set(item, (rewardMap.get(item) || 0) + 1);
+      }
+    });
+  });
+  
+  // 格式化输出，按添加顺序排列
+  const result: string[] = [];
+  rewardMap.forEach((quantity, itemName) => {
+    if (quantity === 1) {
+      // 数量为1时不显示×1
+      result.push(itemName);
+    } else {
+      result.push(`${itemName}×${quantity}`);
+    }
+  });
+  
+  return result.join(', ');
 }
 
 // 获取CDK组合中的所有CDK代码
