@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-11-04T06:18:39.629Z",
+  "lastUpdate": "2025-11-06T13:21:45.913Z",
   "cdks": [
     {
       "type": "group",
@@ -581,7 +581,7 @@
         {
           "code": "3YEARSWITHNIKKE",
           "name": "与妮姬的三年",
-          "reward": "成长套件：1H×6,技能手册自选宝箱×5,招募券×10,模组高级增强器×10,简介个性化礼包×50",
+          "reward": "成长套件：1H×6,技能手册宝箱×5,招募券×10,模组高级增强器×10,简介个性化礼包×50",
           "servers": [
             "global",
             "tw"
@@ -590,6 +590,18 @@
           "note": "三周年社区追加奖励，另附有11张彩卷，需要登陆游戏邮箱领取。",
           "author": "知一",
           "created": "2025-11-04"
+        },
+        {
+          "code": "NIKKEASSEMBLE3RD",
+          "name": "NIKKE3周年集结",
+          "reward": "成长套件：1H×3,技能手册宝箱×3,爆裂手册宝箱×3,双模组高级增强器×3",
+          "servers": [
+            "global"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "ko_teiru",
+          "created": "2025-11-06"
         }
       ],
       "image": "announcement-images/NIKKE3rdAnniversary.jpg"
