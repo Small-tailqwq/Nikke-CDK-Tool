@@ -121,32 +121,141 @@ const applyBtnText = computed(() =>
   existingUser.value ? '更新此用户的Cookie' : '将登录态保存为新用户'
 )
 
-onMounted(() => {
+onMounted(async () => {
   try {
+    // 🔐 安全改进：支持两种模式 - 旧版Base64数据和新版令牌模式
+    const token = route.query.token
     const b64 = route.query.data
-    if (!b64) {
-      error.value = '缺少 data'
+
+    if (token) {
+      // 新版令牌模式：通过POST请求获取数据
+      await fetchAuthDataByToken(token)
+    } else if (b64) {
+      // 旧版Base64模式：向后兼容
+      const json = decodeURIComponent(
+        atob(String(b64))
+          .split('')
+          .map((c) => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+          })
+          .join('')
+      )
+      raw.value = json
+      parsed.value = JSON.parse(json)
+
+      // 优先使用书签携带的标准Cookie，否则尝试从LS推导
+      standardCookie.value = parsed.value.standardCookie || deriveCookieFromLS(parsed.value.ls)
+      derived.value = parsed.value.derived || deriveCore(parsed.value.ls)
+
+      // 静默写入快照，供"从快照填充"使用
+      writeToStorage()
+
+      // 拉取角色信息用于展示
+      if (standardCookie.value) {
+        fetchPlayer()
+      }
+    } else {
+      error.value = '缺少认证参数 (token 或 data)'
       return
     }
-    const json = decodeURIComponent(escape(atob(String(b64))))
-    raw.value = json
-    parsed.value = JSON.parse(json)
+  } catch (e) {
+    error.value = '解析失败: ' + (e && e.message)
+  }
+})
 
-    // 优先使用书签携带的标准Cookie，否则尝试从LS推导
-    standardCookie.value = parsed.value.standardCookie || deriveCookieFromLS(parsed.value.ls)
-    derived.value = parsed.value.derived || deriveCore(parsed.value.ls)
+// 🔐 新增：通过令牌获取认证数据
+async function fetchAuthDataByToken(token) {
+  try {
+    saving.value = true
 
-    // 静默写入快照，供“从快照填充”使用
+    // 通过POST请求获取加密的认证数据
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
+    const response = await fetch(`${apiBaseUrl}/api/auth/token-data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ token }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const result = await response.json()
+
+    if (!result.success) {
+      throw new Error(result.message || '获取认证数据失败')
+    }
+
+    const responseData = result.data
+
+    // 🔐 检测是否为加密数据（新版三重加密）
+    let decryptedCookie = null
+
+    if (responseData._encrypted_cookie && responseData.sid) {
+      console.log('🔐 检测到加密Cookie，开始三重解密...')
+
+      try {
+        // 动态导入解密工具
+        const { decryptCookieData } = await import('@/utils/cookieDecrypt')
+
+        // 使用三重密钥解密：SID + Token + Salt（盐包含在加密数据包中）
+        decryptedCookie = await decryptCookieData(
+          responseData._encrypted_cookie,
+          responseData.sid,
+          token
+        )
+
+        console.log('✅ Cookie解密成功，长度:', decryptedCookie.length)
+
+        // 构建解密后的数据对象
+        parsed.value = {
+          ...responseData,
+          standardCookie: decryptedCookie,
+          // 移除加密字段，避免混淆
+          _encrypted_cookie: undefined,
+        }
+
+        standardCookie.value = decryptedCookie
+        derived.value = responseData.derived || {}
+      } catch (decryptError) {
+        console.error('❌ Cookie解密失败:', decryptError)
+        throw new Error('Cookie解密失败: ' + decryptError.message)
+      }
+    } else {
+      // 旧版明文数据（向后兼容）
+      console.log('⚠️ 检测到明文Cookie（旧版格式）')
+      parsed.value = responseData
+      standardCookie.value = responseData.standardCookie || deriveCookieFromLS(responseData.ls)
+      derived.value = responseData.derived || deriveCore(responseData.ls)
+    }
+
+    raw.value = JSON.stringify(parsed.value, null, 2)
+
+    // 静默写入快照，供"从快照填充"使用
     writeToStorage()
 
     // 拉取角色信息用于展示
     if (standardCookie.value) {
       fetchPlayer()
     }
+
+    // 🔐 安全改进：清除URL中的令牌参数
+    if (window.history.replaceState) {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('token')
+      window.history.replaceState(null, '', url.toString())
+    }
+
+    console.log('🔐 通过令牌成功获取认证数据，已清除URL中的令牌参数')
   } catch (e) {
-    error.value = '解析失败: ' + (e && e.message)
+    console.error('通过令牌获取认证数据失败:', e)
+    error.value = '获取认证数据失败: ' + (e && e.message)
+  } finally {
+    saving.value = false
   }
-})
+}
 
 function writeToStorage() {
   try {
