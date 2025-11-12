@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-11-06T13:21:45.913Z",
+  "lastUpdate": "2025-11-12T06:59:12.548Z",
   "cdks": [
     {
       "type": "group",
@@ -618,6 +618,19 @@
       "author": " 知一",
       "created": "2025-11-01",
       "image": "announcement-images/thxfor980000.jpg"
+    },
+    {
+      "code": "thxfor990000",
+      "name": "99万关注奖励",
+      "reward": "成长套件：1H×1",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "依旧是一个箱子，我不信到时候100w还是发箱子",
+      "author": "纯矜",
+      "created": "2025-11-12",
+      "image": "announcement-images/thxfor990000.jpg"
     }
   ]
 }
