@@ -1,8 +1,10 @@
 # Nikke CDK Tool
 
-一个用于管理《胜利女神：NIKKE》CDK 的现代化工具网站，支持国际服、国服、港澳台服多服务器CDK兑换。
+一个用于管理《胜利女神:NIKKE》CDK 的现代化工具网站,支持国际服、国服、港澳台服多服务器CDK兑换。
 
 ![许可证](https://img.shields.io/badge/许可证-MIT-blue)
+
+**简体中文 | [English](README.en.md)**
 
 ## ✨ 功能特性
 
@@ -10,6 +12,7 @@
 
 - **CDK 公告展示** - 支持单个CDK和CDK组合的智能展示，附有 CDK 活动期间图片和奖励信息
 - **多服务器兑换** - 全面支持国际服、国服、港澳台服 CDK 兑换
+- **官方代理登录** - 安全便捷的一键登录方式（详见[安全说明](#-安全说明)）
 - **用户管理** - 支持多账号管理，自动角色信息获取和服务器类型检测
 - **兑换历史** - 完整的兑换记录追踪，支持本地与云端同步
 - **智能筛选** - 根据账号兑换记录智能筛选未兑换的 CDK
@@ -21,14 +24,11 @@
 - **响应式设计** - 完美适配桌面端和移动端，优化触摸体验
 - **瀑布流布局** - 伪瀑布流排版，优化CDK卡片展示效果
 - **动画效果** - 丰富的过渡动画和交互反馈
-- **安全保护** - Cookie 本地存储，用户隐私保护
 
 ### 🎨 特色功能
 
 - **doro 彩蛋** - 隐藏的 doro 动画彩蛋和特效
-- **CDN 加速** - 国内 CDN 加速，提升加载体验
 - **图片优化** - 自动 WebP 格式转换，缩略图生成
-- **广告拦截友好** - 低侵入性广告设计，支持拦截器
 
 ## 🏗️ 技术栈
 
@@ -43,18 +43,16 @@
 
 ### 后端服务
 
-- **Cloudflare Workers** - 边缘计算API代理
+- **Cloudflare Workers** - 边缘计算API代理，三重加密Cookie传输
+- **Cloudflare KV** - 临时令牌存储（5分钟自动过期）
 - **GitHub Pages** - 静态网站托管
 - **GitHub Actions** - CI/CD自动化部署
-- **阿里云 DCDN** - 国内CDN加速
 
 ### 开发工具
 
 - **TypeScript** - 类型安全的JavaScript
 - **ESLint** - 代码质量检查
-- **Prettier** - 代码格式化
 - **Sharp** - 高性能图像处理
-- **Axios** - HTTP客户端库
 
 ## 📁 项目目录结构
 
@@ -77,6 +75,7 @@ Nikke-CDK-Tool/
 │   │   ├── CdkExchange.vue          # CDK兑换页面
 │   │   ├── ExchangeHistory.vue      # 兑换历史页面
 │   │   ├── UserManagement.vue       # 用户管理页面
+│   │   ├── CallbackAuth.vue         # 代理登录回调页面
 │   │   └── RainbowDoro.vue          # 彩虹多萝彩蛋页面
 │   │
 │   ├── 📁 stores/                   # 状态管理
@@ -93,8 +92,7 @@ Nikke-CDK-Tool/
 │   │   ├── serverUtils.js           # 服务器工具函数
 │   │   ├── storage.js               # 本地存储管理
 │   │   ├── dateUtils.js             # 日期工具函数
-│   │   ├── imageUtils.ts            # 图片工具函数
-│   │   ├── adBlockDetector.ts       # 广告拦截检测
+│   │   ├── cookieDecrypt.js         # Cookie三重加密解密
 │   │   └── logger.js                # 日志工具
 │   │
 │   ├── 📁 assets/                   # 静态资源
@@ -121,10 +119,8 @@ Nikke-CDK-Tool/
 │   └── cdk-manager.html             # CDK数据管理工具
 │
 ├── 📁 cloudflare-worker/            # Worker代码 (不会部署)
-│   ├── Nikke-CDK-Combined.js        # 统一Worker
-│   ├── Nikke-CDK-Combined_Dev.js    # 开发版Worker
-│   ├── Nikke-CDK.js                 # CDK兑换代理
-│   ├── Nikke-CDK-list.js            # CDK列表加速
+│   ├── Nikke-CDK-Combined.js        # 生产环境统一Worker
+│   ├── Nikke-CDK-Combined_Dev.js    # 开发调试版Worker
 │   └── README.md                    # Worker文档
 │
 ├── 📁 scripts/                      # 构建脚本 (不会部署)
@@ -135,7 +131,7 @@ Nikke-CDK-Tool/
 │       └── deploy.yml               # 自动部署配置
 │
 ├── ENV_CONFIG.md                    # 环境变量配置说明
-├── CLAUDE.md                        # Claude Code 开发指南
+├── CLAUDE.md                        # AI开发指南
 ├── index.html                       # HTML模板
 ├── package.json                     # 项目配置
 ├── vite.config.js                   # Vite配置
@@ -148,95 +144,65 @@ Nikke-CDK-Tool/
 
 ### 环境要求
 
-- **Node.js 16+** (推荐 18+)
+- **Node.js 18+**
 - **npm** 或 **yarn**
-- **现代浏览器** (Chrome 80+, Firefox 75+, Safari 13+)
 
-### 克隆项目
+### 安装与运行
 
-```bash
+````bash
+# 克隆项目
 git clone https://github.com/Small-tailqwq/Nikke-CDK-Tool.git
 cd Nikke-CDK-Tool
-```
 
 ### 安装依赖
 
 ```bash
+# 安装依赖
 npm install
-```
+````
 
 ### 开发环境配置
 
 创建 `.env.local` 文件（可选）：
 
-```bash
+```env
 # API服务器地址（默认为生产地址）
 VITE_API_BASE_URL=https://nikke-cdk.hayasa.org
 ```
 
-### 启动开发服务器
+### 常用命令
 
 ```bash
+# 启动开发服务器
 npm run dev
-```
 
-访问 http://localhost:5173
-
-### 构建生产版本
-
-```bash
+# 构建生产版本（自动执行 prebuild）
 npm run build
-```
 
-### 预览构建结果
-
-```bash
+# 预览构建结果
 npm run preview
+
+# 处理CDK数据和优化图片
+npm run prebuild
 ```
 
-## 🛠️ 开发命令
-
-### 核心命令
-
-- `npm run dev` - 启动开发服务器
-- `npm run build` - 构建生产版本
-- `npm run preview` - 预览构建结果
-- `npm run prebuild` - 处理CDK数据和优化图片
-
-### 代码质量
-
-- `npm run lint` - 运行ESLint检查
-- `npm run format` - 使用Prettier格式化代码
-
-### 图片处理
-
-- `npm run thumbnails` - 生成缩略图
-- `npm run update-images` - 更新图片路径
-
-## 🛠️ CDK 数据管理工具
+## 🛠️ CDK 管理小工具
 
 位于 `tools/cdk-manager.html` 的可视化CDK数据管理工具：
 
-**🔥 功能亮点：**
+**功能特性：**
 
-- 📂 **现代文件API** - 支持直接读写文件，无需手动下载上传
-- ➕ **智能添加** - 支持普通CDK和CDK组合的快速添加
-- ✏️ **可视化编辑** - 表单化编辑，降低出错率
-- 🗑️ **安全删除** - 确认式删除，防止误操作
-- 💾 **实时保存** - 修改即写入，告别文件替换
-- 🔄 **智能降级** - 自动适配不同浏览器能力
+- 📂 支持直接读写文件（Chrome/Edge 86+）
+- ➕ 快速添加普通CDK和CDK组合
+- ✏️ 可视化表单编辑
+- 🗑️ 安全删除确认
+- 💾 实时保存到文件
 
-**使用流程：**
+**使用方法：**
 
 1. 浏览器打开 `tools/cdk-manager.html`
-2. 加载 `public/cdk-list.source.json` 文件
-3. 可视化管理CDK数据
-4. 一键保存到原文件
-
-**浏览器兼容性：**
-
-- ✅ **Chrome 86+, Edge 86+** - 完整的直接文件读写
-- 🔄 **其他浏览器** - 自动降级到传统导出模式
+2. 加载 `public/cdk-list.source.json`
+3. 编辑后一键保存
 
 ## 📝 CDK 数据贡献
 
@@ -301,8 +267,17 @@ npm run preview
 ### 投稿方式
 
 1. **推荐** - 通过 [官方网站](https://chalk-quotation-b2d.notion.site/Nikke-CDK-Tools-20f563f728f180e6ad58e9205a7fa271) 提交新CDK
-2. **Pull Request** - 直接修改文件提交PR
+2. **Pull Request** - 直接修改 `cdk-list.source.json` 提交PR
 3. **Issue反馈** - 使用Issue模板提交CDK信息
+
+## 🤝 贡献指南
+
+欢迎各种形式的贡献：
+
+- 🐛 Bug修复
+- ✨ 新功能开发
+- 📝 CDK数据更新
+- 📚 文档改进
 
 ## 🔧 部署说明
 
@@ -317,9 +292,9 @@ npm run preview
 
 项目使用 Cloudflare Workers 提供以下服务：
 
-- CDK兑换API代理 (绕过CORS限制)
-- CDK列表数据加速
-- 图片资源加速
+- CDK兑换API代理
+- 巴拉巴拉代理登录
+- 巴拉巴拉 Cookie 转发
 - 国服验证码处理
 
 Worker 配置详见 `cloudflare-worker/README.md`
@@ -332,13 +307,69 @@ Worker 配置详见 `cloudflare-worker/README.md`
 
 ## 🔐 安全说明
 
-### Cookie 安全
+### 官方代理登录功能
 
-- Cookie 仅存储在用户本地浏览器
-- 不上传到任何第三方服务器（除了Cloudflare）
-- 通过 Cloudflare Worker 安全代理到官方API
-- 用户可随时清除本地存储的Cookie
-- 支持 Cookie 自动续期功能（并不支持，AI乱说的）
+> [!WARNING]  
+> 如果你打算使用「官方代理登录」功能，请你仔细阅读下列内容，确保你知道你在做什么
+> 请尽量不要在公共设备使用本功能
+
+当你使用「官方代理登录」功能时：
+
+**🔄 工作流程：**
+
+1. **访问代理页面** - 你将访问 Cloudflare Worker 代理的官方登录镜像页面
+2. **完成登录** - 在镜像页面完成官方登录流程
+3. **Cookie 截取** - Worker 检测到登录成功后，提取游戏认证 Cookie
+4. **临时存储** - Cookie 数据存入 Cloudflare KV，生成一次性令牌（有效期5分钟）
+5. **跳转回调** - 自动跳转回工具页面，携带令牌参数
+6. **加密下发** - Worker 使用三重加密（SID + Token + 随机盐）加密 Cookie 后返回
+7. **本地解密** - 前端使用令牌解密 Cookie，保存到本地浏览器
+8. **令牌销毁** - 令牌使用后立即从 KV 删除
+
+**🔒 存储什么：**
+
+- ✅ **临时存储**（Cloudflare KV，5分钟自动过期）：
+  - 游戏认证 Cookie（`game_token`, `game_openid`, `game_uid` 等）
+  - 会话标识（SID）
+  - 基础用户信息（游戏ID、用户名等）
+
+- ❌ **不存储**：
+  - 密码或任何登录凭证
+  - 邮箱、手机号等个人信息
+  - 浏览器指纹或追踪信息
+  - Cookie 超过5分钟后自动清除
+
+**🛡️ 安全措施：**
+
+1. **三重加密传输**
+   - 使用 PBKDF2 密钥派生（100,000 次迭代）
+   - 密钥组成：SID + 一次性令牌 + 随机盐
+   - AES-GCM-256 位加密
+   - 每次加密使用不同的随机盐和 IV
+
+2. **一次性令牌**
+   - 256 位随机数（`crypto.getRandomValues`）
+   - 仅在 URL 传输，不在响应体中
+   - 使用后立即销毁
+   - 5 分钟自动过期
+
+3. **最小权限原则**
+   - Worker 仅转发必要的认证数据
+   - 不记录日志或分析数据
+   - 开源代码，完全透明
+
+**⚠️ 安全局限性：**
+
+- 代理登录需要信任 Cloudflare Worker 服务
+- Cookie 在本地浏览器明文存储（localStorage）
+- 恶意浏览器扩展可能读取本地 Cookie
+- 公共电脑使用后请手动清除数据
+
+### 本地存储安全
+
+- Cookie 仅存储在用户浏览器 localStorage
+- 不上传到任何服务器（除了调用官方 API）
+- 用户可随时在「用户管理」页面删除所有数据
 
 ### 隐私保护
 
@@ -347,7 +378,7 @@ Worker 配置详见 `cloudflare-worker/README.md`
 - 开源代码，完全透明
 - 遵循最小权限原则
 
-## 🤝 贡献指南
+## 🛠️ CDK 数据管理工具
 
 ### 贡献类型
 
@@ -393,13 +424,14 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 感谢所有为项目贡献代码、CDK数据和建议的朋友们！
 
-特别感谢：
-
-- **@哥谭下小雪** - 提供国服CDK兑换参数调试支持
-- **@奈何明月不独照我** - 提出CDK获取时间需求
-- **DoroHelper 开发团队** - 提供宝贵的功能建议
-- **硅基生物们** (GPT-4o, ChatGPT o3, Cursor, GitHub Copilot, Claude Code) - AI开发助手
+- **@哥谭下小雪** - 国服CDK兑换参数调试支持
+- **@奈何明月不独照我** - CDK获取时间需求建议
+- **AI开发助手** - GPT-4o, Claude, Cursor, GitHub Copilot
 
 ---
 
 **❤️ 如果这个项目对你有帮助，请给一个 Star ⭐**
+
+---
+
+本项目之构思、搭建、代码生成与持续调试皆由多模型生成式人工智能协同完成；人类仅承担需求转述与最终合规性审阅，不直接编写核心实现。请将其视作一座由机器自我迭代构筑的“伊甸样板”——任何不足，归因于算法演化尚未抵达上限。
