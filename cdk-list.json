@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-11-12T06:59:12.548Z",
+  "lastUpdate": "2025-12-29T10:36:16.372Z",
   "cdks": [
     {
       "type": "group",
@@ -486,7 +486,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "联动预热，9月24上线Salvation ”Through The Crimson Flame”（通过绯红之焰的救赎）",
           "author": "知一",
           "created": "2025-09-19"
@@ -631,6 +631,67 @@
       "author": "纯矜",
       "created": "2025-11-12",
       "image": "announcement-images/thxfor990000.jpg"
+    },
+    {
+      "type": "group",
+      "groupId": "NIKKE2026",
+      "groupName": "2026直播CDK",
+      "note": "部分信息待补充",
+      "cdks": [
+        {
+          "code": "2026EATBETTER",
+          "name": "",
+          "reward": "高级招募券×2,成长套件：24H×",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-12-29"
+        },
+        {
+          "code": "​​2026LETSDANCE",
+          "name": "",
+          "reward": "高级招募券×2,技能手册宝箱×2",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-12-29"
+        },
+        {
+          "code": "2026WORKHARDER",
+          "name": "2026WORKHARDER",
+          "reward": "高级招募券×2,模组高级增强器×50",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-12-29"
+        },
+        {
+          "code": "2026KEEPTACTICAL",
+          "name": "",
+          "reward": "高级招募券×2,爆裂手册宝箱×2",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2025-12-29"
+        }
+      ],
+      "image": "announcement-images/default.webp"
     }
   ]
 }
