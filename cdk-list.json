@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-12-29T10:36:16.372Z",
+  "lastUpdate": "2025-12-29T10:44:48.021Z",
   "cdks": [
     {
       "type": "group",
@@ -652,7 +652,7 @@
           "created": "2025-12-29"
         },
         {
-          "code": "​​2026LETSDANCE",
+          "code": "2026LETSDANCE",
           "name": "",
           "reward": "高级招募券×2,技能手册宝箱×2",
           "servers": [
