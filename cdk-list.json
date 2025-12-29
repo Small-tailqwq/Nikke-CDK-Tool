@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-12-29T10:51:44.408Z",
+  "lastUpdate": "2025-12-29T14:27:04.697Z",
   "cdks": [
     {
       "type": "group",
@@ -529,12 +529,12 @@
         {
           "code": "IAMNAYUTA",
           "name": "在下娜由塔",
-          "reward": "招募券×5,同步扩充x2,代码手册选择宝箱x60",
+          "reward": "招募券×5,同步扩充×2,代码手册选择宝箱×60",
           "servers": [
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "根据B站网友：Ice_cream__的提示：本CDK大概率是钢铁侠的经典台词：“I am Iron Man.(我就是钢铁侠)”",
           "author": "IIIIIIIIIIIIIIIII",
           "created": "2025-10-25"
@@ -547,7 +547,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "",
           "author": "劳知,IIIIIIIIIIIIIIIII",
           "created": "2025-10-25"
@@ -560,7 +560,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "根据B站网友：Ice_cream__的提示：本CDK大概率是neta的浩克抓住洛基腿砸地时的经典台词：“Puny god!(渺小的神)”",
           "author": "",
           "created": "2025-10-25"
@@ -568,12 +568,12 @@
         {
           "code": "GODDESSASSEMBLE",
           "name": "女神集结",
-          "reward": "招募券×1,3周年纪念蛋糕x1",
+          "reward": "招募券×1,3周年纪念蛋糕×1",
           "servers": [
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "蛋糕记得上锁；根据B站网友：Ice_cream__的提示：本CDK大概率是neta的美队的经典台词：“Avengers, assemble!(复仇者，集结)”",
           "author": "IIIIIIIIIIIIIIIII",
           "created": "2025-10-25"
@@ -634,77 +634,77 @@
     },
     {
       "type": "group",
-      "groupId": "NIKKE2026",
-      "groupName": "2026直播CDK",
-      "note": "部分信息待补充",
+      "groupId": "NIKKE2026NewYear",
+      "groupName": "2026新年前夕直播",
+      "note": "",
       "cdks": [
         {
           "code": "2026EATBETTER",
-          "name": "",
-          "reward": "高级招募券×2,成长套件：24H×",
+          "name": "2026吃得更好",
+          "reward": "高级招募券×2,成长套件：24H×1",
           "servers": [
             "global",
             "tw"
           ],
           "status": "可用",
-          "note": "",
+          "note": "来自某神秘开会男",
           "author": "",
           "created": "2025-12-29"
         },
         {
           "code": "2026LETSDANCE",
-          "name": "",
+          "name": "2026一起跳舞",
           "reward": "高级招募券×2,技能手册宝箱×2",
           "servers": [
             "global",
             "tw"
           ],
           "status": "可用",
-          "note": "",
+          "note": "来自某神秘 entertainment 男",
           "author": "",
           "created": "2025-12-29"
         },
         {
           "code": "2026WORKHARDER",
-          "name": "2026WORKHARDER",
+          "name": "2026努力工作",
           "reward": "高级招募券×2,模组高级增强器×50",
           "servers": [
             "global",
             "tw"
           ],
           "status": "可用",
-          "note": "",
+          "note": "来自某位神秘雌小鬼",
           "author": "",
           "created": "2025-12-29"
         },
         {
           "code": "2026KEEPTACTICAL",
-          "name": "",
+          "name": "2026保持战术",
           "reward": "高级招募券×2,爆裂手册宝箱×2",
           "servers": [
             "global",
             "tw"
           ],
           "status": "可用",
-          "note": "",
+          "note": "来自某位很战术的老板",
           "author": "",
           "created": "2025-12-29"
         },
         {
           "code": "2026HAPPYNEWYEAR",
-          "name": "",
-          "reward": "高级招募券×0",
+          "name": "2026新年快乐",
+          "reward": "高级招募券×2,代码手册选择宝箱×20,指挥官自由使用卷×3",
           "servers": [
             "global",
             "tw"
           ],
           "status": "可用",
-          "note": "不知道给的啥，换就完事了，之后再补",
+          "note": "来自 doro，谢谢 doro",
           "author": "",
           "created": "2025-12-29"
         }
       ],
-      "image": "announcement-images/default.webp"
+      "image": "announcement-images/NIKKE2026NewYear.jpg"
     }
   ]
 }
