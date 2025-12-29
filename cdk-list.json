@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-12-29T10:44:48.021Z",
+  "lastUpdate": "2025-12-29T10:51:44.408Z",
   "cdks": [
     {
       "type": "group",
@@ -687,6 +687,19 @@
           ],
           "status": "可用",
           "note": "",
+          "author": "",
+          "created": "2025-12-29"
+        },
+        {
+          "code": "2026HAPPYNEWYEAR",
+          "name": "",
+          "reward": "高级招募券×0",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "不知道给的啥，换就完事了，之后再补",
           "author": "",
           "created": "2025-12-29"
         }
