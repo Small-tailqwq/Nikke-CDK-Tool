@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2025-12-29T14:27:04.697Z",
+  "lastUpdate": "2026-02-12T10:06:35.759Z",
   "cdks": [
     {
       "type": "group",
@@ -646,7 +646,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "来自某神秘开会男",
           "author": "",
           "created": "2025-12-29"
@@ -659,7 +659,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "来自某神秘 entertainment 男",
           "author": "",
           "created": "2025-12-29"
@@ -672,7 +672,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "来自某位神秘雌小鬼",
           "author": "",
           "created": "2025-12-29"
@@ -685,7 +685,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "来自某位很战术的老板",
           "author": "",
           "created": "2025-12-29"
@@ -698,13 +698,26 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "来自 doro，谢谢 doro",
           "author": "",
           "created": "2025-12-29"
         }
       ],
       "image": "announcement-images/NIKKE2026NewYear.jpg"
+    },
+    {
+      "code": "millioncommanders",
+      "name": "百万指挥官",
+      "reward": "珠宝×100",
+      "servers": [
+        "global"
+      ],
+      "status": "可用",
+      "note": "NIKKE官方X 100万粉丝突破纪念，CDK只有100水，邮件里有全服发放的其他奖励。",
+      "author": "small_tailqwq",
+      "created": "2026-02-12",
+      "image": "announcement-images/millioncommanders.jpg"
     }
   ]
 }
