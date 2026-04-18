@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-02-12T10:06:35.759Z",
+  "lastUpdate": "2026-04-18T11:53:01.005Z",
   "cdks": [
     {
       "type": "group",
@@ -451,7 +451,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "X平台96万奖励；就给这个蚊子腿",
       "author": "坦克",
       "created": "2025-09-05"
@@ -483,7 +483,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "解密蚊子腿。密文“GZDYHFRPLQJ”通过凯撒密码（A-D）推3位得到“DWAVECOMING”",
           "author": "流影飞雪",
           "created": "2025-09-19"
@@ -568,7 +568,7 @@
             "global",
             "tw"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "三周年社区追加奖励，另附有11张彩卷，需要登陆游戏邮箱领取。",
           "author": "知一",
           "created": "2025-11-04"
@@ -580,7 +580,7 @@
           "servers": [
             "global"
           ],
-          "status": "可用",
+          "status": "已过期",
           "note": "",
           "author": "ko_teiru",
           "created": "2025-11-06"
@@ -695,6 +695,79 @@
       "note": "NIKKE官方X 100万粉丝突破纪念，CDK只有100水，邮件里有全服发放的其他奖励。",
       "author": "small_tailqwq",
       "created": "2026-02-12"
+    },
+    {
+      "type": "group",
+      "groupId": "NIKKE3_5thAnniversary",
+      "groupName": "3.5周年直播",
+      "note": "尼基3.5周年直播",
+      "cdks": [
+        {
+          "code": "CheerForAnis",
+          "name": "为阿尼斯应援",
+          "reward": "珠宝×200,同步扩充×2,代码手册选择宝箱×50",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2026-04-18"
+        },
+        {
+          "code": "ProtectArkStar",
+          "name": "保护方舟之星",
+          "reward": "珠宝×600,成长套组：12H×1,模组高级增强器×50,指挥官自由使用卷×5",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2026-04-18"
+        },
+        {
+          "code": "CommanderLoveTrial",
+          "name": "指挥官的恋爱考验",
+          "reward": "指挥官自由使用卷×1,技能手册自选宝箱×1,爆裂手册自选宝箱×1,模组高级增强器×20,代码手册选择宝箱×20",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "你是谁？请支持2x2love！",
+          "author": "",
+          "created": "2026-04-18"
+        },
+        {
+          "code": "3andhalfwithCommander",
+          "name": "与指挥官在一起的三年半",
+          "reward": "招募券×10",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2026-04-18"
+        },
+        {
+          "code": "EncounterOnceMore",
+          "name": "再次邂逅",
+          "reward": "招募券×5,3.5周年纪念蛋糕×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "蛋糕是徒弟的眼镜",
+          "author": "",
+          "created": "2026-04-18"
+        }
+      ]
     }
   ]
 }
