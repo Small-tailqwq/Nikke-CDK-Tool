@@ -16,18 +16,37 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: 设置Node.js环境
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        run: |
+          npm config set fetch-retries 5
+          npm config set fetch-retry-factor 2
+          npm config set fetch-retry-mintimeout 10000
+          npm config set fetch-retry-maxtimeout 120000
+
+          # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
+          if [ -f package-lock.json ]; then
+            sed -i 's#http://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g; s#https://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json
+          fi
+
+          for i in 1 2 3; do
+            npm ci --no-audit --prefer-online && break
+            if [ "$i" -eq 3 ]; then
+              echo "npm ci 重试 3 次后仍失败"
+              exit 1
+            fi
+            echo "npm ci 第 $i 次失败，等待后重试..."
+            sleep $((i * 10))
+          done
 
       - name: 构建项目
         run: npm run build
