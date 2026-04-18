@@ -36,8 +36,10 @@ jobs:
 
           # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
           if [ -f package-lock.json ]; then
-            sed 's#http://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g; s#https://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json > package-lock.json.tmp
-            mv package-lock.json.tmp package-lock.json
+            tmp_lockfile="$(mktemp)"
+            sed 's#https\?://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json > "$tmp_lockfile" \
+              && mv "$tmp_lockfile" package-lock.json \
+              || { rm -f "$tmp_lockfile"; echo "package-lock.json 镜像地址替换失败"; exit 1; }
           fi
 
           npm ci --no-audit
