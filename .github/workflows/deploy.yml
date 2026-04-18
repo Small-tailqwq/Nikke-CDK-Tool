@@ -32,12 +32,12 @@ jobs:
           npm config set fetch-retries 5
           npm config set fetch-retry-factor 2
           npm config set fetch-retry-mintimeout 10000
-          npm config set fetch-retry-maxtimeout 120000
+          npm config set fetch-retry-maxtimeout 60000
 
           # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
           if [ -f package-lock.json ]; then
-            sed -i.bak 's#http://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g; s#https://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json
-            rm -f package-lock.json.bak
+            sed 's#http://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g; s#https://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json > package-lock.json.tmp
+            mv package-lock.json.tmp package-lock.json
           fi
 
           npm ci --no-audit
