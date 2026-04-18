@@ -16,18 +16,33 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: 设置Node.js环境
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
           cache: npm
 
       - name: 安装依赖
-        run: npm ci
+        run: |
+          # npm 内置重试参数：最多 5 次请求重试，指数退避，降低临时网络抖动影响
+          npm config set fetch-retries 5
+          npm config set fetch-retry-factor 2
+          npm config set fetch-retry-mintimeout 10000
+          npm config set fetch-retry-maxtimeout 60000
+
+          # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
+          if [ -f package-lock.json ]; then
+            tmp_lockfile="$(mktemp)"
+            sed 's#https\?://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json > "$tmp_lockfile" \
+              && mv "$tmp_lockfile" package-lock.json \
+              || { rm -f "$tmp_lockfile"; echo "package-lock.json 镜像地址替换失败"; exit 1; }
+          fi
+
+          npm ci --no-audit
 
       - name: 构建项目
         run: npm run build
