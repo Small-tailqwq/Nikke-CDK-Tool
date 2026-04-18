@@ -36,11 +36,11 @@ jobs:
 
           # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
           if [ -f package-lock.json ]; then
-            perl -pi.bak -e 's#https?://mirrors\\.cloud\\.tencent\\.com/npm/#https://registry.npmjs.org/#g' package-lock.json
+            sed -i.bak 's#http://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g; s#https://mirrors.cloud.tencent.com/npm/#https://registry.npmjs.org/#g' package-lock.json
             rm -f package-lock.json.bak
           fi
 
-          npm ci --no-audit --prefer-online
+          npm ci --no-audit
 
       - name: 构建项目
         run: npm run build
