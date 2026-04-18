@@ -28,6 +28,7 @@ jobs:
 
       - name: 安装依赖
         run: |
+          # npm 内置重试参数：最多 5 次请求重试，指数退避，降低临时网络抖动影响
           npm config set fetch-retries 5
           npm config set fetch-retry-factor 2
           npm config set fetch-retry-mintimeout 10000
@@ -35,7 +36,8 @@ jobs:
 
           # 兼容 package-lock.json 中历史镜像地址，统一使用 npm 官方源
           if [ -f package-lock.json ]; then
-            perl -pi -e 's#https?://mirrors\\.cloud\\.tencent\\.com/npm/#https://registry.npmjs.org/#g' package-lock.json
+            perl -pi.bak -e 's#https?://mirrors\\.cloud\\.tencent\\.com/npm/#https://registry.npmjs.org/#g' package-lock.json
+            rm -f package-lock.json.bak
           fi
 
           npm ci --no-audit --prefer-online
