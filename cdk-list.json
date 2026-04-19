@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-04-18T11:53:01.005Z",
+  "lastUpdate": "2026-04-19T08:05:01.308Z",
   "cdks": [
     {
       "type": "group",
@@ -61,7 +61,7 @@
     },
     {
       "code": "NIKKEDAILYNEWS",
-      "name": "尼基每日新闻推特（X）奖励",
+      "name": "妮姬每日新闻推特（X）奖励",
       "reward": "珠宝×100",
       "servers": [
         "global"
@@ -514,7 +514,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "究极蚊子腿，甚至感觉不如100水",
       "author": "知一",
       "created": "2025-10-15",
@@ -613,7 +613,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "",
       "author": " 知一",
       "created": "2025-11-01",
@@ -626,7 +626,7 @@
       "servers": [
         "global"
       ],
-      "status": "可用",
+      "status": "已过期",
       "note": "依旧是一个箱子，我不信到时候100w还是发箱子",
       "author": "纯矜",
       "created": "2025-11-12",
@@ -723,7 +723,7 @@
       "type": "group",
       "groupId": "NIKKE3_5thAnniversary",
       "groupName": "3.5周年直播",
-      "note": "尼基3.5周年直播",
+      "note": "妮姬3.5周年直播",
       "cdks": [
         {
           "code": "CheerForAnis",
