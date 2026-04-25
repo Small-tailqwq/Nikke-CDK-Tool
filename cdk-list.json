@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-04-19T08:05:01.308Z",
+  "lastUpdate": "2026-04-25T12:16:09.331Z",
   "cdks": [
     {
       "type": "group",
@@ -721,7 +721,7 @@
     },
     {
       "type": "group",
-      "groupId": "NIKKE3_5thAnniversary",
+      "groupId": "NIKKE3.5thAnniversary",
       "groupName": "3.5周年直播",
       "note": "妮姬3.5周年直播",
       "cdks": [
@@ -791,7 +791,55 @@
           "created": "2026-04-18"
         }
       ],
-      "image": "announcement-images/NIKKE3_5thAnniversary.jpg"
+      "image": "announcement-images/NIKKE3.5thAnniversary.jpg"
+    },
+    {
+      "type": "group",
+      "groupId": "T.T.STAR_Support_Campaign",
+      "groupName": "T.T STAR应援活动",
+      "note": "散落在世界各地的应援奖励，与此刻汇聚  \n全是蚊子腿（小声）  \n[插图来源](https://x.com/NIKKE_japan/status/2047264988554027337/)",
+      "cdks": [
+        {
+          "code": "Anisisback",
+          "name": "阿尼斯回归",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "CDK来源：[妮姬JP的X](https://x.com/NIKKE_japan/status/2047963835718382020)",
+          "author": "",
+          "created": "2026-04-25"
+        },
+        {
+          "code": "AnisSeoulTower04",
+          "name": "阿尼斯首尔塔04",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "CDK来源：[妮姬KR的X](https://x.com/NIKKE_kr/status/2047951355999064476)",
+          "author": "",
+          "created": "2026-04-25"
+        },
+        {
+          "code": "ANISIDOLNIGHT",
+          "name": "阿尼斯偶像之夜",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "这个没找到出处，有找到了的大手子可以问卷补充一下",
+          "author": "",
+          "created": "2026-04-25"
+        }
+      ],
+      "image": "announcement-images/T.T.STAR_Support_Campaign.jpg"
     }
   ]
 }
