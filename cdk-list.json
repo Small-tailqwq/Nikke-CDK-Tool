@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-04-25T12:16:09.331Z",
+  "lastUpdate": "2026-05-08T15:09:47.076Z",
   "cdks": [
     {
       "type": "group",
@@ -837,6 +837,32 @@
           "note": "这个没找到出处，有找到了的大手子可以问卷补充一下",
           "author": "",
           "created": "2026-04-25"
+        },
+        {
+          "code": "TTSTARINLONDON",
+          "name": "T.T. STAR伦敦",
+          "reward": "招募券×1,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "",
+          "author": "",
+          "created": "2026-04-30"
+        },
+        {
+          "code": "NIKKE1250DAYSOLD",
+          "name": "妮姬上线1250天纪念",
+          "reward": "招募券×10,成长套件：1H×6,模组高级增强器×10,技能手册宝箱×5,简介个性化礼包×50",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "[宣传页](https://x.com/NIKKE_japan/status/2051127171364897084)",
+          "author": "",
+          "created": "2026-05-04"
         }
       ],
       "image": "announcement-images/T.T.STAR_Support_Campaign.jpg"
