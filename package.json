@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint --ext .js,.ts,.vue src",
     "format": "prettier --write .",
+    "validate": "node scripts/validate-cdk.mjs",
     "thumbnails": "node scripts/generate-thumbnails.mjs",
     "update-images": "node scripts/update-image-paths.mjs"
   },
