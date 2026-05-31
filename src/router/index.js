@@ -48,6 +48,17 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: () => import('../views/About.vue')
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('../views/CdkAdmin.vue'),
+      meta: { hidden: true },
+      beforeEnter: () => {
+        if (!import.meta.env.DEV) {
+          return { path: '/' }
+        }
+      }
     }
   ]
 })
