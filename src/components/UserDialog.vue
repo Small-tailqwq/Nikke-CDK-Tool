@@ -48,6 +48,54 @@
         />
       </el-form-item>
 
+      <!-- 邮箱登录 -->
+      <template v-if="showEmailLogin && form.server !== 'cn'">
+        <el-divider content-position="left">凭证登录</el-divider>
+        <el-alert
+          v-if="savedCredentialHint"
+          :title="`已保存加密凭证：${savedCredentialHint}`"
+          type="success"
+          show-icon
+          :closable="false"
+          class="credential-alert"
+        >
+          <template #default>
+            <div class="credential-alert-content">
+              <span>保存后可在用户列表点击“获取Token”刷新 Cookie。</span>
+              <el-button type="danger" link size="small" @click="clearSavedCredential">
+                清除凭证
+              </el-button>
+            </div>
+          </template>
+        </el-alert>
+        <el-form-item label="邮箱">
+          <el-input v-model="emailForm.email" placeholder="your@email.com" autocomplete="username" />
+        </el-form-item>
+        <el-form-item label="密码">
+          <el-input
+            v-model="emailForm.password"
+            type="password"
+            placeholder="输入密码"
+            show-password
+            autocomplete="current-password"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-checkbox v-model="emailForm.saveCredential">
+            在本机保存账号密码，用于下次获取Token
+          </el-checkbox>
+        </el-form-item>
+        <el-form-item>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <el-button type="primary" @click="handleEmailLogin" :loading="emailLoginLoading" :disabled="!emailForm.email || !emailForm.password">
+              获取Token并填充Cookie
+            </el-button>
+            <el-button @click="showEmailLogin = false">取消</el-button>
+            <el-text v-if="emailLoginStatus" type="info" size="small">{{ emailLoginStatus }}</el-text>
+          </div>
+        </el-form-item>
+      </template>
+
       <!-- 国际服显示Cookie信息 -->
       <el-form-item label="Cookie信息" prop="cookie" v-if="form.server !== 'cn'">
         <template v-if="isEdit && !showCookie">
@@ -259,6 +307,14 @@
           </div>
         </div>
       </el-form-item>
+
+      <el-divider content-position="left">BlaBla 任务</el-divider>
+      <el-form-item label="自动执行">
+        <el-switch v-model="form.blaEnabled" />
+        <span style="margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
+          开启后每日访问自动执行 Blabla Link 签到任务
+        </span>
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -282,6 +338,16 @@
             <el-icon><Upload /></el-icon>
             官方代理登录
           </el-button>
+          <el-button
+            type="warning"
+            link
+            @click="openEmailLogin"
+            class="help-button"
+            :loading="emailLoginLoading"
+          >
+            <el-icon><Message /></el-icon>
+            邮箱登录
+          </el-button>
         </div>
         <div class="dialog-footer-right">
           <el-button @click="handleClose">取消</el-button>
@@ -303,12 +369,19 @@ import {
   Check,
   Link,
   Upload,
+  Message,
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
-import { parseGameUrlCN, getGlobalUserCompleteInfo } from '../utils/api'
+import { parseGameUrlCN, getGlobalUserCompleteInfo, refreshCookieByCredential } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 import { formatCookieExpireTime, getCookieExpireTagType } from '../utils/dateUtils'
+import { getTencentCaptcha } from '../utils/tencentCaptcha'
+import {
+  createLoginCredentialVault,
+  getLoginCredential,
+  getLoginCredentialHint,
+} from '../utils/credentialVault'
 
 const props = defineProps({
   visible: {
@@ -338,6 +411,22 @@ const showCookie = ref(false)
 const proxyLoginLoading = ref(false)
 const proxyLoginWindow = ref(null)
 const proxyLoginSid = ref(null)
+
+// 邮箱直接登录状态
+const showEmailLogin = ref(false)
+const emailLoginLoading = ref(false)
+const emailLoginStatus = ref('')
+const emailForm = reactive({
+  email: '',
+  password: '',
+  saveCredential: false,
+})
+
+const savedCredentialHint = computed(() => {
+  if (form.loginCredentialVault?.emailHint) return form.loginCredentialVault.emailHint
+  if (form.loginEmail) return getLoginCredentialHint(form)
+  return ''
+})
 
 // 国服游戏信息解析
 const parsedGameInfo = ref(null)
@@ -396,8 +485,14 @@ const form = reactive({
   name: '',
   server: 'global',
   cookie: '',
+  cookieExpireDays: 30,
+  cookieActualExpireDate: null,
   uid: '',
   gameUrl: '',
+  loginEmail: '',
+  loginPassword: '',
+  loginCredentialVault: null,
+  blaEnabled: false,
 })
 
 // 临时存储编辑模式的数据
@@ -981,6 +1076,12 @@ watch(
 
           // 保存编辑前的数据，用于取消时恢复
           editFormData.value = { ...migratedData }
+          const savedCredential = getLoginCredential(migratedData)
+          const credentialVault =
+            migratedData.loginCredentialVault ||
+            (savedCredential?.source === 'legacy'
+              ? createLoginCredentialVault(savedCredential.email, savedCredential.password)
+              : null)
 
           // 设置表单数据
           Object.assign(form, {
@@ -989,7 +1090,13 @@ watch(
             cookie: migratedData.cookieOriginal || migratedData.cookie, // 显示原始Cookie格式
             uid: migratedData.uid,
             gameUrl: migratedData.gameUrl,
+            loginEmail: savedCredential?.email || migratedData.loginEmail || '',
+            loginPassword: '',
+            loginCredentialVault: credentialVault,
+            blaEnabled: migratedData.blaEnabled || false,
           })
+          emailForm.email = savedCredential?.email || migratedData.loginEmail || ''
+          emailForm.password = ''
 
           // 如果是国际服或港澳台服，设置过期信息
           if (migratedData.server !== 'cn') {
@@ -1069,9 +1176,23 @@ const resetForm = () => {
     cookie: '',
     uid: '',
     gameUrl: '',
+    loginEmail: '',
+    loginPassword: '',
+    loginCredentialVault: null,
+    blaEnabled: false,
   })
   // 重置手动修改标志
   manualExpireDaysEdit.value = false
+}
+
+const clearSavedCredential = () => {
+  form.loginEmail = ''
+  form.loginPassword = ''
+  form.loginCredentialVault = null
+  emailForm.email = ''
+  emailForm.password = ''
+  emailForm.saveCredential = false
+  showCustomMessage('已清除本地保存的账号密码凭证', 'success')
 }
 
 // 处理关闭
@@ -1081,6 +1202,13 @@ const handleClose = () => {
   // 重置服务器检测状态
   serverDetectionResult.value = null
   showServerMismatchAlert.value = false
+
+  // 重置邮箱登录状态
+  showEmailLogin.value = false
+  emailForm.email = ''
+  emailForm.password = ''
+  emailForm.saveCredential = false
+  emailLoginStatus.value = ''
 }
 
 // 打开书签助手页
@@ -1129,7 +1257,120 @@ const openProxyLogin = () => {
   )
 }
 
-// 旧版代理登录轮询与自动跳转逻辑已移除，改由助手页内手动“发送到 CallbackAuth”完成后续流程
+// 旧版代理登录轮询与自动跳转逻辑已移除，改由助手页内手动发送到 CallbackAuth 完成后续流程
+
+// 邮箱直接登录
+const openEmailLogin = () => {
+  if (form.server === 'cn') {
+    showCustomMessage('国服暂不支持邮箱登录，请使用游戏URL', 'warning')
+    return
+  }
+  if (!showEmailLogin.value && !emailForm.email) {
+    const savedCredential = getLoginCredential(form)
+    emailForm.email = savedCredential?.email || form.loginEmail || ''
+  }
+  showEmailLogin.value = !showEmailLogin.value
+}
+
+const isMachineCheckError = (msg) => msg && msg.toLowerCase().includes('machine check')
+
+const translateLoginError = (msg) => {
+  const map = {
+    'machine check err!': '登录验证失败（可能是验证码未正确加载，或邮箱/密码错误）',
+    'login failed; invalid account or password!': '密码错误，请检查后重试',
+    'invalid account or password!': '账号或密码错误',
+    'account or password error!': '账号或密码错误',
+    'login failed!': '登录失败，请检查账号密码',
+  }
+  for (const [key, val] of Object.entries(map)) {
+    if (msg.toLowerCase().includes(key.toLowerCase())) return val
+  }
+  return msg
+}
+
+const handleEmailLogin = async () => {
+  if (!emailForm.email || !emailForm.password) {
+    showCustomMessage('请输入邮箱和密码', 'warning')
+    return
+  }
+  emailLoginLoading.value = true
+  emailLoginStatus.value = '正在登录...'
+  try {
+    let loginResult = await refreshCookieByCredential(
+      emailForm.email.trim(),
+      emailForm.password, '', '', ''
+    )
+
+    if (!loginResult.success && isMachineCheckError(loginResult.message)) {
+      emailLoginStatus.value = '正在打开腾讯验证码...'
+      const captchaResult = await getTencentCaptcha()
+      if (captchaResult.ret !== 0) {
+        emailLoginStatus.value = ''
+        showCustomMessage('验证码验证失败，请重试', 'warning')
+        return
+      }
+
+      emailLoginStatus.value = '验证码完成，正在获取Token...'
+      loginResult = await refreshCookieByCredential(
+        emailForm.email.trim(),
+        emailForm.password,
+        captchaResult.ticket,
+        captchaResult.randstr,
+        captchaResult.appid
+      )
+    }
+
+    if (loginResult.success) {
+      const { cookie, userName, uid } = loginResult
+      form.cookie = cookie || ''
+      if (userName && !form.name) form.name = userName
+      if (uid) form.uid = uid
+
+      if (emailForm.saveCredential) {
+        form.loginEmail = emailForm.email.trim()
+        form.loginPassword = ''
+        form.loginCredentialVault = createLoginCredentialVault(
+          emailForm.email.trim(),
+          emailForm.password
+        )
+      } else {
+        form.loginEmail = ''
+        form.loginPassword = ''
+        form.loginCredentialVault = null
+      }
+
+      await nextTick()
+      if (form.cookie) {
+        await handleGlobalCookieParse()
+      }
+
+      emailLoginStatus.value = 'Token获取成功！Cookie已自动填充'
+      showCustomMessage('Token获取成功，Cookie已自动填充到表单', 'success')
+      setTimeout(() => {
+        showEmailLogin.value = false
+        emailForm.email = ''
+        emailForm.password = ''
+        emailForm.saveCredential = false
+        emailLoginStatus.value = ''
+      }, 1500)
+    } else {
+      emailLoginStatus.value = ''
+      showCustomMessage(translateLoginError(loginResult.message || '获取Token失败'), 'error', 0)
+    }
+  } catch (e) {
+      emailLoginStatus.value = ''
+      const errMsg = (e.message || '').toLowerCase()
+      if (errMsg.includes('验证码') || errMsg.includes('captcha') || errMsg.includes('tcaptcha')) {
+        showCustomMessage('验证码加载失败，请检查网络或关闭广告拦截器后重试', 'error', 0)
+      } else {
+        showCustomMessage('获取Token失败: ' + (e.message || '网络错误'), 'error', 0)
+      }
+  } finally {
+    emailLoginLoading.value = false
+  }
+}
+
+// “发送到 CallbackAuth”完成后续流程
 
 
 // 打开帮助链接
@@ -1546,6 +1787,10 @@ const handleSubmit = async () => {
       serverName,
       uid,
       userName,
+      loginEmail: form.loginEmail || '',
+      loginPassword: '',
+      loginCredentialVault: form.loginCredentialVault || null,
+      blaEnabled: form.blaEnabled || false,
       ...cookieData, // 应用Cookie数据
     }
 
@@ -1896,6 +2141,24 @@ const handleSubmit = async () => {
           font-size: 11px;
           line-height: 1.2;
         }
+      }
+    }
+  }
+
+  .credential-alert {
+    margin-bottom: 16px;
+
+    .credential-alert-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+
+      @media screen and (max-width: 768px) {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
       }
     }
   }
@@ -2287,6 +2550,8 @@ const handleSubmit = async () => {
     .dialog-footer-left {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      row-gap: 4px;
 
       @media screen and (max-width: 768px) {
         justify-content: center;
@@ -2297,9 +2562,9 @@ const handleSubmit = async () => {
         display: flex;
         align-items: center;
         gap: 4px;
-        font-size: 13px;
+        font-size: 12px;
         color: var(--el-color-info);
-        padding: 8px 12px;
+        padding: 4px 8px;
         border-radius: 4px;
         transition: all 0.3s ease;
 

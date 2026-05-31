@@ -509,7 +509,7 @@ html.dark {
 /* 修复下拉菜单展开时与导航菜单的层级冲突 */
 .el-select-dropdown,
 .el-popper {
-  z-index: 3000 !important; /* 确保下拉菜单在导航菜单之上 */
+  z-index: 5000 !important; /* 确保下拉菜单在导航菜单和弹窗遮罩层之上 */
 }
 
 /* 确保下拉菜单容器不影响其他层级 */

@@ -127,11 +127,197 @@ async function encryptCookieData(cookieString, sid, token = null) {
   }
 }
 
+/**
+ * 纯 JS MD5 实现 - 适用于 Cloudflare Workers 运行时
+ */
+function md5(s) {
+  var hex_chr = '0123456789abcdef'
+  function rhex(n) { var s = '', j; for (j = 0; j < 4; j++) s += hex_chr.charAt((n >>> (j * 8 + 4)) & 0xF) + hex_chr.charAt((n >>> (j * 8)) & 0xF); return s }
+  s = unescape(encodeURIComponent(s))
+  var n = s.length, x = [], i, olda, oldb, oldc, oldd
+  for (i = 0; i < n; i++) x[i>>2] |= s.charCodeAt(i) << ((i % 4) * 8)
+  x[i>>2] |= 0x80 << ((i % 4) * 8)
+  while ((x.length % 16) !== 14) x.push(0)
+  x[x.length] = n * 8; x[x.length] = 0
+  var a = 1732584193, b = -271733879, c = -1732584194, d = 271733878
+  function A32(x, y) { return (x + y) & 0xFFFFFFFF }
+  function RL(n, c) { return (n << c) | (n >>> (32 - c)) }
+  function CMN(q, a, b, x, s, t) { return A32(RL(A32(A32(a, q), A32(x, t)), s), b) }
+  function F(a, b, c, d, x, s, t) { return CMN((b & c) | ((~b) & d), a, b, x, s, t) }
+  function G(a, b, c, d, x, s, t) { return CMN((b & d) | (c & (~d)), a, b, x, s, t) }
+  function H(a, b, c, d, x, s, t) { return CMN(b ^ c ^ d, a, b, x, s, t) }
+  function I(a, b, c, d, x, s, t) { return CMN(c ^ (b | (~d)), a, b, x, s, t) }
+  for (i = 0; i < x.length; i += 16) {
+    olda = a; oldb = b; oldc = c; oldd = d
+    a=F(a,b,c,d,x[i+0],7,-680876936);d=F(d,a,b,c,x[i+1],12,-389564586);c=F(c,d,a,b,x[i+2],17,606105819);b=F(b,c,d,a,x[i+3],22,-1044525330)
+    a=F(a,b,c,d,x[i+4],7,-176418897);d=F(d,a,b,c,x[i+5],12,1200080426);c=F(c,d,a,b,x[i+6],17,-1473231341);b=F(b,c,d,a,x[i+7],22,-45705983)
+    a=F(a,b,c,d,x[i+8],7,1770035416);d=F(d,a,b,c,x[i+9],12,-1958414417);c=F(c,d,a,b,x[i+10],17,-42063);b=F(b,c,d,a,x[i+11],22,-1990404162)
+    a=F(a,b,c,d,x[i+12],7,1804603682);d=F(d,a,b,c,x[i+13],12,-40341101);c=F(c,d,a,b,x[i+14],17,-1502002290);b=F(b,c,d,a,x[i+15],22,1236535329)
+    a=G(a,b,c,d,x[i+1],5,-165796510);d=G(d,a,b,c,x[i+6],9,-1069501632);c=G(c,d,a,b,x[i+11],14,643717713);b=G(b,c,d,a,x[i+0],20,-373897302)
+    a=G(a,b,c,d,x[i+5],5,-701558691);d=G(d,a,b,c,x[i+10],9,38016083);c=G(c,d,a,b,x[i+15],14,-660478335);b=G(b,c,d,a,x[i+4],20,-405537848)
+    a=G(a,b,c,d,x[i+9],5,568446438);d=G(d,a,b,c,x[i+14],9,-1019803690);c=G(c,d,a,b,x[i+3],14,-187363961);b=G(b,c,d,a,x[i+8],20,1163531501)
+    a=G(a,b,c,d,x[i+13],5,-1444681467);d=G(d,a,b,c,x[i+2],9,-51403784);c=G(c,d,a,b,x[i+7],14,1735328473);b=G(b,c,d,a,x[i+12],20,-1926607734)
+    a=H(a,b,c,d,x[i+5],4,-378558);d=H(d,a,b,c,x[i+8],11,-2022574463);c=H(c,d,a,b,x[i+11],16,1839030562);b=H(b,c,d,a,x[i+14],23,-35309556)
+    a=H(a,b,c,d,x[i+1],4,-1530992060);d=H(d,a,b,c,x[i+4],11,1272893353);c=H(c,d,a,b,x[i+7],16,-155497632);b=H(b,c,d,a,x[i+10],23,-1094730640)
+    a=H(a,b,c,d,x[i+13],4,681279174);d=H(d,a,b,c,x[i+0],11,-358537222);c=H(c,d,a,b,x[i+3],16,-722521979);b=H(b,c,d,a,x[i+6],23,76029189)
+    a=H(a,b,c,d,x[i+9],4,-640364487);d=H(d,a,b,c,x[i+12],11,-421815835);c=H(c,d,a,b,x[i+15],16,530742520);b=H(b,c,d,a,x[i+2],23,-995338651)
+    a=I(a,b,c,d,x[i+0],6,-198630844);d=I(d,a,b,c,x[i+7],10,1126891415);c=I(c,d,a,b,x[i+14],15,-1416354905);b=I(b,c,d,a,x[i+5],21,-57434055)
+    a=I(a,b,c,d,x[i+12],6,1700485571);d=I(d,a,b,c,x[i+3],10,-1894986606);c=I(c,d,a,b,x[i+10],15,-1051523);b=I(b,c,d,a,x[i+1],21,-2054922799)
+    a=I(a,b,c,d,x[i+8],6,1873313359);d=I(d,a,b,c,x[i+15],10,-30611744);c=I(c,d,a,b,x[i+6],15,-1560198380);b=I(b,c,d,a,x[i+13],21,1309151649)
+    a=I(a,b,c,d,x[i+4],6,-145523070);d=I(d,a,b,c,x[i+11],10,-1120210379);c=I(c,d,a,b,x[i+2],15,718787259);b=I(b,c,d,a,x[i+9],21,-343485551)
+    a=A32(a,olda);b=A32(b,oldb);c=A32(c,oldc);d=A32(d,oldd)
+  }
+  return rhex(a) + rhex(b) + rhex(c) + rhex(d)
+}
+
+/**
+ * 从 Response 中提取所有 Set-Cookie 头
+ */
+function extractSetCookiesHeaders(response) {
+  const headers = response.headers
+  if (typeof headers.getSetCookie === 'function') {
+    return headers.getSetCookie()
+  }
+  const cookies = []
+  headers.forEach((value, key) => {
+    if (key.toLowerCase() === 'set-cookie') cookies.push(value)
+  })
+  return cookies
+}
+
+/**
+ * 从 Set-Cookie 头数组拼接出 cookie 字符串（仅 name=value 部分）
+ */
+function buildCookieStringFromSetCookies(setCookies) {
+  return setCookies.map(sc => sc.split(';')[0]).join('; ')
+}
+
+function parseJsonLike(value) {
+  if (!value) return {}
+  if (typeof value === 'object') return value
+  try {
+    return JSON.parse(value)
+  } catch {
+    return {}
+  }
+}
+
+function buildCookieStringFromLoginResult(result, email = '') {
+  const extraJson = parseJsonLike(result.extra_json)
+  const notify = extraJson.need_notify_rsp || {}
+  const channelInfo = result.channel_info || result.channelInfo || {}
+  const token = isLikelyGameToken(result.token)
+    ? result.token
+    : isLikelyGameToken(channelInfo.token) ? channelInfo.token : ''
+  const uid = notify.game_sacc_uid || notify.li_uid || result.uid || channelInfo.openid || ''
+  const openid = result.openid || notify.game_sacc_openid || notify.game_openid || notify.sacc_openid || channelInfo.openid || uid
+  const channelId =
+    channelInfo.channelId ||
+    channelInfo.channel_id ||
+    result.channelid ||
+    result.channel_id ||
+    '131'
+  const userName =
+    result.user_name ||
+    result.nickname ||
+    channelInfo.account ||
+    (email ? String(email).split('@')[0] : '')
+
+  const pairs = [
+    ['game_adult_status', '1'],
+    ['game_channelid', channelId],
+    ['game_gameid', '29080'],
+    ['game_login_game', '0'],
+    ['game_openid', openid],
+    ['game_token', token],
+    ['game_uid', uid],
+    ['game_user_name', userName]
+  ].filter(([, value]) => value !== undefined && value !== null && String(value) !== '')
+
+  return pairs.map(([key, value]) => `${key}=${String(value)}`).join('; ')
+}
+
+function isLikelyGameToken(value) {
+  return typeof value === 'string' && /^[a-f0-9]{32,64}$/i.test(value)
+}
+
+function getCookieValue(cookieString, key) {
+  if (!cookieString || !key) return ''
+  const pattern = new RegExp(`(?:^|;\\s*)${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}=([^;]*)`)
+  return cookieString.match(pattern)?.[1] || ''
+}
+
+function isCdkCookieUsable(cookieString) {
+  return Boolean(
+    isLikelyGameToken(getCookieValue(cookieString, 'game_token')) &&
+    getCookieValue(cookieString, 'game_openid') &&
+    getCookieValue(cookieString, 'game_uid') &&
+    getCookieValue(cookieString, 'game_channelid')
+  )
+}
+
+function mergeLiPassUserInfo(loginResult, userInfoResult) {
+  if (!userInfoResult || userInfoResult.ret !== 0) return loginResult
+
+  const loginExtra = parseJsonLike(loginResult.extra_json)
+  const userInfoExtra = parseJsonLike(userInfoResult.extra_json)
+
+  return {
+    ...loginResult,
+    ...userInfoResult,
+    uid: userInfoResult.uid || loginResult.uid,
+    token: userInfoResult.token || loginResult.token,
+    channel_info: {
+      ...(loginResult.channel_info || loginResult.channelInfo || {}),
+      ...(userInfoResult.channel_info || userInfoResult.channelInfo || {})
+    },
+    extra_json: {
+      ...loginExtra,
+      ...userInfoExtra
+    }
+  }
+}
+
+function summarizeLiPassResult(result) {
+  if (!result) return null
+  const channelInfo = result.channel_info || result.channelInfo || {}
+  const extraJson = parseJsonLike(result.extra_json)
+  const notify = extraJson.need_notify_rsp || {}
+  const keys = Object.keys(result)
+  return {
+    ret: result.ret,
+    msg: result.msg,
+    is_login: result.is_login,
+    uid: result.uid || '',
+    openidPresent: Boolean(result.openid),
+    topKeys: keys.filter(k => !['extra_json'].includes(k)).join(','),
+    channelInfoKeys: Object.keys(channelInfo).join(','),
+    hasOpenidField: Boolean(result.openid !== undefined),
+    openidValue: result.openid || '(not set)',
+    channelInfoOpenid: channelInfo.openid || '(not set)',
+    userName: result.user_name || result.nickname || '',
+    channelId: channelInfo.channelId || channelInfo.channel_id || '',
+    hasLiToken: Boolean(result.token),
+    hasChannelToken: Boolean(channelInfo.token),
+    hasUsableGameToken: isLikelyGameToken(result.token) || isLikelyGameToken(channelInfo.token),
+    notifyKeys: Object.keys(notify),
+    notify_game_sacc_openid: notify.game_sacc_openid || '(not set)',
+    notify_game_openid: notify.game_openid || '(not set)',
+    notify_sacc_openid: notify.sacc_openid || '(not set)',
+  }
+}
+
 // 国际服固定请求头
 const GLOBAL_HEADERS = {
   'x-channel-type': '2',
   'x-language': 'en',
   'x-common-params': '{"game_id":"16","area_id":"global","source":"pc_web","intl_game_id":"29080","language":"en","env":"prod"}'
+}
+
+const BLA_HEADERS = {
+  'x-channel-type': '2',
+  'x-language': 'zh-TW',
+  'x-common-params': '{"game_id":"16","area_id":"global","source":"pc_web","intl_game_id":"29080","language":"zh-TW","env":"prod"}'
 }
 
 // 会话镜像反代所需的目标映射
@@ -897,6 +1083,414 @@ async function consumeTokenData(token, tokenKV) {
  * @param {Request} request - 请求对象
  * @param {KVNamespace} tokenKV - KV namespace 实例
  */
+
+const LI_PASS_SIGN_KEY = 'be83e12d807ed10f5cdcb3144773ee56'
+const LI_PASS_CAPTCHA_APPID = '188981228'
+
+function buildLiPassSignedPostUrl(path, body, ts = Date.now()) {
+  const sigParams = {
+    account_plat_type: '131',
+    app_id: '09af79d65d6e4fdf2d2569f0d365739d',
+    lang_type: 'en',
+    os: '3',
+    sdk_version: '1.31.0',
+    source: '66',
+    ts: String(ts)
+  }
+  const qs = Object.keys(sigParams).sort().map(k => `${k}=${sigParams[k]}`).join('&')
+  const sig = md5(`${path}?${qs}${body}${LI_PASS_SIGN_KEY}`)
+  return `https://li-sg.intlgame.com${path}?${qs}&sig=${sig}`
+}
+
+function buildIntlGameSignedPostUrl(path, body, ts = Date.now()) {
+  const sigParams = {
+    channelid: '131',
+    conn: '0',
+    gameid: '29080',
+    os: '3',
+    sdk_version: '1.31.0',
+    seq: '',
+    source: '66',
+    ts: String(ts)
+  }
+  const qs = Object.keys(sigParams).sort().map(k => `${k}=${sigParams[k]}`).join('&')
+  const sig = md5(`${path}?${qs}${body}${LI_PASS_SIGN_KEY}`)
+  return `https://aws-na.intlgame.com${path}?${qs}&sig=${sig}`
+}
+
+function buildLoginDeviceInfo(ts, guestId) {
+  return {
+    guest_id: guestId || crypto.randomUUID(),
+    lang_type: 'en',
+    app_version: 'WebWidget_1.31.0',
+    screen_height: 1440,
+    screen_width: 2560,
+    device_brand: 'Google Inc.',
+    device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+    network_type: '4g',
+    ram_total: 103,
+    rom_total: 103,
+    cpu_name: 'Win32',
+    android_imei: '',
+    ios_idfa: '',
+    page: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
+    page_with_search: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
+    ts
+  }
+}
+
+async function fetchLiPassUserInfo(uid, token, cookie = '') {
+  if (!uid || !token) return null
+
+  const body = JSON.stringify({
+    uid: String(uid),
+    token: String(token)
+  })
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Origin': 'https://www.blablalink.com',
+    'Referer': 'https://www.blablalink.com/',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+  }
+  if (cookie) headers['Cookie'] = cookie
+
+  const upstreamResp = await fetch(buildLiPassSignedPostUrl('/account/getuserinfo', body), {
+    method: 'POST',
+    headers,
+    body
+  })
+
+  const text = await upstreamResp.text()
+  let data = null
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(`/account/getuserinfo returned non-JSON HTTP ${upstreamResp.status}`)
+  }
+
+  if (!upstreamResp.ok) {
+    throw new Error(data?.msg || `/account/getuserinfo HTTP ${upstreamResp.status}`)
+  }
+
+  return data
+}
+
+async function fetchIntlGameAuthLogin(liLoginResult, email, guestId) {
+  if (!liLoginResult?.uid || !liLoginResult?.token) return null
+
+  const ts = Date.now()
+  const body = JSON.stringify({
+    device_info: buildLoginDeviceInfo(ts, guestId),
+    channel_dis: '00000000',
+    channel_info: {
+      openid: String(liLoginResult.uid),
+      token: String(liLoginResult.token),
+      account_plat_type: 131,
+      account: email,
+      account_type: 1,
+      lang_type: 'en'
+    },
+    auto_bind_lip: 1
+  })
+
+  const upstreamResp = await fetch(buildIntlGameSignedPostUrl('/v2/auth/login', body, ts), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': 'https://www.blablalink.com',
+      'Referer': 'https://www.blablalink.com/login',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+    },
+    body
+  })
+
+  const text = await upstreamResp.text()
+  let data = null
+  try {
+    data = JSON.parse(text)
+  } catch {
+    throw new Error(`/v2/auth/login returned non-JSON HTTP ${upstreamResp.status}`)
+  }
+
+  if (!upstreamResp.ok) {
+    throw new Error(data?.msg || `/v2/auth/login HTTP ${upstreamResp.status}`)
+  }
+
+  return data
+}
+
+function buildBlablalinkGameLoginBody(gameAuthResult, email, liLoginResult = {}) {
+  if (!gameAuthResult) return null
+
+  const extraJson = parseJsonLike(gameAuthResult.extra_json)
+  const statusRsp = extraJson.get_status_rsp || {}
+  const notify = extraJson.need_notify_rsp || {}
+  const channelInfo = gameAuthResult.channel_info || gameAuthResult.channelInfo || {}
+  const gameToken = isLikelyGameToken(gameAuthResult.token) ? gameAuthResult.token : ''
+  const gameOpenid = gameAuthResult.openid || notify.game_sacc_openid || notify.game_openid || ''
+  const gameUid = notify.game_sacc_uid || gameAuthResult.uid || channelInfo.openid || liLoginResult.uid || ''
+
+  if (!gameToken || !gameOpenid || !gameUid) return null
+
+  const gameBody = {
+    game_openid: String(gameOpenid),
+    game_channelid: channelInfo.channelId || channelInfo.channel_id || channelInfo.account_plat_type || gameAuthResult.channelid || gameAuthResult.channel_id || 131,
+    game_token: String(gameToken),
+    game_id: '29080',
+    game_expire_time: gameAuthResult.token_expire_time || channelInfo.expire_ts || liLoginResult.expire || Math.floor(Date.now() / 1000) + 29 * 86400,
+    game_uid: String(gameUid),
+    game_user_name: gameAuthResult.user_name || gameAuthResult.nickname || email.split('@')[0],
+    game_adult_status: statusRsp.adult_check_status ?? 1,
+    game_email: email
+  }
+  if (statusRsp.region) gameBody.game_user_region = statusRsp.region
+  return gameBody
+}
+
+async function fetchBlablalinkGameLogin(gameBody) {
+  if (!gameBody) return { status: 0, bodyText: '', cookies: [] }
+
+  const resp = await fetch('https://api.blablalink.com/api/user/Login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Origin': 'https://www.blablalink.com',
+      'Referer': 'https://www.blablalink.com/login',
+      'X-Channel-Type': '2',
+      'X-Language': 'en',
+      'X-Common-Params': GLOBAL_HEADERS['x-common-params']
+    },
+    body: JSON.stringify(gameBody)
+  })
+  const bodyText = await resp.text()
+  const cookies = extractSetCookiesHeaders(resp)
+    .map((value) => value.split(';')[0].trim())
+    .filter(Boolean)
+  return { status: resp.status, bodyText, cookies }
+}
+
+async function handleDirectLogin(request, env) {
+  const origin = request.headers.get('Origin')
+
+  try {
+    const { email, password, ticket, randstr, captchaAppId } = await request.json()
+
+    if (!email || !password) {
+      return new Response(JSON.stringify({
+        code: -1, message: '缺少邮箱或密码'
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+      })
+    }
+
+    const passwordMd5 = md5(password)
+
+    // ⚠️ 关键：两个不同的时间戳
+    const deviceTs = Date.now() - 2500  // device_info 的时间戳（模拟验证码开始时间）
+    const signTs = Date.now()           // 签名时的时间戳（当前时间）
+
+    const payload = {
+      account: email,
+      password: passwordMd5,
+      account_type: 1,
+      support_captcha: 1,
+      machine_check_type: 3,
+      tencent_response: JSON.stringify({
+        appid: captchaAppId || LI_PASS_CAPTCHA_APPID,
+        ret: 0,
+        ticket: ticket || '',
+        randstr: randstr || ''
+      }),
+      device_info: {
+        guest_id: crypto.randomUUID(),
+        lang_type: 'en',
+        app_version: 'WebWidget_1.31.0',
+        screen_height: 1440,
+        screen_width: 2560,
+        device_brand: 'Google Inc.',
+        device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML; like Gecko) Chrome/147.0.0.0 Safari/537.36',
+        network_type: '4g',
+        ram_total: 70,
+        rom_total: 70,
+        cpu_name: 'Win32',
+        android_imei: '',
+        ios_idfa: '',
+        page: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
+        page_with_search: 'https%3A%2F%2Fwww.blablalink.com%2Flogin%3Fto%3D%2F%26back_to%3D%2F',
+        ts: deviceTs
+      }
+    }
+
+    const body = JSON.stringify(payload)
+
+    const sigParams = {
+      account_plat_type: '131',
+      app_id: '09af79d65d6e4fdf2d2569f0d365739d',
+      lang_type: 'en',
+      os: '3',
+      sdk_version: '1.31.0',
+      source: '66',
+      ts: String(signTs)  // ⚠️ 使用当前时间戳
+    }
+
+    const sortedKeys = Object.keys(sigParams).sort()
+    const qs = sortedKeys.map(k => `${k}=${sigParams[k]}`).join('&')
+    
+    // ✅ 签名输入格式正确
+    const sigInput = '/account/login?' + qs + body + LI_PASS_SIGN_KEY
+    const sig = md5(sigInput)
+
+    const loginUrl = `https://li-sg.intlgame.com/account/login?${qs}&sig=${sig}`
+    const upstreamResp = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Origin': 'https://www.blablalink.com',
+        'Referer': 'https://www.blablalink.com/',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+      },
+      body
+    })
+
+    const result = await upstreamResp.json()
+
+    if (result.ret === 0 && result.is_login) {
+      const loginSetCookies = extractSetCookiesHeaders(upstreamResp)
+      const loginCookieStr = buildCookieStringFromSetCookies(loginSetCookies)
+      let userInfoResult = null
+      let userInfoError = ''
+      try {
+        userInfoResult = await fetchLiPassUserInfo(result.uid, result.token, loginCookieStr)
+      } catch (error) {
+        userInfoError = error.message || String(error)
+      }
+
+      const enrichedResult = mergeLiPassUserInfo(result, userInfoResult)
+
+      let gameAuthResult = null
+      let gameAuthError = ''
+      try {
+        gameAuthResult = await fetchIntlGameAuthLogin(result, email, payload.device_info.guest_id)
+      } catch (error) {
+        gameAuthError = error.message || String(error)
+      }
+
+      const gameLoginBody = buildBlablalinkGameLoginBody(gameAuthResult, email, result)
+
+      let blLoginError = ''
+      let blLoginStatus = 0
+      let blLoginBodyText = ''
+      let blLoginCookies = []
+      let blLoginAttempts = []
+      try {
+        const blResult = await fetchBlablalinkGameLogin(gameLoginBody)
+        let blMsg = ''
+        try {
+          blMsg = JSON.parse(blResult.bodyText)?.msg || ''
+        } catch {}
+        blLoginAttempts.push({
+          label: 'auth-openid',
+          status: blResult.status,
+          msg: blMsg.slice(0, 120),
+          cookieCount: blResult.cookies.length,
+        })
+        blLoginStatus = blResult.status
+        blLoginBodyText = blResult.bodyText
+        blLoginCookies = blResult.cookies
+      } catch (error) {
+        blLoginError = error.message || String(error)
+      }
+
+      if (gameLoginBody && blLoginCookies.length === 0 && blLoginBodyText) {
+        try {
+          const blData = JSON.parse(blLoginBodyText)
+          if (blData?.code === 0 && blData?.data?.token) {
+            const bodyCookie = buildCookieStringFromLoginResult({
+              ...gameAuthResult,
+              token: blData.data.token,
+              openid: blData.data.open_id || gameAuthResult.openid,
+              channelid: blData.data.channel_id || gameAuthResult.channelid,
+            }, email)
+            if (isCdkCookieUsable(bodyCookie)) {
+              blLoginCookies = bodyCookie.split(';').map((part) => part.trim()).filter(Boolean)
+            }
+          }
+        } catch {
+          // 保留原始调试信息，继续使用后续 fallback
+        }
+      }
+
+      const setCookies = extractSetCookiesHeaders(upstreamResp)
+      const blCookieStr = blLoginCookies.join('; ')
+      const setCookieStr = buildCookieStringFromSetCookies(setCookies)
+      const fallbackCookieStr = buildCookieStringFromLoginResult(gameAuthResult || enrichedResult, email)
+      const cookieStr = isCdkCookieUsable(blCookieStr) ? blCookieStr
+        : isCdkCookieUsable(setCookieStr) ? setCookieStr
+        : fallbackCookieStr
+
+      if (!isCdkCookieUsable(cookieStr)) {
+        return new Response(JSON.stringify({
+          code: -1,
+          message: '账号密码登录成功，但未获取到 CDK 兑换所需的游戏侧 game_token。请确认账号已绑定 NIKKE，或先继续使用官方浏览器登录方式。',
+          debug: {
+            login: summarizeLiPassResult(result),
+            userInfo: summarizeLiPassResult(userInfoResult),
+            userInfoError,
+            gameAuth: summarizeLiPassResult(gameAuthResult),
+            gameAuthError,
+            setCookieKeys: setCookies.map(sc => sc.split('=')[0]).filter(Boolean),
+            blLogin: {
+              status: blLoginStatus,
+              error: blLoginError || '(none)',
+              bodyPreview: blLoginBodyText.slice(0, 1000),
+              cookieCount: blLoginCookies.length,
+              cookieKeys: blLoginCookies.map(c => c.split('=')[0]),
+              attempts: blLoginAttempts
+            }
+          }
+        }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+        })
+      }
+
+      return new Response(JSON.stringify({
+        code: 0,
+        data: {
+          success: true,
+          cookie: cookieStr,
+          token: getCookieValue(cookieStr, 'game_token') || '',
+          expire: result.expire || null,
+          userName: getCookieValue(cookieStr, 'game_user_name') || gameAuthResult?.nickname || gameAuthResult?.user_name || enrichedResult.nickname || enrichedResult.user_name || '',
+          uid: getCookieValue(cookieStr, 'game_uid') || gameAuthResult?.uid || enrichedResult.uid || ''
+        }
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+      })
+    }
+
+    return new Response(JSON.stringify({
+      code: -1,
+      message: result.msg || 'Login failed',
+      debug: result
+    }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+    })
+
+  } catch (error) {
+    console.error('[Error]:', error)
+    return new Response(JSON.stringify({
+      code: -1,
+      message: error.message
+    }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+    })
+  }
+}
+// ──── Token 认证 ────────────────────────────────────────────────
+
 async function handleTokenAuthData(request, tokenKV) {
   const origin = request.headers.get('Origin')
 
@@ -2001,10 +2595,16 @@ async function handleCookieRenewal(request) {
     /* 5. 回复前端 */
     const expireDays = maxAge > 0 ? Math.floor(maxAge / 86400) : undefined;
     const hasGameToken = mergedMap.has('game_token');
+    const tokenChanged = Boolean(
+      oldMap.get('game_token') &&
+      mergedMap.get('game_token') &&
+      oldMap.get('game_token') !== mergedMap.get('game_token')
+    );
+    const observedMode = tokenChanged ? 'token-rotated' : 'token-echo';
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Cookie renewed',
+      message: tokenChanged ? 'Cookie renewed' : 'Cookie rehydrated only',
       data: {
         newCookie: cookieString,
         expireAt,
@@ -2012,6 +2612,8 @@ async function handleCookieRenewal(request) {
         totalCookies: setCookies.length,
         hasGameToken,
         expireDays,
+        tokenChanged,
+        observedMode,
         added,
         changed: diffDetails
       }
@@ -2285,6 +2887,158 @@ async function handleCheckLogin(request) {
       }
     })
   }
+}
+
+async function proxyBlaRequest(request, options) {
+  const origin = request.headers.get('Origin')
+  const { targetUrl, method = 'GET', defaultPayload = {} } = options
+
+  try {
+    const requestData = await request.json()
+    const { cookie, payload } = requestData
+
+    if (!cookie) {
+      return new Response(
+        JSON.stringify({
+          code: 400,
+          msg: 'Missing cookie',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(origin),
+          },
+        }
+      )
+    }
+
+    const mergedPayload = {
+      ...defaultPayload,
+      ...(payload || {}),
+    }
+    const finalUrl = new URL(targetUrl)
+
+    if (method === 'GET') {
+      Object.entries(mergedPayload).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          finalUrl.searchParams.set(key, String(value))
+        }
+      })
+    }
+
+    const proxyRequest = new Request(finalUrl.toString(), {
+      method,
+      headers: {
+        ...BLA_HEADERS,
+        'Cookie': cookie,
+        'Origin': 'https://www.blablalink.com',
+        'Referer': 'https://www.blablalink.com/',
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json',
+      },
+      ...(method === 'GET' ? {} : { body: JSON.stringify(mergedPayload) }),
+    })
+
+    const response = await fetch(proxyRequest)
+    const data = await response.text()
+
+    return new Response(data, {
+      status: response.status,
+      headers: {
+        'Content-Type': response.headers.get('Content-Type') || 'application/json',
+        ...corsHeaders(origin),
+      },
+    })
+  } catch (err) {
+    console.error('BlaBla 请求代理失败:', err)
+    return new Response(
+      JSON.stringify({
+        code: 500,
+        msg: err.message,
+      }),
+      {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin),
+        },
+      }
+    )
+  }
+}
+
+async function handleBlaCheckLogin(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/user/CheckLogin',
+    method: 'POST',
+  })
+}
+
+async function handleBlaTaskList(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/lipass/Points/GetTaskListWithStatusV2',
+    method: 'GET',
+    defaultPayload: {
+      get_top: 'false',
+      intl_game_id: '29080',
+    },
+  })
+}
+
+async function handleBlaDailyCheckin(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/lipass/Points/DailyCheckIn',
+    method: 'POST',
+    defaultPayload: {
+      task_id: '15',
+    },
+  })
+}
+
+async function handleBlaCompleteTask(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/lipass/Points/CompleteTaskAddPoint',
+    method: 'POST',
+    defaultPayload: {
+      intl_game_id: '29080',
+    },
+  })
+}
+
+async function handleBlaTotalPoints(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/lipass/Points/GetUserTotalPoints',
+    method: 'GET',
+  })
+}
+
+async function handleBlaRoleInfo(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/game/proxy/Game/GetSavedRoleInfo',
+    method: 'POST',
+    defaultPayload: {},
+  })
+}
+
+async function handleBlaCommodityList(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/commodity/Commodity/GetUserCommodityList',
+    method: 'POST',
+    defaultPayload: {
+      page_num: 1,
+      page_size: 20,
+      game_id_list: ['29080'],
+      is_bind_lip: true,
+    },
+  })
+}
+
+async function handleBlaExchangeCommodity(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/lip/proxy/commodity/Commodity/ExchangeCommodity',
+    method: 'POST',
+  })
 }
 
 // 🌍 处理国际服兑换历史
@@ -2719,6 +3473,24 @@ export default {
       case path === '/global/check-login' && method === 'POST':
         return handleCheckLogin(request)
 
+      // BlaBla 任务代理
+      case path === '/global/bla/check-login' && method === 'POST':
+        return handleBlaCheckLogin(request)
+      case path === '/global/bla/task-list' && method === 'POST':
+        return handleBlaTaskList(request)
+      case path === '/global/bla/daily-checkin' && method === 'POST':
+        return handleBlaDailyCheckin(request)
+      case path === '/global/bla/complete-task' && method === 'POST':
+        return handleBlaCompleteTask(request)
+      case path === '/global/bla/total-points' && method === 'POST':
+        return handleBlaTotalPoints(request)
+      case path === '/global/bla/role-info' && method === 'POST':
+        return handleBlaRoleInfo(request)
+      case path === '/global/bla/commodity-list' && method === 'POST':
+        return handleBlaCommodityList(request)
+      case path === '/global/bla/exchange-commodity' && method === 'POST':
+        return handleBlaExchangeCommodity(request)
+
       // ==================== 国服路由 ====================
 
       // 获取验证码
@@ -2747,6 +3519,22 @@ export default {
             ...corsHeaders(request.headers.get('Origin'))
           }
         })
+
+      // ==================== 安全令牌认证 ====================
+
+      // ==================== 登录桥接 ====================
+
+      // 🔑 邮箱密码登录
+      case path === '/api/login' && method === 'POST':
+        return handleDirectLogin(request, env)
+
+      // 登录服务健康检查
+      case path === '/api/login-health' && method === 'GET':
+        return handleLoginHealth(request, env)
+
+      // 验证码完整性校验（防止CDN投毒）
+      case path === '/api/captcha-integrity' && method === 'GET':
+        return handleCaptchaIntegrity(request, env)
 
       // ==================== 安全令牌认证 ====================
 
@@ -2921,7 +3709,9 @@ self.addEventListener('fetch', (event) => {
             'GET /login?sid=xxx (官方登录助手)',
             'GET /sess/{sid}/check-cookie (检测登录Cookie)',
             'GET /sess/{sid}/debug/cookies (Cookie诊断页面)',
-            'GET /sess/{sid}/x/{service}/... (会话镜像代理)'
+            'GET /sess/{sid}/x/{service}/... (会话镜像代理)',
+            'POST /api/login (邮箱密码直接登录)',
+            'GET /api/login-health (登录服务健康检查)'
           ]
         }), {
           status: 404,
@@ -2933,3 +3723,52 @@ self.addEventListener('fetch', (event) => {
     }
   }
 } 
+
+function handleLoginHealth(request, env) {
+  return new Response(JSON.stringify({
+    code: 0,
+    status: 'ok',
+    message: 'LI Pass login bridge is reachable',
+    signKeyConfigured: Boolean(LI_PASS_SIGN_KEY),
+    timestamp: new Date().toISOString()
+  }), {
+    headers: {
+      'Content-Type': 'application/json',
+      ...corsHeaders(request.headers.get('Origin'))
+    }
+  })
+}
+
+const CAPTCHA_JS_URL = 'https://global.captcha.gtimg.com/TCaptcha-global.js'
+const CAPTCHA_CACHE_TTL = 3600000
+let captchaIntegrityCache = null
+let captchaIntegrityTime = 0
+
+async function handleCaptchaIntegrity(request, env) {
+  const now = Date.now()
+  if (captchaIntegrityCache && now - captchaIntegrityTime < CAPTCHA_CACHE_TTL) {
+    return new Response(JSON.stringify(captchaIntegrityCache), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+    })
+  }
+
+  try {
+    const resp = await fetch(CAPTCHA_JS_URL)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const jsBuffer = await resp.arrayBuffer()
+    const hashBuffer = await crypto.subtle.digest('SHA-384', jsBuffer)
+    const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+
+    captchaIntegrityCache = { url: CAPTCHA_JS_URL, integrity: 'sha384-' + hashBase64 }
+    captchaIntegrityTime = now
+  } catch (e) {
+    return new Response(JSON.stringify({ url: '', integrity: '' }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+    })
+  }
+
+  return new Response(JSON.stringify(captchaIntegrityCache), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+  })
+}
+

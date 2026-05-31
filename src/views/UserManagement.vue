@@ -30,6 +30,17 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-tooltip :content="blaNotificationTooltip" placement="top">
+              <el-button
+                size="small"
+                plain
+                :type="blaNotificationButtonType"
+                :disabled="!blaNotificationSupported"
+                @click="handleBlaNotificationToggle"
+              >
+                {{ blaNotificationButtonText }}
+              </el-button>
+            </el-tooltip>
             <el-button
               type="success"
               size="small"
@@ -37,7 +48,7 @@
               :loading="batchRenewLoading"
               :disabled="!hasRenewableUsers"
             >
-              批量续期
+              批量刷新
             </el-button>
             <el-button
               type="warning"
@@ -149,6 +160,15 @@
                   }}
                 </el-tag>
                 <el-tooltip
+                  v-if="hasSavedLoginCredential(row)"
+                  :content="`已保存加密凭证：${getCredentialHint(row)}`"
+                  placement="top"
+                >
+                  <el-tag type="success" effect="plain" class="credential-status-tag">
+                    凭证
+                  </el-tag>
+                </el-tooltip>
+                <el-tooltip
                   v-if="row.cookieExpireDays === -1"
                   content="Cookie已失效或无法验证，请重新设置完整的Cookie"
                   placement="top"
@@ -158,6 +178,18 @@
                   </el-icon>
                 </el-tooltip>
               </template>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="getColumnVisible('blaStatus')"
+          label="BlaBla"
+          min-width="130"
+          align="center"
+        >
+          <template #default="{ row }">
+            <div class="bla-status-display">
+              <bla-bla-status-menu :user="row" :ran-today="blaRanToday(row)" />
             </div>
           </template>
         </el-table-column>
@@ -179,11 +211,11 @@
                 <el-button
                   v-if="shouldShowRenewButton(row)"
                   size="small"
-                  type="warning"
+                  :type="hasSavedLoginCredential(row) ? 'primary' : 'warning'"
                   @click="handleRenewUserCookie(row)"
                   :loading="getRenewLoading(row.id)"
                 >
-                  {{ isCompactScreen ? '续' : '续期' }}
+                  {{ getRenewButtonText(row) }}
                 </el-button>
                 <el-button
                   v-if="row.server !== 'cn'"
@@ -250,14 +282,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
+import BlaBlaStatusMenu from '../components/BlaBlaStatusMenu.vue'
 import UserDialog from '../components/UserDialog.vue'
 import { showCustomMessage, ProgressMessage } from '../utils/customMessage'
-import { renewGlobalCookie, shouldRenewCookie, autoRenewUserCookie } from '../utils/api'
+import {
+  renewGlobalCookie,
+  shouldRenewCookie,
+  autoRenewUserCookie,
+  refreshCookieByCredential,
+} from '../utils/api'
+import { getTencentCaptcha } from '../utils/tencentCaptcha'
+import {
+  getLoginCredential,
+  getLoginCredentialHint,
+  hasLoginCredential,
+} from '../utils/credentialVault'
+import {
+  getBlaNotificationEnabled,
+  getBrowserNotificationPermission,
+  isBrowserNotificationSupported,
+  requestBlaNotificationPermission,
+  setBlaNotificationEnabled,
+} from '../utils/browserNotification'
+import { hasUserBlaRunToday } from '../utils/blaRunState'
 
 import { View } from '@element-plus/icons-vue'
 import { RefreshRight } from '@element-plus/icons-vue'
@@ -281,19 +333,38 @@ const batchRenewLoading = ref(false)
 
 // 服务器类型修复状态
 const fixServerTypesLoading = ref(false)
+const blaNotificationPermission = ref(getBrowserNotificationPermission())
+const blaNotificationEnabled = ref(getBlaNotificationEnabled())
 
-// 列可见性状态
-const visibleColumns = ref([
+const COLUMNS_KEY = 'nikke_cdk_column_visibility'
+const DEFAULT_COLUMNS = [
   { key: 'name', label: '用户名', visible: true },
   { key: 'uid', label: 'UID', visible: true },
   { key: 'server', label: '服务器', visible: true },
   { key: 'playerInfo', label: '角色信息', visible: true },
   { key: 'createTime', label: '添加时间', visible: true },
   { key: 'cookieStatus', label: 'Cookie状态', visible: true },
-])
+  { key: 'blaStatus', label: 'BlaBla', visible: true },
+]
+const loadColumnState = () => {
+  try {
+    const saved = localStorage.getItem(COLUMNS_KEY)
+    if (saved) return JSON.parse(saved)
+  } catch (error) {
+    console.warn('读取列配置失败，已回退到默认显示:', error)
+  }
+  return null
+}
+const visibleColumns = ref(loadColumnState() || DEFAULT_COLUMNS.map((c) => ({ ...c })))
+watch(visibleColumns, () => {
+  localStorage.setItem(COLUMNS_KEY, JSON.stringify(visibleColumns.value))
+}, { deep: true })
 const getColumnVisible = (key) => visibleColumns.value.find((c) => c.key === key)?.visible || false
+
+const blaRanToday = (user) => hasUserBlaRunToday(user)
 const resetColumns = () => {
   visibleColumns.value.forEach((col) => (col.visible = true))
+  localStorage.removeItem(COLUMNS_KEY)
 }
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('zh-CN', {
@@ -320,6 +391,73 @@ const getActionColumnWidth = computed(() => {
 
 const updateScreenSize = () => {
   screenWidth.value = window.innerWidth
+}
+
+const refreshBlaNotificationState = () => {
+  blaNotificationPermission.value = getBrowserNotificationPermission()
+  blaNotificationEnabled.value = getBlaNotificationEnabled()
+}
+
+const blaNotificationSupported = computed(() => isBrowserNotificationSupported())
+
+const blaNotificationButtonType = computed(() => {
+  if (!blaNotificationSupported.value) return 'info'
+  if (blaNotificationEnabled.value) return 'success'
+  if (blaNotificationPermission.value === 'denied') return 'warning'
+  return 'info'
+})
+
+const blaNotificationButtonText = computed(() => {
+  if (!blaNotificationSupported.value) return '通知不可用'
+  if (blaNotificationEnabled.value) return '关闭提醒'
+  if (blaNotificationPermission.value === 'denied') return '通知被拦截'
+  return '开启提醒'
+})
+
+const blaNotificationTooltip = computed(() => {
+  if (!blaNotificationSupported.value) {
+    return '当前浏览器不支持系统通知'
+  }
+  if (blaNotificationEnabled.value) {
+    return '已开启：页面自动执行 BlaBla 完成后会发送浏览器通知，点击按钮可关闭'
+  }
+  if (blaNotificationPermission.value === 'denied') {
+    return '浏览器已拒绝本站通知，请在地址栏站点设置中重新允许后再开启'
+  }
+  if (blaNotificationPermission.value === 'granted') {
+    return '通知权限已允许，点击后开启每日自动执行完成提醒'
+  }
+  return '开启后，页面自动执行 BlaBla 完成时会发送浏览器通知'
+})
+
+const handleBlaNotificationToggle = async () => {
+  if (!blaNotificationSupported.value) {
+    showCustomMessage('当前浏览器不支持系统通知', 'warning')
+    return
+  }
+
+  if (blaNotificationEnabled.value) {
+    setBlaNotificationEnabled(false)
+    refreshBlaNotificationState()
+    showCustomMessage('已关闭 BlaBla 浏览器通知提醒', 'success')
+    return
+  }
+
+  if (blaNotificationPermission.value === 'denied') {
+    showCustomMessage('浏览器已阻止通知，请在站点设置中手动允许后再试', 'warning')
+    return
+  }
+
+  if (blaNotificationPermission.value === 'granted') {
+    setBlaNotificationEnabled(true)
+    refreshBlaNotificationState()
+    showCustomMessage('已开启 BlaBla 浏览器通知提醒', 'success')
+    return
+  }
+
+  const result = await requestBlaNotificationPermission()
+  refreshBlaNotificationState()
+  showCustomMessage(result.message, result.granted ? 'success' : 'info')
 }
 
 // 计算是否有需要续期的用户
@@ -397,7 +535,13 @@ const getCnRoleName = (user) => {
 // Cookie续期相关方法
 // 判断用户是否需要显示续期按钮
 const shouldShowRenewButton = (user) => {
-  if (user.server === 'cn' || !user.cookie) {
+  if (user.server === 'cn') {
+    return false
+  }
+  if (hasSavedLoginCredential(user)) {
+    return true
+  }
+  if (!user.cookie) {
     return false
   }
   if (user.cookieExpireDays === -1) {
@@ -406,19 +550,113 @@ const shouldShowRenewButton = (user) => {
   return user.cookieExpireDays <= 32
 }
 
+const hasSavedLoginCredential = (user) => hasLoginCredential(user)
+
+const getCredentialHint = (user) => getLoginCredentialHint(user) || '已保存'
+
+const getRenewButtonText = (user) => {
+  if (hasSavedLoginCredential(user)) {
+    return isCompactScreen.value ? '取' : '获取Token'
+  }
+  return isCompactScreen.value ? '续' : '续期'
+}
+
 // 获取用户续期加载状态
 const getRenewLoading = (userId) => {
   return renewLoadingMap.value.get(userId) || false
 }
 
+const refreshUserTokenByCredential = async (user, options = {}) => {
+  const { showMessage = true } = options
+  const credential = getLoginCredential(user)
+
+  if (!credential) {
+    return { success: false, message: '未保存账号密码凭证' }
+  }
+
+  let credentialResult = await refreshCookieByCredential(
+    credential.email,
+    credential.password, '', '', ''
+  )
+
+  if (!credentialResult.success && credentialResult.message &&
+      credentialResult.message.toLowerCase().includes('machine check')) {
+    let captchaResult
+    try {
+      captchaResult = await getTencentCaptcha()
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || '验证码加载失败，请检查网络后重试',
+      }
+    }
+
+    if (captchaResult.ret !== 0) {
+      return { success: false, message: '验证码验证失败，请重试' }
+    }
+
+    credentialResult = await refreshCookieByCredential(
+      credential.email,
+      credential.password,
+      captchaResult.ticket,
+      captchaResult.randstr,
+      captchaResult.appid
+    )
+  }
+
+  if (!credentialResult.success || !credentialResult.cookie) {
+    return {
+      success: false,
+      message: credentialResult.message || '获取Token失败',
+    }
+  }
+
+  const cleanCookie = credentialResult.cookie.replace(/;\s*expires=[^;]+/gi, '')
+  const expireDays = 30
+  const newExpireDate = new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000).toISOString()
+
+  await userStore.updateUser(user.id, {
+    cookie: cleanCookie,
+    cookieOriginal: cleanCookie,
+    cookieExpireDays: expireDays,
+    cookieActualExpireDate: newExpireDate,
+    needsCookieUpdate: false,
+    needsApiValidation: false,
+    userName: credentialResult.userName || user.userName,
+    uid: credentialResult.uid || user.uid,
+  })
+  await userStore.updateUser(user.id, {
+    cookieExpireDays: expireDays,
+    cookieActualExpireDate: newExpireDate,
+    needsCookieUpdate: false,
+    needsApiValidation: false,
+  })
+
+  if (showMessage) {
+    showCustomMessage(`用户 ${user.name} Token刷新成功！新的有效期：${expireDays}天`, 'success')
+  }
+
+  return {
+    success: true,
+    data: {
+      expireDays,
+      expireAt: newExpireDate,
+      hasGameToken: cleanCookie.includes('game_token='),
+      totalCookies: cleanCookie.split(';').filter(Boolean).length,
+    },
+  }
+}
+
 // 单个用户Cookie续期
 const handleRenewUserCookie = async (user) => {
+  const hasCredential = hasSavedLoginCredential(user)
+
   if (user.server === 'cn') {
     showCustomMessage('国服用户无需Cookie续期', 'info')
     return
   }
 
-  if (!user.cookie) {
+  if (!user.cookie && !hasCredential) {
     showCustomMessage('用户Cookie为空，无法续期', 'warning')
     return
   }
@@ -429,7 +667,28 @@ const handleRenewUserCookie = async (user) => {
   try {
     console.log(`开始为用户 ${user.name} 续期Cookie...`)
 
-    const result = await renewGlobalCookie(user.cookie)
+    let result = null
+
+    if (hasCredential) {
+      const credentialRefresh = await refreshUserTokenByCredential(user)
+      if (credentialRefresh.success) {
+        return
+      }
+
+      if (!user.cookie) {
+        showCustomMessage(
+          `用户 ${user.name} 获取Token失败：${credentialRefresh.message || '未知错误'}`,
+          'error'
+        )
+        return
+      }
+      showCustomMessage(
+        `用户 ${user.name} 获取Token失败：${credentialRefresh.message || '未知错误'}，将尝试旧续期方式`,
+        'warning'
+      )
+    }
+
+    result = await renewGlobalCookie(user.cookie)
 
     if (result.success) {
       // 🚨 检查是否包含关键的game_token
@@ -494,10 +753,10 @@ const handleBatchRenewCookies = async () => {
   // 确认对话框
   try {
     await ElMessageBox.confirm(
-      `检测到 ${renewableUsers.length} 个用户的Cookie可以续期，是否继续？`,
-      '批量续期确认',
+      `检测到 ${renewableUsers.length} 个用户可以刷新Token或续期Cookie，是否继续？`,
+      '批量刷新确认',
       {
-        confirmButtonText: '确定续期',
+        confirmButtonText: '确定刷新',
         cancelButtonText: '取消',
         type: 'warning',
       }
@@ -510,7 +769,7 @@ const handleBatchRenewCookies = async () => {
 
   // 创建进度提示
   const progressMessage = new ProgressMessage(
-    `正在为第1个用户续期，共${renewableUsers.length}个用户...`
+    `正在为第1个用户刷新，共${renewableUsers.length}个用户...`
   )
 
   try {
@@ -526,10 +785,35 @@ const handleBatchRenewCookies = async () => {
       const progressPercentage = ((i + 1) / renewableUsers.length) * 100
       progressMessage.updateProgress(
         progressPercentage,
-        `正在为 ${user.name} 续期，第${i + 1}个，共${renewableUsers.length}个用户...`
+        `正在为 ${user.name} 刷新，第${i + 1}个，共${renewableUsers.length}个用户...`
       )
 
       try {
+        if (hasSavedLoginCredential(user)) {
+          const credentialRefresh = await refreshUserTokenByCredential(user, { showMessage: false })
+          if (credentialRefresh.success) {
+            successCount++
+            results.push({
+              user: user.name,
+              success: true,
+              expireDays: credentialRefresh.data.expireDays,
+              totalCookies: credentialRefresh.data.totalCookies,
+              hasGameToken: credentialRefresh.data.hasGameToken,
+              source: 'credential',
+            })
+            continue
+          }
+
+          failCount++
+          results.push({
+            user: user.name,
+            success: false,
+            message: credentialRefresh.message || '获取Token失败',
+            source: 'credential',
+          })
+          continue
+        }
+
         const result = await autoRenewUserCookie(user)
 
         if (result.success) {
@@ -601,7 +885,7 @@ const handleBatchRenewCookies = async () => {
 
     // 显示结果
     if (successCount > 0) {
-      const resultMessage = `批量续期完成：成功 ${successCount} 个，失败 ${failCount} 个`
+      const resultMessage = `批量刷新完成：成功 ${successCount} 个，失败 ${failCount} 个`
 
       if (successCount === renewableUsers.length) {
         progressMessage.complete(resultMessage)
@@ -610,11 +894,11 @@ const handleBatchRenewCookies = async () => {
         setTimeout(() => progressMessage.hide(), 3000)
       }
     } else {
-      progressMessage.error(`批量续期失败：所有 ${failCount} 个用户都续期失败`)
+      progressMessage.error(`批量刷新失败：所有 ${failCount} 个用户都刷新失败`)
     }
 
     // 详细结果日志
-    console.log('批量续期结果汇总:', {
+    console.log('批量刷新结果汇总:', {
       total: renewableUsers.length,
       success: successCount,
       fail: failCount,
@@ -622,7 +906,7 @@ const handleBatchRenewCookies = async () => {
     })
   } catch (error) {
     console.error('批量续期异常:', error)
-    progressMessage.error('批量续期过程中发生异常')
+    progressMessage.error('批量刷新过程中发生异常')
   } finally {
     batchRenewLoading.value = false
   }
@@ -903,7 +1187,9 @@ const handleEditUserEvent = (event) => {
 onMounted(async () => {
   await userStore.fetchUsers()
 
+  refreshBlaNotificationState()
   window.addEventListener('resize', updateScreenSize)
+  window.addEventListener('focus', refreshBlaNotificationState)
   // 🔧 检查是否有需要验证的Cookie状态异常用户
   const usersWithInvalidCookies = userStore.users.filter(
     (user) => user.server !== 'cn' && user.cookieExpireDays === -1
@@ -921,6 +1207,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('editUser', handleEditUserEvent)
   window.removeEventListener('resize', updateScreenSize)
+  window.removeEventListener('focus', refreshBlaNotificationState)
 })
 </script>
 
@@ -998,6 +1285,16 @@ onBeforeUnmount(() => {
     gap: 6px; // 减小间隙使更紧凑
     flex-wrap: nowrap; // 防止换行
     justify-content: center;
+
+    .credential-status-tag {
+      border-radius: 4px;
+    }
+  }
+
+  .bla-status-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 
   .action-buttons {

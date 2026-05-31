@@ -699,6 +699,27 @@ export const renewGlobalCookie = async (cookie) => {
       throw new Error(result.message || '续期失败')
     }
 
+    const renewedParams = parseCookieParams(result.data?.newCookie || '')
+    const tokenChanged = Boolean(
+      renewedParams.game_token &&
+      params.game_token &&
+      renewedParams.game_token !== params.game_token
+    )
+
+    // 观察结果表明：/api/user/Login 会返回 Set-Cookie，但很多情况下只是回写原 token，
+    // 不会真正延长上游会话。这里将这种情况视为失败，避免前端误判为“续期成功”。
+    if (!tokenChanged) {
+      return {
+        success: false,
+        message: '上游仅回写现有 game_token，未实际延长会话；请改用账号密码重新获取Token',
+        data: {
+          ...result.data,
+          tokenChanged: false,
+          observedMode: 'token-echo',
+        }
+      }
+    }
+
     // 验证是否包含关键的game_token
     if (!result.data.hasGameToken) {
       console.warn('⚠️ 续期响应中未包含game_token，可能续期不完整')
@@ -719,6 +740,55 @@ export const renewGlobalCookie = async (cookie) => {
       success: false,
       message: error.message || 'Cookie续期失败',
       error: error
+    }
+  }
+}
+
+/**
+ * 使用已保存的邮箱密码重新登录并获取最新Cookie
+ * @param {string} email
+ * @param {string} password
+ * @returns {Promise<{success:boolean,cookie?:string,userName?:string,uid?:string,message?:string}>}
+ */
+export const refreshCookieByCredential = async (email, password, ticket = '', randstr = '', captchaAppId = '') => {
+  try {
+    if (!email || !password) {
+      throw new Error('缺少登录凭证')
+    }
+
+    const response = await api.post(
+      '/api/login',
+      {
+        email,
+        password,
+        ticket,
+        randstr,
+        captchaAppId,
+      },
+      { withCredentials: false }
+    )
+
+    const result = response.data
+    if (result?.code === 0 && result?.data?.success && result?.data?.cookie) {
+      return {
+        success: true,
+        cookie: result.data.cookie,
+        token: result.data.token,
+        expire: result.data.expire,
+        userName: result.data.userName,
+        uid: result.data.uid,
+      }
+    }
+
+    return {
+      success: false,
+      message: result?.message || result?.data?.message || '凭证登录失败',
+    }
+  } catch (error) {
+    console.error('凭证刷新失败:', error)
+    return {
+      success: false,
+      message: error.message || '凭证刷新失败',
     }
   }
 }

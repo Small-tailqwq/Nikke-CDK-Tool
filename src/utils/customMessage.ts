@@ -1,5 +1,5 @@
 // 通用的自定义消息工具函数
-export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', type: 'success' | 'error' | 'info' | 'warning' = 'success') => {
+export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', type: 'success' | 'error' | 'info' | 'warning' = 'success', duration: number = 3000) => {
   // 根据类型设置颜色和图标
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -24,11 +24,12 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
   // 创建自定义消息元素
   const messageEl = document.createElement('div')
   messageEl.className = 'custom-copy-message'
+  const persistent = duration <= 0
   messageEl.innerHTML = `
     <div style="
       background: ${bgColor};
       color: white;
-      padding: 12px 20px;
+      padding: ${persistent ? '12px 12px 12px 20px' : '12px 20px'};
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       display: flex;
@@ -46,9 +47,11 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
         height: 16px;
         background: rgba(255, 255, 255, 0.2);
         border-radius: 50%;
+        flex-shrink: 0;
         font-weight: bold;
       ">${icon}</span>
-      <span>${message}</span>
+      <span style="flex:1">${message}</span>
+      ${persistent ? '<span class="custom-message-close" style="cursor:pointer;flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;opacity:0.8;font-size:16px;line-height:1;user-select:none;">✕</span>' : ''}
     </div>
   `
 
@@ -59,15 +62,33 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
     top: isMobile ? '16px' : '20px',
     right: isMobile ? '16px' : '20px',
     left: isMobile ? '16px' : 'auto',
-    zIndex: '2147483647', // 使用最大z-index值
+    zIndex: '2147483647',
     opacity: '0',
     transform: isMobile ? 'translateY(-100%)' : 'translateX(100%)',
     transition: 'all 0.3s ease',
-    pointerEvents: 'none',
+    pointerEvents: persistent ? 'auto' : 'none',
   })
 
   // 添加到body
   document.body.appendChild(messageEl)
+
+  const hideMessage = () => {
+    messageEl.style.opacity = '0'
+    messageEl.style.transform = isMobile ? 'translateY(-100%)' : 'translateX(100%)'
+    setTimeout(() => {
+      if (messageEl.parentNode) {
+        messageEl.parentNode.removeChild(messageEl)
+      }
+    }, 300)
+  }
+
+  // 点击 X 关闭
+  if (persistent) {
+    const closeBtn = messageEl.querySelector('.custom-message-close') as HTMLElement
+    if (closeBtn) {
+      closeBtn.addEventListener('click', hideMessage)
+    }
+  }
 
   // 立即显示
   requestAnimationFrame(() => {
@@ -75,18 +96,10 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
     messageEl.style.transform = isMobile ? 'translateY(0)' : 'translateX(0)'
   })
 
-  // 3秒后自动移除
-  setTimeout(() => {
-    messageEl.style.opacity = '0'
-    messageEl.style.transform = isMobile
-      ? 'translateY(-100%)'
-      : 'translateX(100%)'
-    setTimeout(() => {
-      if (messageEl.parentNode) {
-        messageEl.parentNode.removeChild(messageEl)
-      }
-    }, 300)
-  }, 3000)
+  // 自动移除（persistent 模式下跳过）
+  if (!persistent) {
+    setTimeout(hideMessage, duration)
+  }
 }
 
 // 进度提示工具函数

@@ -3,8 +3,13 @@ import { ref, computed } from 'vue'
 import { userStorage } from '../utils/storage'
 import { createLogger } from '../utils/logger'
 
-import { autoRenewUserCookie, shouldRenewCookie, getGlobalUserCompleteInfo } from '../utils/api'
+import {
+  shouldRenewCookie,
+  getGlobalUserCompleteInfo,
+  refreshCookieByCredential,
+} from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
+import { getLoginCredential } from '../utils/credentialVault'
 
 // 创建用户存储模块的日志记录器
 const logger = createLogger('UserStore')
@@ -488,6 +493,47 @@ export const useUserStore = defineStore('user', () => {
     console.log('[CookieWarning] 已关闭所有警告')
   }
 
+  const refreshCookieBySavedCredential = async (user) => {
+    const credential = getLoginCredential(user)
+    if (!credential) {
+      return { success: false, message: '未保存账号密码凭证' }
+    }
+
+    const result = await refreshCookieByCredential(credential.email, credential.password, '', '', '')
+    if (!result.success || !result.cookie) {
+      return {
+        success: false,
+        message: result.message || '凭证登录失败',
+      }
+    }
+
+    const cleanCookie = result.cookie.replace(/;\s*expires=[^;]+/gi, '')
+    const expireDays = 30
+    const expireAt = new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000).toISOString()
+
+    await updateUser(user.id, {
+      cookie: cleanCookie,
+      cookieOriginal: cleanCookie,
+      cookieExpireDays: expireDays,
+      cookieActualExpireDate: expireAt,
+      needsCookieUpdate: false,
+      needsApiValidation: false,
+      uid: result.uid || user.uid,
+    })
+
+    return {
+      success: true,
+      data: {
+        newCookie: cleanCookie,
+        expireDays,
+        expireAt,
+        totalCookies: cleanCookie.split(';').filter(Boolean).length,
+        hasGameToken: cleanCookie.includes('game_token='),
+        source: 'credential',
+      },
+    }
+  }
+
   /**
    * 自动检测并续期临近过期的Cookie
    * 页面加载时执行，自动为需要续期的用户进行Cookie续期
@@ -514,13 +560,23 @@ export const useUserStore = defineStore('user', () => {
 
       let renewedCount = 0
       let failedCount = 0
+      let skippedCount = 0
 
       // 为每个需要续期的用户执行续期
       for (const user of usersNeedRenewal) {
         try {
           console.log(`[UserStore] 正在为用户 ${user.name} 自动续期Cookie...`)
 
-          const result = await autoRenewUserCookie(user)
+          const hasCredential = Boolean(getLoginCredential(user))
+          if (!hasCredential) {
+            skippedCount++
+            console.warn(
+              `[UserStore] 用户 ${user.name} 未保存账号密码，跳过自动续期（旧 cookie 续期不会真正延长上游会话）`
+            )
+            continue
+          }
+
+          const result = await refreshCookieBySavedCredential(user)
 
           if (result.success) {
             // 🚨 检查是否包含关键的game_token
@@ -530,20 +586,10 @@ export const useUserStore = defineStore('user', () => {
               continue
             }
 
-            // 计算新的实际过期日期
-            const newExpireDate = new Date(Date.now() + result.data.expireDays * 24 * 60 * 60 * 1000)
-
-            // 更新用户信息
-            await updateUser(user.id, {
-              cookie: result.data.newCookie,
-              cookieExpireDays: result.data.expireDays,
-              cookieActualExpireDate: newExpireDate.toISOString(),
-              needsCookieUpdate: false, // 🔧 清除更新标志
-              needsApiValidation: false, // 🔧 清除验证标志
-            })
-
             renewedCount++
-            console.log(`[UserStore] 用户 ${user.name} Cookie自动续期成功，新有效期：${result.data.expireDays}天，获取了${result.data.totalCookies}个Cookie，过期日期：${newExpireDate.toISOString()}`)
+            console.log(
+              `[UserStore] 用户 ${user.name} Cookie自动续期成功，新有效期：${result.data.expireDays}天，获取了${result.data.totalCookies}个Cookie，过期日期：${result.data.expireAt}`
+            )
           } else {
             failedCount++
             console.warn(`[UserStore] 用户 ${user.name} Cookie自动续期失败:`, result.message)
@@ -556,16 +602,17 @@ export const useUserStore = defineStore('user', () => {
 
       // 显示续期结果摘要
       if (renewedCount > 0) {
-        const message = failedCount > 0
-          ? `自动续期完成：成功${renewedCount}个，失败${failedCount}个用户`
-          : `自动续期完成：成功为${renewedCount}个用户续期Cookie`
+        const parts = [`成功${renewedCount}个`]
+        if (failedCount > 0) parts.push(`失败${failedCount}个`)
+        if (skippedCount > 0) parts.push(`跳过${skippedCount}个`)
+        const message = `自动续期完成：${parts.join('，')}`
 
         showCustomMessage(message, failedCount > 0 ? 'warning' : 'success')
       } else if (failedCount > 0) {
         showCustomMessage(`自动续期失败：${failedCount}个用户续期失败`, 'error')
       }
 
-      console.log(`[UserStore] 自动Cookie续期完成：成功${renewedCount}个，失败${failedCount}个`)
+      console.log(`[UserStore] 自动Cookie续期完成：成功${renewedCount}个，失败${failedCount}个，跳过${skippedCount}个`)
 
     } catch (error) {
       console.error('[UserStore] 自动Cookie续期检测异常:', error)

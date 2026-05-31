@@ -67,18 +67,18 @@ const bookmarkletCode = `(() => {
     const gameIdFromCookie = cookieMap['game_gameid'] || (document.cookie.match(/__ss_storage_cookie_cache_game_id__=(\d+)/)?.[1]) || '';
     const game_id = gameIdFromCookie || '29080';
 
-  // 选择正确的 game_token：优先 cookie；否则在 LS 中优先 lip.token（通常为短十六进制），再退 ci.token
+  // 选择正确的 game_token：优先 cookie；LS 中顶层 lip.token 才是游戏侧 token，channel_info.token 仍是 LI Pass token
   const tokenCandidates = [cookieMap['game_token'], lip.token, ci.token].filter(v => !!v);
   const isLikelyHex = (s) => typeof s === 'string' && /^[a-fA-F0-9]{32,64}$/.test(s);
-  let token = tokenCandidates.find(isLikelyHex) || tokenCandidates.find(s => typeof s === 'string' && !s.includes('@')) || tokenCandidates[0] || '';
+  let token = tokenCandidates.find(isLikelyHex) || '';
 
     // openid/uid：优先 cookie，其次从 LS 识别
-    // 经验规则：ci.openid 通常是 uid；更长的 openid 可能在 lip.openid 或 nn.game_sacc_uid / nn.li_uid
+    // SDK 中 top-level openid 是 game_openid；channel_info.openid 更接近 game_uid
     const cookie_openid = cookieMap['game_openid'] || '';
     const cookie_uid = cookieMap['game_uid'] || '';
 
-  const derived_uid = cookie_uid || nn.li_uid || ci.openid || lip.uid || '';
-  const derived_openid = cookie_openid || lip.openid || nn.game_sacc_uid || '';
+  const derived_uid = cookie_uid || nn.game_sacc_uid || nn.li_uid || ci.openid || lip.uid || '';
+  const derived_openid = cookie_openid || lip.openid || ci.openid || '';
 
     const channelid = cookieMap['game_channelid'] || ci.channelId || ci.channel_id || '';
     const user_name = cookieMap['game_user_name'] || lip.user_name || (ci.account ? String(ci.account).split('@')[0] : '');

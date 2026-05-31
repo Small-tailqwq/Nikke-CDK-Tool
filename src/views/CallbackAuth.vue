@@ -154,6 +154,8 @@ onMounted(async () => {
       if (standardCookie.value) {
         fetchPlayer()
       }
+      raw.value = JSON.stringify(sanitizeAuthPayloadForDisplay(parsed.value), null, 2)
+      clearAuthParams()
     } else {
       error.value = '缺少认证参数 (token 或 data)'
       return
@@ -172,6 +174,9 @@ async function fetchAuthDataByToken(token) {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
     const response = await fetch(`${apiBaseUrl}/api/auth/token-data`, {
       method: 'POST',
+      cache: 'no-store',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -231,7 +236,7 @@ async function fetchAuthDataByToken(token) {
       derived.value = responseData.derived || deriveCore(responseData.ls)
     }
 
-    raw.value = JSON.stringify(parsed.value, null, 2)
+    raw.value = JSON.stringify(sanitizeAuthPayloadForDisplay(parsed.value), null, 2)
 
     // 静默写入快照，供"从快照填充"使用
     writeToStorage()
@@ -241,12 +246,7 @@ async function fetchAuthDataByToken(token) {
       fetchPlayer()
     }
 
-    // 🔐 安全改进：清除URL中的令牌参数
-    if (window.history.replaceState) {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('token')
-      window.history.replaceState(null, '', url.toString())
-    }
+    clearAuthParams()
 
     console.log('🔐 通过令牌成功获取认证数据，已清除URL中的令牌参数')
   } catch (e) {
@@ -261,10 +261,11 @@ function writeToStorage() {
   try {
     const payload = {
       ts: Date.now(),
-      source: parsed.value?.href,
-      cookie: parsed.value?.cookie || '',
-      standardCookie: standardCookie.value || '',
-      ls: parsed.value?.ls || {},
+      source: parsed.value?.href ? String(parsed.value.href).split('?')[0] : '',
+      hasCookie: Boolean(standardCookie.value),
+      cookieKeys: standardCookie.value
+        ? standardCookie.value.split(';').map((part) => part.trim().split('=')[0]).filter(Boolean)
+        : [],
       derived: derived.value,
     }
     localStorage.setItem('nikke_official_login_snapshot', JSON.stringify(payload))
@@ -272,6 +273,29 @@ function writeToStorage() {
     // 忽略本地存储错误
     console.warn('写入快照失败:', e)
   }
+}
+
+function clearAuthParams() {
+  if (!window.history.replaceState) return
+  const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#/auth/callback`
+  window.history.replaceState(null, '', cleanUrl)
+}
+
+function sanitizeAuthPayloadForDisplay(payload) {
+  if (!payload || typeof payload !== 'object') return payload
+  const cloned = JSON.parse(JSON.stringify(payload))
+  const redact = (obj) => {
+    if (!obj || typeof obj !== 'object') return
+    for (const key of Object.keys(obj)) {
+      if (/cookie|token|password|ticket|randstr/i.test(key)) {
+        obj[key] = '<redacted>'
+      } else if (typeof obj[key] === 'object') {
+        redact(obj[key])
+      }
+    }
+  }
+  redact(cloned)
+  return cloned
 }
 
 function goUsers() {
@@ -301,9 +325,9 @@ function deriveCore(ls) {
     const game_id = '29080'
     return {
       game_id,
-      openid: ci.openid || lip.openid || '',
+      openid: lip.openid || ci.openid || '',
       channelid: ci.channelId || ci.channel_id || '',
-      uid: nn.game_sacc_uid || nn.li_uid || '',
+      uid: nn.game_sacc_uid || nn.li_uid || ci.openid || lip.uid || '',
       user_name: lip.user_name || (ci.account ? String(ci.account).split('@')[0] : ''),
     }
   } catch {
@@ -327,14 +351,17 @@ function deriveCookieFromLS(ls) {
       }
     }
     const nn = (extra && extra.need_notify_rsp) || {}
+    const isLikelyHex = (value) => typeof value === 'string' && /^[a-fA-F0-9]{32,64}$/.test(value)
+    const gameToken = isLikelyHex(lip.token) ? lip.token : isLikelyHex(ci.token) ? ci.token : ''
     const kv = [
-      ['game_token', ci.token || lip.token || ''],
-      ['game_openid', ci.openid || lip.openid || ''],
-      ['game_gameid', '29080'],
-      ['game_channelid', ci.channelId || ci.channel_id || ''],
-      ['game_uid', nn.game_sacc_uid || nn.li_uid || ''],
-      ['game_user_name', lip.user_name || (ci.account ? String(ci.account).split('@')[0] : '')],
       ['game_adult_status', 1],
+      ['game_channelid', ci.channelId || ci.channel_id || ''],
+      ['game_gameid', '29080'],
+      ['game_login_game', '0'],
+      ['game_openid', lip.openid || ci.openid || ''],
+      ['game_token', gameToken],
+      ['game_uid', nn.game_sacc_uid || nn.li_uid || ci.openid || lip.uid || ''],
+      ['game_user_name', lip.user_name || (ci.account ? String(ci.account).split('@')[0] : '')],
     ].filter(([k, v]) => v !== undefined && v !== null && String(v) !== '')
     return kv.map(([k, v]) => `${k}=${String(v)}`).join('; ')
   } catch {

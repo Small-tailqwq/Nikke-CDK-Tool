@@ -1,17 +1,37 @@
+import CryptoJS from 'crypto-js'
+
 // 存储键名
 const STORAGE_KEYS = {
   USERS: 'nikke_cdk_users',
   HISTORY: 'nikke_cdk_history',
 }
 
-// 简单AES加密（CryptoJS）
-import CryptoJS from 'crypto-js'
-const SECRET_KEY = 'nikke-cdk-tool-2024' // 可放到.env
+const LEGACY_SECRET_KEY = 'nikke-cdk-tool-2024'
+const STORAGE_SECRET_KEY = 'nikke_cdk_storage_secret_v2'
+
+const randomSecret = () => {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+const getStorageSecret = () => {
+  try {
+    let secret = localStorage.getItem(STORAGE_SECRET_KEY)
+    if (!secret) {
+      secret = randomSecret()
+      localStorage.setItem(STORAGE_SECRET_KEY, secret)
+    }
+    return secret
+  } catch {
+    return LEGACY_SECRET_KEY
+  }
+}
 
 // 加密存储
 const encrypt = (data) => {
   try {
-    return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString()
+    return CryptoJS.AES.encrypt(JSON.stringify(data), getStorageSecret()).toString()
   } catch {
     return ''
   }
@@ -20,9 +40,17 @@ const encrypt = (data) => {
 // 解密数据
 const decrypt = (data) => {
   try {
-    const bytes = CryptoJS.AES.decrypt(data, SECRET_KEY)
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-    return JSON.parse(decrypted)
+    const secrets = [getStorageSecret(), LEGACY_SECRET_KEY]
+    for (const secret of secrets) {
+      try {
+        const bytes = CryptoJS.AES.decrypt(data, secret)
+        const decrypted = bytes.toString(CryptoJS.enc.Utf8)
+        if (decrypted) return JSON.parse(decrypted)
+      } catch {
+        // 继续尝试旧密钥
+      }
+    }
+    return null
   } catch {
     return null
   }

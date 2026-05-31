@@ -10,8 +10,9 @@
 - **兑换历史**: `/global/history` 或 `/api/global/history` (简化路径)
 - **角色信息获取**: `/global/player-info` - 获取用户游戏角色信息
 - **服务器区域列表**: `/global/region-list` - 获取服务器区域列表
-- ~~**Cookie续期**: `/global/cookie-renewal` - 自动续期Cookie~~
+- ~~**Cookie续期**: `/global/cookie-renewal` - 自动续期Cookie~~（当前仅会回写现有 `game_token`，不会真正延长上游会话）
 - **登录状态检查**: `/global/check-login` - 检查登录状态
+- **BlaBla 任务代理**: `/global/bla/*` - 任务状态、签到、补任务、积分查询
 
 ### 🇨🇳 国服支持
 
@@ -156,6 +157,38 @@ Content-Type: application/json
   }
 }
 ```
+
+### BlaBla 任务代理
+
+```http
+POST https://nikke-cdk.hayasa.org/global/bla/check-login
+POST https://nikke-cdk.hayasa.org/global/bla/task-list
+POST https://nikke-cdk.hayasa.org/global/bla/daily-checkin
+POST https://nikke-cdk.hayasa.org/global/bla/complete-task
+POST https://nikke-cdk.hayasa.org/global/bla/total-points
+Content-Type: application/json
+
+{
+  "cookie": "你的Cookie",
+  "payload": {
+    // 可选，上游接口所需参数
+  }
+}
+```
+
+说明：前端本地开发环境不要直连 `https://api.blablalink.com`，否则会被浏览器 CORS 拦截；BlaBla 相关请求应统一通过这里的 Worker 代理。
+
+注意：根据现有抓包与实测，`/global/cookie-renewal` 调用的上游 `https://api.blablalink.com/api/user/Login` 只会把现有 `game_token` 重新写回浏览器 Cookie，通常不会签发新的游戏令牌，因此不能视为“真实续签”。
+
+### 真实续签（推荐）
+
+真实有效的方式是使用账号密码重新走一遍官方登录链路：
+
+1. `https://li-sg.intlgame.com/account/login`
+2. `https://aws-na.intlgame.com/v2/auth/login`
+3. `https://api.blablalink.com/api/user/Login`
+
+仓库内对应的 Worker 端点是 `POST /api/login`，前端“邮箱登录 / 获取Token”与已保存凭证的刷新逻辑都应走这条链路。
 
 ### 安全令牌认证
 

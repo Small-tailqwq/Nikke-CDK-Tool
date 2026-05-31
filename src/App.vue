@@ -106,8 +106,8 @@
               <el-tooltip content="后端API代理服务" placement="top">
                 <el-tag size="small" type="info" effect="plain">Cloudflare Worker</el-tag>
               </el-tooltip>
-              <el-tooltip content="Cursor的后继者" placement="top">
-                <el-tag size="small" type="info" effect="plain">VS Code</el-tag>
+              <el-tooltip content="AI 辅助编程 CLI" placement="top">
+                <el-tag size="small" type="info" effect="plain">OpenCode</el-tag>
               </el-tooltip>
               <el-tooltip
                 v-if="doroStore.shouldShowButton"
@@ -155,6 +155,19 @@
                   </el-tag>
                 </a>
               </el-tooltip>
+              <el-tooltip content="请开发者喝杯咖啡" placement="top">
+                <a
+                  href="#"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="friend-link sponsor-link"
+                  @click.prevent="openSponsorPage"
+                >
+                  <el-tag size="small" type="danger" effect="dark">
+                    ❤ 赞助支持
+                  </el-tag>
+                </a>
+              </el-tooltip>
             </div>
           </div>
         </div>
@@ -181,6 +194,10 @@ const FloatingDoro = defineAsyncComponent(() => import('./components/FloatingDor
 const DoroSummonAnimation = defineAsyncComponent(
   () => import('./components/DoroSummonAnimation.vue')
 )
+import { runBlaTasks } from './utils/blaSigner'
+import { getBlaTodayKey, hasUserBlaRunToday } from './utils/blaRunState'
+import { notifyBlaRunCompletion } from './utils/browserNotification'
+import { showCustomMessage, ProgressMessage } from './utils/customMessage'
 import CookieWarningAlert from './components/CookieWarningAlert.vue'
 import './assets/theme.scss'
 
@@ -212,13 +229,30 @@ const getRandomSplashText = () => {
   return splashTexts[randomIndex]
 }
 
+const getBlaOverviewText = (overview) => {
+  if (!overview || !overview.totalCount) return '暂无任务数据'
+  if (overview.pendingCount === 0) {
+    return `${overview.completedCount}/${overview.totalCount} 项已完成`
+  }
+  if (overview.pendingCount === overview.manualPendingCount) {
+    return `${overview.completedCount}/${overview.totalCount} 项已完成，剩余需手动`
+  }
+  return `${overview.completedCount}/${overview.totalCount} 项已完成`
+}
+
 // 定义菜单项
-const menuItems = [
-  { path: '/announcement', name: 'CDK公告' },
-  { path: '/cdk', name: 'CDK兑换' },
-  { path: '/user', name: '用户管理' },
-  { path: '/history', name: '兑换历史' },
-]
+const menuItems = computed(() => {
+  const items = [
+    { path: '/announcement', name: 'CDK公告' },
+    { path: '/cdk', name: 'CDK兑换' },
+    { path: '/user', name: '用户管理' },
+    { path: '/history', name: '兑换历史' },
+  ]
+  if (import.meta.env.DEV) {
+    items.push({ path: '/admin', name: '⚙️ 管理' })
+  }
+  return items
+})
 
 // 页面切换动画相关
 const slideDirection = ref('slide-left')
@@ -228,7 +262,7 @@ const currentPageIndex = ref(0)
 
 // 获取页面索引
 const getPageIndex = (path) => {
-  const index = menuItems.findIndex((item) => item.path === path)
+  const index = menuItems.value.findIndex((item) => item.path === path)
   return index === -1 ? 0 : index
 }
 
@@ -236,6 +270,14 @@ const getPageIndex = (path) => {
 const openDocumentation = () => {
   window.open(
     'https://chalk-quotation-b2d.notion.site/Nikke-20f563f728f180e6ad58e9205a7fa271',
+    '_blank'
+  )
+}
+
+// 打开赞助页面
+const openSponsorPage = () => {
+  window.open(
+    'https://afdian.com/a/thesmalltail',
     '_blank'
   )
 }
@@ -318,6 +360,104 @@ onMounted(async () => {
     console.log('[App] 自动Cookie续期检测完成')
   } catch (error) {
     console.error('[App] 自动Cookie续期检测失败:', error)
+  }
+
+  // 执行 Blabla 每日任务
+  let blaProgressMessage = null
+  try {
+    const today = getBlaTodayKey()
+    const blaUsers = userStore.users.filter((u) => u.blaEnabled && u.cookie && u.server !== 'cn')
+    const pendingBlaUsers = blaUsers.filter((user) => !hasUserBlaRunToday(user, today))
+
+    if (pendingBlaUsers.length > 0) {
+      console.log(`[App] 开始执行 Blabla 每日任务，待执行 ${pendingBlaUsers.length} 个账号...`)
+      if (blaUsers.length > 0) {
+        blaProgressMessage = new ProgressMessage(`正在准备 BlaBla 任务，共 ${pendingBlaUsers.length} 个账号...`)
+        let successCount = 0
+        let failCount = 0
+        const blaSummaryLines = []
+        for (let index = 0; index < pendingBlaUsers.length; index++) {
+          const user = pendingBlaUsers[index]
+          console.log(`[App] 正在执行用户 ${user.name} 的 Blabla 任务...`)
+          blaProgressMessage.updateProgress(
+            (index / pendingBlaUsers.length) * 100,
+            `正在检查 ${user.name} 的 BlaBla 任务...`
+          )
+          const result = await runBlaTasks(user.cookie, {
+            exchangeEnabled: Boolean(user.blaCustomExchangeEnabled),
+            exchangeItems: user.blaMonthlyExchangeItems,
+            exchangeRecord: user.blaMonthlyExchangeRecord,
+            onProgress: ({ current, total, taskName, detail }) => {
+              const taskRatio = total > 0 ? current / total : 1
+              const progressPercentage = ((index + taskRatio) / pendingBlaUsers.length) * 100
+              blaProgressMessage.updateProgress(
+                progressPercentage,
+                `正在执行 ${user.name}: ${taskName}${detail ? ` - ${detail}` : ''}`
+              )
+            },
+          })
+          const lines = result.messages.join('\n')
+          console.log(`[App] 用户 ${user.name} 的 Blabla 任务结果:\n${lines}`)
+          if (result.success) successCount++
+          else failCount++
+          const userOverviewText = getBlaOverviewText(result.overview)
+          const exchangeSummaryText =
+            result.exchange?.attempted && result.exchange?.lastRedeemMessage
+              ? `；${result.exchange.lastRedeemMessage}`
+              : ''
+          blaSummaryLines.push(`${user.name}: ${userOverviewText}${exchangeSummaryText}`)
+          const executedAt = new Date().toLocaleString()
+          await userStore.updateUser(user.id, {
+            blaLastRun: executedAt,
+            blaLastResult: result.success ? 'success' : 'fail',
+            blaLastMessages: result.messages,
+            blaTaskOverview: result.overview || null,
+            ...(result.exchange?.attempted
+              ? {
+                  blaMonthlyExchangeRecord: result.exchange.record || {},
+                  blaLastRedeemAt: result.exchange.lastRedeemAt || new Date().toISOString(),
+                  blaLastRedeemMessage: result.exchange.lastRedeemMessage || '',
+                }
+              : {}),
+            ...(result.success ? { blaLastRunDateKey: today } : {}),
+          })
+          blaProgressMessage.updateProgress(
+            ((index + 1) / pendingBlaUsers.length) * 100,
+            `${user.name}: ${userOverviewText}`
+          )
+        }
+        const totalMsg = `BlaBla 每日任务完成：成功 ${successCount}，失败 ${failCount}`
+        showCustomMessage(totalMsg, failCount > 0 ? 'warning' : 'success')
+        notifyBlaRunCompletion({
+          successCount,
+          failCount,
+          totalCount: pendingBlaUsers.length,
+          lines: blaSummaryLines,
+        })
+        if (failCount > 0) {
+          blaProgressMessage.error(totalMsg, false)
+          setTimeout(() => blaProgressMessage?.hide(), 3000)
+        } else {
+          blaProgressMessage.complete(totalMsg)
+        }
+        console.log(`[App] ${totalMsg}`)
+      } else {
+        console.log('[App] 没有开启 Blabla 任务的用户')
+      }
+    } else if (blaUsers.length > 0) {
+      console.log('[App] 今日 BlaBla 任务均已执行，跳过')
+    } else {
+      console.log('[App] 没有开启 Blabla 任务的用户')
+    }
+  } catch (error) {
+    console.error('[App] Blabla 每日任务执行失败:', error)
+    blaProgressMessage?.error(`BlaBla 每日任务执行失败: ${error.message || '未知错误'}`)
+    notifyBlaRunCompletion({
+      successCount: 0,
+      failCount: 1,
+      totalCount: 1,
+      lines: [`执行失败: ${error.message || '未知错误'}`],
+    })
   }
 })
 
@@ -1025,6 +1165,16 @@ body {
     &:hover .github-icon,
     &:hover .notion-icon {
       transform: scale(1.1);
+    }
+  }
+
+  .sponsor-link {
+    .el-tag {
+      transition: all 0.2s ease-out;
+    }
+    &:hover .el-tag {
+      transform: translateY(-1px) scale(1.05);
+      filter: brightness(1.2);
     }
   }
 
