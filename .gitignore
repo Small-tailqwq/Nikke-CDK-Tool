@@ -10,3 +10,6 @@ CLAUDE.md
 /public/announcement-images/*.webp
 /public/announcement-images/*/*.webp
 docs
+
+# Reverse engineering artifacts — captured probe output may contain real session data
+/_research/artifacts/
