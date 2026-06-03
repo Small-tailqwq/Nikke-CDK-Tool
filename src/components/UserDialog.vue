@@ -345,8 +345,10 @@
             class="help-button"
             :loading="emailLoginLoading"
           >
-            <el-icon><Message /></el-icon>
-            邮箱登录
+            <template v-if="!emailLoginLoading">
+              <el-icon><Message /></el-icon>
+              邮箱登录
+            </template>
           </el-button>
         </div>
         <div class="dialog-footer-right">

@@ -149,6 +149,7 @@
             collapse-tags-tooltip
             class="config-select"
             :disabled="!draftConfig.enabled"
+            :teleported="false"
             placeholder="选择每月兑换的 Global 珠宝商品"
           >
             <el-option
