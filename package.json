@@ -7,7 +7,7 @@
     "prebuild": "node scripts/prebuild.mjs",
     "build": "npm run prebuild && vite build",
     "preview": "vite preview",
-    "lint": "eslint --ext .js,.ts,.vue src",
+    "lint": "eslint src",
     "format": "prettier --write .",
     "validate": "node scripts/validate-cdk.mjs",
     "thumbnails": "node scripts/generate-thumbnails.mjs",
@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.6.2",
+    "@eslint/eslintrc": "^3.3.5",
     "@vue/eslint-config-prettier": "^9.0.0",
     "axios": "^1.9.0",
     "eslint": "^9.9.0",
