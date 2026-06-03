@@ -4,17 +4,26 @@
     <meta charset="UTF-8">
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' https://global.captcha.gtimg.com 'sha256-9q74kc+Fgr6PfTFRQ+C8noFec0UufxHW90S5dK5EuRI=';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      connect-src 'self' https://nikke-cdk.hayasa.org https://nikke-cdk-test.hayasa.org ws://localhost:* http://localhost:*;
+      font-src 'self' data:;
+      frame-src https://global.captcha.gtimg.com https://ssl.captcha.qq.com;
+    ">
     <title>NIKKE CDK Tools</title>
     <script>
       if (typeof global === 'undefined') {
         window.global = window;
       }
     </script>
-    <script type="module" crossorigin src="/Nikke-CDK-Tool/assets/index-1aab2c92.js"></script>
+    <script type="module" crossorigin src="/Nikke-CDK-Tool/assets/index-9b850611.js"></script>
     <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/vue-85abc9fb.js">
-    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/element-plus-8a716ef0.js">
+    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/element-plus-8c4b7c47.js">
     <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/axios-3a665b0f.js">
-    <link rel="stylesheet" href="/Nikke-CDK-Tool/assets/index-21411952.css">
+    <link rel="stylesheet" href="/Nikke-CDK-Tool/assets/index-a896385c.css">
   </head>
   <body>
     <div id="app"></div>
