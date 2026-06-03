@@ -170,6 +170,39 @@ function md5(s) {
   return rhex(a) + rhex(b) + rhex(c) + rhex(d)
 }
 
+function maskSecret(value, visible = 4) {
+  const text = String(value || '')
+  if (!text) return ''
+  if (text.length <= visible * 2) return '<redacted>'
+  return `${text.slice(0, visible)}...${text.slice(-visible)}`
+}
+
+function maskCookieString(cookieString) {
+  if (!cookieString) return ''
+  return cookieString.split(';').map((segment) => {
+    const [key, ...rest] = segment.trim().split('=')
+    if (!key) return ''
+    const value = rest.join('=')
+    return `${key}=${maskSecret(value)}`
+  }).filter(Boolean).join('; ')
+}
+
+function sanitizeSensitiveText(text) {
+  if (!text) return ''
+  return String(text)
+    .replace(/("(?:token|game_token|utoken|password|ticket|randstr|cookie)"\s*:\s*")([^"]*)(")/gi, '$1<redacted>$3')
+    .replace(/((?:token|game_token|utoken|password|ticket|randstr|cookie)=)([^&;\s"]+)/gi, '$1<redacted>')
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 /**
  * 从 Response 中提取所有 Set-Cookie 头
  */
@@ -447,8 +480,7 @@ function injectSessionHelpers(html, sid) {
 // 国服API端点
 const CN_ENDPOINTS = {
   CDK_EXCHANGE: 'https://x8m8.ams.game.qq.com/ide/',
-  CAPTCHA: 'https://ssl.captcha.qq.com/getimage',
-  LOG: 'https://ams.game.qq.com/log'
+  CAPTCHA: 'https://ssl.captcha.qq.com/getimage'
 }
 
 // 生成请求ID的辅助函数
@@ -753,18 +785,14 @@ async function cloneForwardRequest(request, overrides = {}) {
 
   // 强制设置正确的Origin和Referer
   if (overrides.origin) {
-    console.log(`[cloneForwardRequest] Setting Origin: ${overrides.origin} (was: ${originalOrigin})`)
     initHeaders.set('Origin', overrides.origin)
   } else {
-    console.log(`[cloneForwardRequest] Deleting Origin (was: ${originalOrigin})`)
     initHeaders.delete('Origin')
   }
 
   if (overrides.referer) {
-    console.log(`[cloneForwardRequest] Setting Referer: ${overrides.referer} (was: ${originalReferer})`)
     initHeaders.set('Referer', overrides.referer)
   } else {
-    console.log(`[cloneForwardRequest] Deleting Referer (was: ${originalReferer})`)
     initHeaders.delete('Referer')
   }
 
@@ -1051,23 +1079,20 @@ async function storeTokenData(data, tokenKV) {
  * 从 KV 获取并删除令牌数据（一次性使用）
  * @param {string} token - 令牌
  * @param {KVNamespace} tokenKV - KV namespace 实例
+ * @param {boolean} [deleteOnRead=true] - 是否在读取后删除
  * @returns {Promise<any|null>} 数据或 null
  */
-async function consumeTokenData(token, tokenKV) {
-  // 从 KV 获取数据
+async function consumeTokenData(token, tokenKV, deleteOnRead = true) {
   const jsonData = await tokenKV.get(token)
 
   if (!jsonData) {
-    // console.log(`[token-store] 令牌不存在或已过期: ${token.substring(0, 16)}...`)
     return null
   }
 
-  // 立即删除令牌（一次性使用）
-  await tokenKV.delete(token)
+  if (deleteOnRead) {
+    await tokenKV.delete(token)
+  }
 
-  // console.log(`[token-store] 令牌已消费: ${token.substring(0, 16)}...`)
-
-  // 解析数据
   try {
     return JSON.parse(jsonData)
   } catch (e) {
@@ -1272,6 +1297,7 @@ async function fetchBlablalinkGameLogin(gameBody) {
 
 async function handleDirectLogin(request, env) {
   const origin = request.headers.get('Origin')
+  const debugEnabled = new URL(request.url).searchParams.get('debug') === '1'
 
   try {
     const { email, password, ticket, randstr, captchaAppId } = await request.json()
@@ -1431,10 +1457,12 @@ async function handleDirectLogin(request, env) {
         : fallbackCookieStr
 
       if (!isCdkCookieUsable(cookieStr)) {
-        return new Response(JSON.stringify({
+        const failurePayload = {
           code: -1,
-          message: '账号密码登录成功，但未获取到 CDK 兑换所需的游戏侧 game_token。请确认账号已绑定 NIKKE，或先继续使用官方浏览器登录方式。',
-          debug: {
+          message: '账号密码登录成功，但未获取到 CDK 兑换所需的游戏侧 game_token。请确认账号已绑定 NIKKE，或先继续使用官方浏览器登录方式。'
+        }
+        if (debugEnabled) {
+          failurePayload.debug = {
             login: summarizeLiPassResult(result),
             userInfo: summarizeLiPassResult(userInfoResult),
             userInfoError,
@@ -1444,13 +1472,14 @@ async function handleDirectLogin(request, env) {
             blLogin: {
               status: blLoginStatus,
               error: blLoginError || '(none)',
-              bodyPreview: blLoginBodyText.slice(0, 1000),
+              bodyPreview: sanitizeSensitiveText(blLoginBodyText).slice(0, 1000),
               cookieCount: blLoginCookies.length,
               cookieKeys: blLoginCookies.map(c => c.split('=')[0]),
               attempts: blLoginAttempts
             }
           }
-        }), {
+        }
+        return new Response(JSON.stringify(failurePayload), {
           headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
         })
       }
@@ -1470,16 +1499,22 @@ async function handleDirectLogin(request, env) {
       })
     }
 
-    return new Response(JSON.stringify({
+    const failurePayload = {
       code: -1,
-      message: result.msg || 'Login failed',
-      debug: result
-    }), {
+      message: result.msg || 'Login failed'
+    }
+    if (debugEnabled) {
+      failurePayload.debug = summarizeLiPassResult(result) || {
+        ret: result?.ret,
+        msg: result?.msg
+      }
+    }
+    return new Response(JSON.stringify(failurePayload), {
       headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
     })
 
   } catch (error) {
-    console.error('[Error]:', error)
+    console.error('[handleDirectLogin Error]:', error)
     return new Response(JSON.stringify({
       code: -1,
       message: error.message
@@ -1491,16 +1526,31 @@ async function handleDirectLogin(request, env) {
 }
 // ──── Token 认证 ────────────────────────────────────────────────
 
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,128}$/
+
 async function handleTokenAuthData(request, tokenKV) {
   const origin = request.headers.get('Origin')
 
   try {
-    const { token } = await request.json()
-
-    if (!token) {
+    if (!tokenKV) {
       return new Response(JSON.stringify({
         success: false,
-        message: '缺少令牌参数'
+        message: '令牌存储未配置'
+      }), {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      })
+    }
+
+    const { token } = await request.json()
+
+    if (!token || typeof token !== 'string' || !TOKEN_PATTERN.test(token)) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: '令牌参数无效'
       }), {
         status: 400,
         headers: {
@@ -1510,8 +1560,7 @@ async function handleTokenAuthData(request, tokenKV) {
       })
     }
 
-    // 从 KV 获取并消费令牌数据（包含原始Cookie和SID）
-    const payload = await consumeTokenData(token, tokenKV)
+    const payload = await consumeTokenData(token, tokenKV, false)
 
     if (!payload) {
       return new Response(JSON.stringify({
@@ -1526,9 +1575,21 @@ async function handleTokenAuthData(request, tokenKV) {
       })
     }
 
-    // 提取关键数据
-    const { standardCookie, sid, derived } = payload
+    if (payload.callbackOrigin && origin !== payload.callbackOrigin) {
+      console.warn(`[token-auth] Origin 不匹配: ${origin || '(none)'} !== ${payload.callbackOrigin}`)
+      return new Response(JSON.stringify({
+        success: false,
+        message: '回调来源不匹配'
+      }), {
+        status: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      })
+    }
 
+    const { standardCookie, sid, derived, href } = payload
     if (!standardCookie || !sid) {
       console.error('[token-auth] payload缺少必要数据:', { hasCookie: !!standardCookie, hasSid: !!sid })
       return new Response(JSON.stringify({
@@ -1543,24 +1604,20 @@ async function handleTokenAuthData(request, tokenKV) {
       })
     }
 
-    // 🔐 使用三重加密加密Cookie
-    const encryptedCookie = await encryptCookieDataWithTripleKey(standardCookie, sid, token)
-
-    // 返回加密后的数据包
     const responseData = {
-      _encrypted_cookie: encryptedCookie,  // 加密的Cookie（Base64编码）
-      sid: sid,                             // SID（解密需要）
-      derived: derived || {},               // 派生数据（服务器、到期时间等）
+      _encrypted_cookie: await encryptCookieDataWithTripleKey(standardCookie, sid, token),
+      sid,
+      href: href || '',
+      derived: derived || {},
       security: {
-        method: 'triple-key-pbkdf2',        // 加密方法标识
+        method: 'triple-key-pbkdf2',
         keyDerivation: 'PBKDF2',
         iterations: 100000,
         cipher: 'AES-GCM-256'
       }
     }
 
-    // console.log(`[token-auth] 使用三重加密返回数据`)
-
+    await tokenKV.delete(token)
     return new Response(JSON.stringify({
       success: true,
       data: responseData
@@ -1590,22 +1647,30 @@ async function handleTokenAuthData(request, tokenKV) {
 // 🔧 新增：检查登录 Cookie 并生成 CallbackAuth URL
 async function handleCheckProxyLoginCookie(request, sid, tokenKV) {
   const cookieHeader = request.headers.get('Cookie') || ''
-  // console.log(`[check-cookie] 检查 sid=${sid} 的 Cookie`)
-  // console.log(`[check-cookie] Cookie 长度: ${cookieHeader.length}`)
+  if (!tokenKV) {
+    return new Response(JSON.stringify({
+      success: false,
+      message: '令牌存储未配置'
+    }), {
+      status: 503,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(request.headers.get('Origin')),
+        'Cache-Control': 'no-store'
+      }
+    })
+  }
 
-  // 解析 Cookie
   const pairs = parseCookieHeader(cookieHeader)
   const cookieMap = new Map()
   pairs.forEach(([key, value]) => {
     cookieMap.set(key, value)
   })
 
-  // 检查是否有游戏 Cookie
   const requiredKeys = ['game_token', 'game_openid', 'game_uid']
   const hasValidCookie = requiredKeys.every(key => cookieMap.has(key) && cookieMap.get(key))
 
   if (!hasValidCookie) {
-    // console.log(`[check-cookie] 未检测到有效 Cookie`)
     return new Response(JSON.stringify({
       success: false,
       message: '未检测到有效的登录 Cookie'
@@ -1619,13 +1684,9 @@ async function handleCheckProxyLoginCookie(request, sid, tokenKV) {
     })
   }
 
-  // 提取游戏 Cookie
   const gameCookies = filterGameCookies(pairs)
   const standardCookie = joinCookies(gameCookies)
 
-  // console.log(`[check-cookie] 提取到 ${gameCookies.length} 个游戏 Cookie`)
-
-  // 构造 derived 数据
   const derived = {
     game_id: cookieMap.get('game_gameid') || '29080',
     openid: cookieMap.get('game_openid') || '',
@@ -1634,69 +1695,47 @@ async function handleCheckProxyLoginCookie(request, sid, tokenKV) {
     user_name: cookieMap.get('game_user_name') || ''
   }
 
-  // 构造 CallbackAuth 需要的数据格式
-  const payload = {
-    href: request.url,
-    standardCookie: standardCookie,
-    cookie: cookieHeader,
-    sid: sid,  // 🔐 添加 sid，用于后续加密
-    ls: {},
-    derived: derived
-  }
-
-  // 🔐 混合方案：同时生成令牌和 postMessage 数据
-  // 1. 生成安全令牌并存储数据到 KV（用于令牌模式）
-  const token = await storeTokenData(payload, tokenKV)
-
-  // 2. 生成 postMessage 数据（用于 window.opener 方式）
-  const postMessageData = {
-    type: 'nikke-auth-callback',
-    token: token,
-    payload: payload  // 包含完整数据，用于 postMessage 传递
-  }
-
-  // 3. 生成 Base64 编码的数据（回退方案，用于无 window.opener 的情况）
-  const jsonStr = JSON.stringify(payload)
-  const b64 = btoa(unescape(encodeURIComponent(jsonStr)))
-
-  // 生成 CallbackAuth URL：优先使用 query 参数 cb（主站基址），否则回退到当前域名
   const url = new URL(request.url)
   const cbBase = url.searchParams.get('cb')
   let callbackBase
+  let callbackOrigin = ''
   if (cbBase) {
     try {
       const cbUrl = new URL(cbBase)
-      if (cbUrl.protocol === 'http:' || cbUrl.protocol === 'https:') {
+      if ((cbUrl.protocol === 'http:' || cbUrl.protocol === 'https:') &&
+        isAllowedCorsOrigin(cbUrl.origin)) {
         callbackBase = `${cbUrl.protocol}//${cbUrl.host}${cbUrl.pathname}`
+        callbackOrigin = cbUrl.origin
+      } else {
+        console.warn(`[check-cookie] cb 来源不在允许列表: ${cbUrl.origin}`)
       }
     } catch (e) {
       console.warn(`[check-cookie] 无效的 cb 参数: ${cbBase} (${e.message})`)
     }
   }
   if (!callbackBase) {
-    // 默认使用 Worker 自身域名作为回调基址
     callbackBase = `${url.protocol}//${url.host}`
+    callbackOrigin = `${url.protocol}//${url.host}`
   }
-  // 去掉末尾斜杠，拼接 hash 路由
+
+  const payload = {
+    href: request.url,
+    standardCookie,
+    sid,
+    callbackOrigin,
+    derived
+  }
+
+  const token = await storeTokenData(payload, tokenKV)
+
   const baseTrim = callbackBase.endsWith('/') ? callbackBase.slice(0, -1) : callbackBase
-
-  // 令牌模式URL（主要方式）
   const tokenUrl = `${baseTrim}/#/auth/callback?token=${encodeURIComponent(token)}`
-
-  // Base64模式URL（回退方式）
-  const dataUrl = `${baseTrim}/#/auth/callback?data=${encodeURIComponent(b64)}`
-
-  // console.log(`[check-cookie] 🔐 生成令牌 URL: ${tokenUrl}`)
-  // console.log(`[check-cookie] 令牌: ${token.substring(0, 16)}... (有效期: 5分钟)`)
 
   return new Response(JSON.stringify({
     success: true,
     message: '检测到有效的登录 Cookie',
-    callbackUrl: tokenUrl,  // 主要使用令牌模式URL
-    dataUrl: dataUrl,       // 回退使用 Base64 模式URL
-    postMessageData: postMessageData,  // 用于 window.opener.postMessage
-    cookieCount: gameCookies.length,
-    token: token
+    callbackUrl: tokenUrl,
+    cookieCount: gameCookies.length
   }), {
     status: 200,
     headers: {
@@ -1714,6 +1753,10 @@ async function handleCookieDebugPage(request, sid = null) {
   for (const [key, value] of request.headers.entries()) {
     allHeaders[key] = value
   }
+  const redactedHeaders = { ...allHeaders }
+  if (redactedHeaders.cookie) redactedHeaders.cookie = maskCookieString(redactedHeaders.cookie)
+  if (redactedHeaders.authorization) redactedHeaders.authorization = '<redacted>'
+  const maskedCookieHeader = maskCookieString(cookieHeader)
 
   // 确定当前访问路径
   const currentPath = sid ? `/sess/${sid}/debug/cookies` : '/debug/cookies'
@@ -1761,7 +1804,7 @@ async function handleCookieDebugPage(request, sid = null) {
     <h2>1️⃣ 服务端检测结果</h2>
     <p><strong>Cookie 头长度：</strong> <span class="status ${cookieHeader ? 'success' : 'error'}">${cookieHeader.length} 字符</span></p>
     <p><strong>Cookie 内容：</strong></p>
-    <pre>${cookieHeader || '(空)'}</pre>
+    <pre>${escapeHtml(maskedCookieHeader || '(空)')}</pre>
   </div>
 
   <div class="box">
@@ -1782,7 +1825,7 @@ async function handleCookieDebugPage(request, sid = null) {
 
   <div class="box">
     <h2>4️⃣ 所有请求头</h2>
-    <pre>${JSON.stringify(allHeaders, null, 2)}</pre>
+    <pre>${escapeHtml(JSON.stringify(redactedHeaders, null, 2))}</pre>
   </div>
 
   <div class="box">
@@ -1794,18 +1837,32 @@ async function handleCookieDebugPage(request, sid = null) {
     let extractedGameCookies = ''
     const currentSid = ${sid ? `'${sid}'` : 'null'}
     const isSessionMode = !!currentSid
+    const maskSecret = (value) => {
+      const text = String(value || '')
+      if (!text) return ''
+      if (text.length <= 8) return '<redacted>'
+      return text.slice(0, 4) + '...' + text.slice(-4)
+    }
+    const maskCookieString = (cookieString) => String(cookieString || '').split(';')
+      .map((segment) => {
+        const parts = segment.trim().split('=')
+        const key = parts.shift()
+        if (!key) return ''
+        return key + '=' + maskSecret(parts.join('='))
+      })
+      .filter(Boolean)
+      .join('; ')
 
     function refreshClientCookies() {
       const cookies = document.cookie
-      document.getElementById('client-cookies').textContent = cookies || '(空)'
+      document.getElementById('client-cookies').textContent = maskCookieString(cookies) || '(空)'
       
       // 会话模式下提示
       if (isSessionMode && cookies) {
         // console.log('[Session Mode] 当前会话:', currentSid)
-        // console.log('[Session Mode] 可以读取到 /sess/' + currentSid + '/ 路径下的 Cookie')
       }
       
-      diagnose(${JSON.stringify(cookieHeader)}, cookies)
+      diagnose(${JSON.stringify(Boolean(cookieHeader))}, Boolean(cookies))
     }
 
     function extractGameCookies() {
@@ -1840,7 +1897,7 @@ async function handleCookieDebugPage(request, sid = null) {
       }
 
       extractedGameCookies = gameCookies.join('; ')
-      document.getElementById('game-cookies').textContent = extractedGameCookies
+      document.getElementById('game-cookies').textContent = maskCookieString(extractedGameCookies)
     }
 
     async function sendToProduction() {
@@ -2017,7 +2074,7 @@ async function handleSessionProxy(request, url, sid, tail) {
           headers.set('Cache-Control', 'no-store')
           headers.set('Content-Type', 'text/html; charset=utf-8')
 
-          console.log(`[spa-fallback] ✅ Served rewritten and injected index.html for route "${restPath}"`)
+          // console.log(`[spa-fallback] Served index.html for route "${restPath}"`)
           return new Response(html, {
             status: 200,
             headers
@@ -2158,13 +2215,7 @@ async function handleSessionProxy(request, url, sid, tail) {
     }
 
     if (upstreamResponse.status >= 400) {
-      console.error(`[session-proxy] ⚠️ ERROR RESPONSE! Status ${upstreamResponse.status}`)
-      const errorBody = await upstreamResponse.clone().text()
-      console.error(`[session-proxy] Error body (first 500 chars): ${errorBody.substring(0, 500)}`)
-      // 特别检查 404 的 URL
-      if (upstreamResponse.status === 404) {
-        console.error(`[session-proxy] 🔴 404 NOT FOUND for URL: ${upstreamUrl.toString()}`)
-      }
+      console.error(`[session-proxy] ⚠️ ERROR STATUS ${upstreamResponse.status} for ${upstreamUrl.hostname}${upstreamUrl.pathname}`)
     }
 
   } catch (error) {
@@ -2306,7 +2357,7 @@ async function handleSessionProxy(request, url, sid, tail) {
         const jsonData = JSON.parse(rawText)
         // 如果返回"未登录"错误（code: 300001）
         if (jsonData.code === 300001 || jsonData.msg === 'game not login') {
-          console.log(`[checklogin-bypass] 🎭 拦截 CheckLogin 未登录响应 (原始路径: ${restPath} → 规范化: ${normalizedRestPath})，返回假的成功`)
+          // console.log(`[checklogin-bypass] 拦截 CheckLogin 未登录响应`)
 
           // 返回一个假的"已登录"响应，让页面不跳转
           const fakeResponse = {
@@ -2349,9 +2400,6 @@ async function handleSessionProxy(request, url, sid, tail) {
             const encryptedCookies = await encryptCookieData(cookieString, sid)
             jsonData._encrypted_cookies = encryptedCookies
 
-            // console.log(`[login-inject] 🔐 已加密 ${cookiePairs.length} 个 Cookie 并注入响应体`)
-            // console.log(`[login-inject] Cookie 长度: ${cookieString.length} → 加密后: ${encryptedCookies.length}`)
-
             return new Response(JSON.stringify(jsonData), {
               status: upstreamResponse.status,
               headers
@@ -2359,7 +2407,6 @@ async function handleSessionProxy(request, url, sid, tail) {
           }
         }
       } catch (e) {
-        console.error(`[login-inject] 处理失败:`, e.message)
         // 失败时继续正常流程
       }
     }
@@ -2368,11 +2415,7 @@ async function handleSessionProxy(request, url, sid, tail) {
     if (contentType.includes('application/json')) {
       try {
         const jsonData = JSON.parse(rawText)
-        console.log(`[session-proxy] JSON response:`, {
-          code: jsonData.code,
-          msg: jsonData.msg,
-          success: jsonData.success
-        })
+        // console.log(`[session-proxy] JSON response:`, { code: jsonData.code, msg: jsonData.msg })
       } catch (e) {
         // 不是有效的JSON，忽略
       }
@@ -2396,68 +2439,9 @@ async function handleSessionProxy(request, url, sid, tail) {
     const isHtml = contentType.includes('text/html')
     const rewritten = rewriteTextHostsWithSid(rawText, sid, isHtml)
 
-    // 🔍 调试：记录 URL 改写情况
-    if (contentType.includes('javascript')) {
-      const originalUrls = rawText.match(/https?:\/\/[^\s"']+/g) || []
-      const rewrittenUrls = rewritten.match(/\/sess\/[^\/]+\/x\/[^\s"']+/g) || []
-      if (originalUrls.length > 0) {
-        console.log(`[js-rewrite] JS file URLs - Original: ${originalUrls.length}, Rewritten: ${rewrittenUrls.length}`)
-        console.log(`[js-rewrite] Original samples: ${originalUrls.slice(0, 2).join(' | ')}`)
-        console.log(`[js-rewrite] Rewritten samples: ${rewrittenUrls.slice(0, 2).join(' | ')}`)
-      }
-
-      // 🔍 检查语法错误：查找可能被破坏的字符串
-      const brokenStrings = rewritten.match(/["'][^"']*\/sess\/[^"']*["']/g) || []
-      console.log(`[js-rewrite] Strings with session paths: ${brokenStrings.length}`)
-      if (brokenStrings.length > 0 && brokenStrings.length <= 5) {
-        brokenStrings.forEach((str, idx) => {
-          console.log(`[js-rewrite] String ${idx + 1}: ${str.substring(0, 100)}`)
-        })
-      }
-
-      // 🔍 检查字符长度变化
-      const lengthDiff = rewritten.length - rawText.length
-      console.log(`[js-rewrite] Length change: ${lengthDiff > 0 ? '+' : ''}${lengthDiff} bytes (${rawText.length} → ${rewritten.length})`)
-    }
-
-    if (contentType.includes('text/html')) {
-      // 检查是否还有跨域 URL（www.blablalink.com）
-      const crossOriginUrls = rewritten.match(/https?:\/\/www\.blablalink\.com[^"'\s]*/gi) || []
-      if (crossOriginUrls.length > 0) {
-        console.error(`[html-rewrite] ⚠️ CORS RISK: Found ${crossOriginUrls.length} unrewritten cross-origin URLs!`)
-        crossOriginUrls.slice(0, 3).forEach((url, idx) => {
-          console.error(`[html-rewrite]   ${idx + 1}. ${url}`)
-        })
-      } else {
-        console.log(`[html-rewrite] ✅ No cross-origin URLs detected`)
-      }
-
-      // 记录 HTML 中的 script 标签
-      const scriptTags = rewritten.match(/<script[^>]*(src|data-src)=["'][^"']+["'][^>]*>/gi) || []
-      console.log(`[html-rewrite] Found ${scriptTags.length} script tags with src/data-src`)
-      if (scriptTags.length > 0 && scriptTags.length <= 10) {
-        scriptTags.forEach((tag, idx) => {
-          console.log(`[html-rewrite] Script ${idx + 1}: ${tag.substring(0, 200)}`)
-        })
-      }
-
-      // 检查是否有相对路径被修复
-      const relativePathsRemaining = rewritten.match(/(src|data-src)=["'](?!https?:\/\/|\/|data:|blob:)([^"']+)["']/gi) || []
-      if (relativePathsRemaining.length > 0) {
-        console.warn(`[html-rewrite] ⚠️ Still found ${relativePathsRemaining.length} relative paths: ${relativePathsRemaining.slice(0, 3).join(' | ')}`)
-      } else {
-        console.log(`[html-rewrite] ✅ All relative paths converted to absolute`)
-      }
-
-      // 检查 modulepreload
-      const modulePreloads = rewritten.match(/<link[^>]*rel=["']modulepreload["'][^>]*>/gi) || []
-      if (modulePreloads.length > 0) {
-        console.log(`[html-rewrite] Found ${modulePreloads.length} modulepreload links`)
-        modulePreloads.slice(0, 3).forEach((link, idx) => {
-          console.log(`[html-rewrite] Modulepreload ${idx + 1}: ${link.substring(0, 150)}`)
-        })
-      }
-    }
+    // 🔍 调试：记录 URL 改写情况（生产环境已禁用）
+    // if (contentType.includes('javascript')) { ... }
+    // if (contentType.includes('text/html')) { ... }
 
     const finalBody = contentType.includes('text/html') ? injectSessionHelpers(rewritten, sid) : rewritten
     return new Response(finalBody, {
@@ -2472,38 +2456,39 @@ async function handleSessionProxy(request, url, sid, tail) {
   })
 }
 
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return false
+  try {
+    const parsed = new URL(origin)
+    const host = parsed.hostname
+    if ((host === 'localhost' || host === '127.0.0.1' || host === '::1') &&
+      (parsed.protocol === 'http:' || parsed.protocol === 'https:')) {
+      return true
+    }
+    if (origin === 'https://small-tailqwq.github.io') return true
+    if (origin === 'https://nikke.hayasa.link') return true
+    if (parsed.protocol === 'https:' && (host === 'hayasa.org' || host.endsWith('.hayasa.org'))) {
+      return true
+    }
+  } catch {
+    return false
+  }
+  return false
+}
+
 // CORS响应头
 const corsHeaders = (origin) => {
-  // 允许的本地开发环境
-  const allowedLocalOrigins = [
-    'http://localhost:5173',      // Vite 默认端口
-    'http://localhost:5500',      // Live Server 常用端口
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:5500',
-    'http://localhost:3000',      // 其他常见端口
-    'http://127.0.0.1:3000'
-  ]
-
-  // 如果是本地开发环境，使用具体的 origin（必须指定才能支持 credentials）
-  let allowOrigin = '*'
-  if (origin) {
-    if (allowedLocalOrigins.some(allowed => origin.startsWith(allowed))) {
-      allowOrigin = origin
-    } else if (origin.includes('nikke-cdk')) {
-      // 生产环境：允许 nikke-cdk 相关域名
-      allowOrigin = origin
-    } else {
-      // 其他情况使用提供的 origin
-      allowOrigin = origin
-    }
-  }
+  const allowOrigin = isAllowedCorsOrigin(origin)
+    ? origin
+    : 'https://small-tailqwq.github.io'
 
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Cookie, X-Forwarded-Cookie, x-auth-key, x-channel-type, x-language, x-common-params',
     'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '1728000'
+    'Access-Control-Max-Age': '1728000',
+    'Vary': 'Origin'
   }
 }
 
@@ -2815,67 +2800,6 @@ async function handleGlobalCdkExchange(request) {
       }
     })
   } catch (err) {
-    return new Response(JSON.stringify({
-      code: 500,
-      msg: err.message
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders(origin)
-      }
-    })
-  }
-}
-
-// 🌍 处理登录状态检查
-async function handleCheckLogin(request) {
-  const origin = request.headers.get('Origin')
-  const targetUrl = `https://api.blablalink.com/api/user/CheckLogin`
-
-  try {
-    // 解析请求体
-    const { cookie } = await request.json()
-    if (!cookie) {
-      return new Response(JSON.stringify({
-        code: 400,
-        msg: 'Missing cookie'
-      }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders(origin)
-        }
-      })
-    }
-
-    // 构建代理请求
-    const proxyRequest = new Request(targetUrl, {
-      method: 'POST',
-      headers: {
-        ...GLOBAL_HEADERS,
-        'Cookie': cookie,
-        'Origin': 'https://www.blablalink.com',
-        'Referer': 'https://www.blablalink.com/',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({})
-    })
-
-    // 发送请求并获取响应
-    const response = await fetch(proxyRequest)
-    const data = await response.text()
-
-    // 返回响应
-    return new Response(data, {
-      status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/json',
-        ...corsHeaders(origin)
-      }
-    })
-  } catch (err) {
-    console.error('检查登录状态失败:', err)
     return new Response(JSON.stringify({
       code: 500,
       msg: err.message
@@ -3318,46 +3242,37 @@ async function handleCnCdkExchange(request) {
   }
 }
 
-// 📊 处理国服日志记录
-async function handleCnLogging(request) {
-  const origin = request.headers.get('Origin')
+const CAPTCHA_JS_URL = 'https://global.captcha.gtimg.com/TCaptcha-global.js'
+const CAPTCHA_CACHE_TTL = 3600000
+let captchaIntegrityCache = null
+let captchaIntegrityTime = 0
 
-  try {
-    const logData = await request.json()
-
-    // 发送日志到国服服务器 (模拟原始行为)
-    const logResponse = await fetch(`${CN_ENDPOINTS.LOG}?sCloudApiName=atm`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain;charset=UTF-8',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0',
-        'Origin': 'https://nikke.qq.com',
-        'Referer': 'https://nikke.qq.com/'
-      },
-      body: JSON.stringify(logData)
-    })
-
-    const result = await logResponse.json()
-
-    return new Response(JSON.stringify(result), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders(origin)
-      }
-    })
-
-  } catch (error) {
-    console.error('日志记录失败:', error)
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Log ignored'
-    }), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders(origin)
-      }
+async function handleCaptchaIntegrity(request, env) {
+  const now = Date.now()
+  if (captchaIntegrityCache && now - captchaIntegrityTime < CAPTCHA_CACHE_TTL) {
+    return new Response(JSON.stringify(captchaIntegrityCache), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
     })
   }
+
+  try {
+    const resp = await fetch(CAPTCHA_JS_URL)
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+    const jsBuffer = await resp.arrayBuffer()
+    const hashBuffer = await crypto.subtle.digest('SHA-384', jsBuffer)
+    const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
+
+    captchaIntegrityCache = { url: CAPTCHA_JS_URL, integrity: 'sha384-' + hashBase64 }
+    captchaIntegrityTime = now
+  } catch (e) {
+    return new Response(JSON.stringify({ url: '', integrity: '' }), {
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+    })
+  }
+
+  return new Response(JSON.stringify(captchaIntegrityCache), {
+    headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+  })
 }
 
 // ==================== 主路由处理 ====================
@@ -3469,10 +3384,6 @@ export default {
       case path === '/global/cookie-renewal' && method === 'POST':
         return handleCookieRenewal(request)
 
-      // 登录状态检查
-      case path === '/global/check-login' && method === 'POST':
-        return handleCheckLogin(request)
-
       // BlaBla 任务代理
       case path === '/global/bla/check-login' && method === 'POST':
         return handleBlaCheckLogin(request)
@@ -3503,23 +3414,6 @@ export default {
       case path === '/cn/cdk/exchange' && method === 'POST':
         return handleCnCdkExchange(request)
 
-      // 日志记录
-      case path === '/cn/log' && method === 'POST':
-        return handleCnLogging(request)
-
-      // 国服健康检查
-      case path === '/cn/health' && method === 'GET':
-        return new Response(JSON.stringify({
-          status: 'ok',
-          message: 'NIKKE CN CDK Worker is running',
-          timestamp: new Date().toISOString()
-        }), {
-          headers: {
-            'Content-Type': 'application/json',
-            ...corsHeaders(request.headers.get('Origin'))
-          }
-        })
-
       // ==================== 安全令牌认证 ====================
 
       // ==================== 登录桥接 ====================
@@ -3527,10 +3421,6 @@ export default {
       // 🔑 邮箱密码登录
       case path === '/api/login' && method === 'POST':
         return handleDirectLogin(request, env)
-
-      // 登录服务健康检查
-      case path === '/api/login-health' && method === 'GET':
-        return handleLoginHealth(request, env)
 
       // 验证码完整性校验（防止CDN投毒）
       case path === '/api/captcha-integrity' && method === 'GET':
@@ -3540,71 +3430,7 @@ export default {
 
       // 🔐 安全令牌认证数据获取
       case path === '/api/auth/token-data' && method === 'POST':
-        console.log('[routing] ✅ Matched: /api/auth/token-data (安全令牌认证)')
         return handleTokenAuthData(request, tokenKV)
-
-      // ==================== 通用路由 ====================
-
-      // Service Worker 处理 - 代理到上游真实SW
-      case path === '/sw.js' && method === 'GET':
-        try {
-          // 代理到上游站点的真实 Service Worker
-          const upstreamUrl = 'https://www.blablalink.com/sw.js'
-          const swResponse = await fetch(upstreamUrl, {
-            method: 'GET',
-            headers: {
-              'User-Agent': request.headers.get('User-Agent') || 'Mozilla/5.0',
-              'Accept': 'application/javascript,*/*',
-              'Accept-Encoding': 'gzip, deflate, br'
-            }
-          })
-
-          if (swResponse.ok) {
-            let swContent = await swResponse.text()
-
-            // 轻量改写：去除缓存名称前缀，避免冲突
-            swContent = swContent.replace(/cacheName\s*=\s*['"`]nikke-[^'"`]*['"`]/gi, "cacheName = 'nikke-cache'")
-
-            // 去除可能的作用域限制
-            swContent = swContent.replace(/scope:\s*['"`]\/[^'"`]*['"`]/gi, "scope: '/'")
-
-            return new Response(swContent, {
-              status: 200,
-              headers: {
-                'Content-Type': 'application/javascript',
-                'Cache-Control': 'no-store, no-cache, must-revalidate',
-                ...corsHeaders(request.headers.get('Origin'))
-              }
-            })
-          }
-        } catch (error) {
-          // 如果代理失败，返回空 Service Worker
-          console.warn('SW代理失败，返回空SW:', error.message)
-        }
-
-        // 备用：返回空 Service Worker
-        return new Response(`
-// 空 Service Worker - 不执行任何拦截操作
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
-});
-
-self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
-});
-
-self.addEventListener('fetch', (event) => {
-  // 不拦截任何请求，直接通过网络获取
-  return;
-});
-        `, {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/javascript',
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            ...corsHeaders(request.headers.get('Origin'))
-          }
-        })
 
       // 根路径健康检查
       case path === '/' && method === 'GET':
@@ -3622,11 +3448,7 @@ self.addEventListener('fetch', (event) => {
             global_region_list: '/global/region-list (服务器区域)',
             global_cookie_renewal: '/global/cookie-renewal (Cookie续期)',
             cn_captcha: '/cn/captcha',
-
             cn_exchange: '/cn/cdk/exchange',
-            cn_log: '/cn/log',
-            cn_health: '/cn/health',
-
           },
           timestamp: new Date().toISOString()
         }), {
@@ -3711,64 +3533,17 @@ self.addEventListener('fetch', (event) => {
             'GET /sess/{sid}/debug/cookies (Cookie诊断页面)',
             'GET /sess/{sid}/x/{service}/... (会话镜像代理)',
             'POST /api/login (邮箱密码直接登录)',
-            'GET /api/login-health (登录服务健康检查)'
+            'GET /api/captcha-integrity (验证码完整性校验)',
+            'POST /api/auth/token-data (安全令牌认证)'
           ]
         }), {
           status: 404,
           headers: {
             'Content-Type': 'application/json',
             ...corsHeaders(request.headers.get('Origin'))
-          }
-        })
+}
+      })
     }
   }
 } 
-
-function handleLoginHealth(request, env) {
-  return new Response(JSON.stringify({
-    code: 0,
-    status: 'ok',
-    message: 'LI Pass login bridge is reachable',
-    signKeyConfigured: Boolean(LI_PASS_SIGN_KEY),
-    timestamp: new Date().toISOString()
-  }), {
-    headers: {
-      'Content-Type': 'application/json',
-      ...corsHeaders(request.headers.get('Origin'))
-    }
-  })
-}
-
-const CAPTCHA_JS_URL = 'https://global.captcha.gtimg.com/TCaptcha-global.js'
-const CAPTCHA_CACHE_TTL = 3600000
-let captchaIntegrityCache = null
-let captchaIntegrityTime = 0
-
-async function handleCaptchaIntegrity(request, env) {
-  const now = Date.now()
-  if (captchaIntegrityCache && now - captchaIntegrityTime < CAPTCHA_CACHE_TTL) {
-    return new Response(JSON.stringify(captchaIntegrityCache), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
-    })
-  }
-
-  try {
-    const resp = await fetch(CAPTCHA_JS_URL)
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-    const jsBuffer = await resp.arrayBuffer()
-    const hashBuffer = await crypto.subtle.digest('SHA-384', jsBuffer)
-    const hashBase64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)))
-
-    captchaIntegrityCache = { url: CAPTCHA_JS_URL, integrity: 'sha384-' + hashBase64 }
-    captchaIntegrityTime = now
-  } catch (e) {
-    return new Response(JSON.stringify({ url: '', integrity: '' }), {
-      headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
-    })
-  }
-
-  return new Response(JSON.stringify(captchaIntegrityCache), {
-    headers: { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
-  })
-}
 
