@@ -1,4 +1,105 @@
-// 通用的自定义消息工具函数
+// ========== 通知容器管理 ==========
+const CONTAINER_ID = 'custom-notification-container'
+
+function getOrCreateContainer(): HTMLElement {
+  let container = document.getElementById(CONTAINER_ID)
+  if (!container) {
+    container = document.createElement('div')
+    container.id = CONTAINER_ID
+    const isMobile = window.innerWidth <= 768
+    Object.assign(container.style, {
+      position: 'fixed',
+      top: isMobile ? '16px' : '20px',
+      right: isMobile ? '16px' : '20px',
+      left: isMobile ? '16px' : 'auto',
+      zIndex: '2147483647',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px',
+      pointerEvents: 'none',
+    })
+    document.body.appendChild(container)
+  }
+  return container
+}
+
+function injectAnimationStyles() {
+  if (document.querySelector('#custom-notification-styles')) return
+  const style = document.createElement('style')
+  style.id = 'custom-notification-styles'
+  style.textContent = `
+    @keyframes notif-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    @keyframes notif-slide-out {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+    }
+    @media (max-width: 768px) {
+      @keyframes notif-slide-in {
+        from {
+          opacity: 0;
+          transform: translateY(-100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes notif-slide-out {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-100%);
+        }
+      }
+    }
+    .custom-notification-item {
+      pointer-events: auto;
+      animation: notif-slide-in 0.3s ease forwards;
+    }
+    .custom-notification-item.custom-notification-auto-dismiss {
+      pointer-events: none;
+    }
+    .custom-notification-item.notif-removing {
+      animation: notif-slide-out 0.3s ease forwards;
+    }
+  `
+  document.head.appendChild(style)
+}
+
+function appendToContainer(el: HTMLElement) {
+  injectAnimationStyles()
+  const container = getOrCreateContainer()
+  container.appendChild(el)
+}
+
+function removeFromContainer(el: HTMLElement) {
+  el.classList.add('notif-removing')
+  setTimeout(() => {
+    if (el.parentNode) {
+      el.parentNode.removeChild(el)
+    }
+  }, 300)
+}
+
+// ========== 通用的自定义消息工具函数 ==========
 export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', type: 'success' | 'error' | 'info' | 'warning' = 'success', duration: number = 3000) => {
   // 根据类型设置颜色和图标
   const getTypeConfig = (type: string) => {
@@ -15,16 +116,13 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
         return { bgColor: '#67c23a', icon: '✓' }
     }
   }
-  
+
   const { bgColor, icon } = getTypeConfig(type)
-  // 移除已存在的消息（避免重复）
-  const existingMessages = document.querySelectorAll('.custom-copy-message')
-  existingMessages.forEach((msg) => msg.remove())
+  const persistent = duration <= 0
 
   // 创建自定义消息元素
   const messageEl = document.createElement('div')
-  messageEl.className = 'custom-copy-message'
-  const persistent = duration <= 0
+  messageEl.className = `custom-notification-item custom-copy-message${persistent ? '' : ' custom-notification-auto-dismiss'}`
   messageEl.innerHTML = `
     <div style="
       background: ${bgColor};
@@ -55,31 +153,11 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
     </div>
   `
 
-  // 设置消息容器样式（包含移动端适配）
-  const isMobile = window.innerWidth <= 768
-  Object.assign(messageEl.style, {
-    position: 'fixed',
-    top: isMobile ? '16px' : '20px',
-    right: isMobile ? '16px' : '20px',
-    left: isMobile ? '16px' : 'auto',
-    zIndex: '2147483647',
-    opacity: '0',
-    transform: isMobile ? 'translateY(-100%)' : 'translateX(100%)',
-    transition: 'all 0.3s ease',
-    pointerEvents: persistent ? 'auto' : 'none',
-  })
-
-  // 添加到body
-  document.body.appendChild(messageEl)
+  // 添加到共享容器
+  appendToContainer(messageEl)
 
   const hideMessage = () => {
-    messageEl.style.opacity = '0'
-    messageEl.style.transform = isMobile ? 'translateY(-100%)' : 'translateX(100%)'
-    setTimeout(() => {
-      if (messageEl.parentNode) {
-        messageEl.parentNode.removeChild(messageEl)
-      }
-    }, 300)
+    removeFromContainer(messageEl)
   }
 
   // 点击 X 关闭
@@ -89,12 +167,6 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
       closeBtn.addEventListener('click', hideMessage)
     }
   }
-
-  // 立即显示
-  requestAnimationFrame(() => {
-    messageEl.style.opacity = '1'
-    messageEl.style.transform = isMobile ? 'translateY(0)' : 'translateX(0)'
-  })
 
   // 自动移除（persistent 模式下跳过）
   if (!persistent) {
@@ -114,16 +186,14 @@ export class ProgressMessage {
   }
 
   private create(message: string) {
-    // 移除已存在的进度消息
-    const existingMessages = document.querySelectorAll('.custom-progress-message')
-    existingMessages.forEach((msg) => msg.remove())
+    injectAnimationStyles()
+
+    const isMobile = window.innerWidth <= 768
 
     // 创建进度消息元素
     this.messageEl = document.createElement('div')
-    this.messageEl.className = 'custom-progress-message'
-    
-    const isMobile = window.innerWidth <= 768
-    
+    this.messageEl.className = 'custom-notification-item custom-progress-message custom-notification-auto-dismiss'
+
     this.messageEl.innerHTML = `
       <div style="
         background: #409eff;
@@ -183,33 +253,12 @@ export class ProgressMessage {
       document.head.appendChild(style)
     }
 
-    // 设置消息容器样式
-    Object.assign(this.messageEl.style, {
-      position: 'fixed',
-      top: isMobile ? '16px' : '20px',
-      right: isMobile ? '16px' : '20px',
-      left: isMobile ? '16px' : 'auto',
-      zIndex: '2147483647',
-      opacity: '0',
-      transform: isMobile ? 'translateY(-100%)' : 'translateX(100%)',
-      transition: 'all 0.3s ease',
-      pointerEvents: 'none',
-    })
-
     // 获取进度条和文本元素的引用
     this.progressBarEl = this.messageEl.querySelector('.progress-bar')
     this.progressTextEl = this.messageEl.querySelector('.progress-text')
 
-    // 添加到body
-    document.body.appendChild(this.messageEl)
-
-    // 立即显示
-    requestAnimationFrame(() => {
-      if (this.messageEl && !this.isDestroyed) {
-        this.messageEl.style.opacity = '1'
-        this.messageEl.style.transform = isMobile ? 'translateY(0)' : 'translateX(0)'
-      }
-    })
+    // 添加到共享容器
+    appendToContainer(this.messageEl)
   }
 
   // 更新进度和消息
@@ -321,10 +370,8 @@ export class ProgressMessage {
   hide() {
     if (this.isDestroyed || !this.messageEl) return
 
-    const isMobile = window.innerWidth <= 768
-    this.messageEl.style.opacity = '0'
-    this.messageEl.style.transform = isMobile ? 'translateY(-100%)' : 'translateX(100%)'
-    
+    removeFromContainer(this.messageEl)
+
     setTimeout(() => {
       this.destroy()
     }, 300)
