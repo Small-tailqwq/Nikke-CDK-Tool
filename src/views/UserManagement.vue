@@ -566,6 +566,10 @@ const getRenewLoading = (userId) => {
   return renewLoadingMap.value.get(userId) || false
 }
 
+const isMachineCheckError = (message) => {
+  return typeof message === 'string' && message.toLowerCase().includes('machine check')
+}
+
 const refreshUserTokenByCredential = async (user, options = {}) => {
   const { showMessage = true } = options
   const credential = getLoginCredential(user)
@@ -574,16 +578,19 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
     return { success: false, message: '未保存账号密码凭证' }
   }
 
+  let usedCaptcha = false
   let credentialResult = await refreshCookieByCredential(
     credential.email,
     credential.password, '', '', ''
   )
 
-  if (!credentialResult.success && credentialResult.message &&
-      credentialResult.message.toLowerCase().includes('machine check')) {
+  if (!credentialResult.success &&
+      (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))) {
     let captchaResult
     try {
-      captchaResult = await getTencentCaptcha()
+      captchaResult = await getTencentCaptcha({
+        appid: credentialResult.captchaAppId || '',
+      })
     } catch (error) {
       return {
         success: false,
@@ -595,6 +602,7 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
       return { success: false, message: '验证码验证失败，请重试' }
     }
 
+    usedCaptcha = true
     credentialResult = await refreshCookieByCredential(
       credential.email,
       credential.password,
@@ -605,9 +613,20 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
   }
 
   if (!credentialResult.success || !credentialResult.cookie) {
+    let message = credentialResult.message || '获取Token失败'
+    if (usedCaptcha &&
+        (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))) {
+      message = `验证码完成后仍被上游拒绝：${message}`
+      if (credentialResult.captchaAppId) {
+        message += `（captchaAppId=${credentialResult.captchaAppId}）`
+      }
+    }
     return {
       success: false,
-      message: credentialResult.message || '获取Token失败',
+      ret: credentialResult.ret,
+      captchaAppId: credentialResult.captchaAppId,
+      message,
+      debug: credentialResult.debug,
     }
   }
 
@@ -665,7 +684,7 @@ const handleRenewUserCookie = async (user) => {
   renewLoadingMap.value.set(user.id, true)
 
   try {
-    console.log(`开始为用户 ${user.name} 续期Cookie...`)
+    console.log(`开始为用户 ${user.name} ${hasCredential ? '获取Token' : '续期Cookie'}...`)
 
     let result = null
 
@@ -675,17 +694,15 @@ const handleRenewUserCookie = async (user) => {
         return
       }
 
-      if (!user.cookie) {
-        showCustomMessage(
-          `用户 ${user.name} 获取Token失败：${credentialRefresh.message || '未知错误'}`,
-          'error'
-        )
-        return
-      }
       showCustomMessage(
-        `用户 ${user.name} 获取Token失败：${credentialRefresh.message || '未知错误'}，将尝试旧续期方式`,
-        'warning'
+        `用户 ${user.name} 获取Token失败：${credentialRefresh.message || '未知错误'}`,
+        'error'
       )
+      console.error(
+        `用户 ${user.name} 获取Token失败: message=${credentialRefresh.message || '(none)'}, ret=${credentialRefresh.ret}, captchaAppId=${credentialRefresh.captchaAppId || '(none)'}`,
+        credentialRefresh
+      )
+      return
     }
 
     result = await renewGlobalCookie(user.cookie)

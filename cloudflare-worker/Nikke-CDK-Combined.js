@@ -1112,6 +1112,11 @@ async function consumeTokenData(token, tokenKV, deleteOnRead = true) {
 const LI_PASS_SIGN_KEY = 'be83e12d807ed10f5cdcb3144773ee56'
 const LI_PASS_CAPTCHA_APPID = '188981228'
 
+function getMachineCheckAppId(result) {
+  const extraJson = parseJsonLike(result?.extra_json)
+  return extraJson?.machine_check_conf?.appid || ''
+}
+
 function buildLiPassSignedPostUrl(path, body, ts = Date.now()) {
   const sigParams = {
     account_plat_type: '131',
@@ -1382,6 +1387,15 @@ async function handleDirectLogin(request, env) {
     })
 
     const result = await upstreamResp.json()
+    const machineCheckAppId = getMachineCheckAppId(result)
+    if (debugEnabled) {
+      console.info('[direct-login] li-pass result', JSON.stringify({
+        ret: result?.ret,
+        isLogin: Boolean(result?.is_login),
+        msg: sanitizeSensitiveText(result?.msg || ''),
+        captchaAppId: machineCheckAppId
+      }))
+    }
 
     if (result.ret === 0 && result.is_login) {
       const loginSetCookies = extractSetCookiesHeaders(upstreamResp)
@@ -1458,6 +1472,26 @@ async function handleDirectLogin(request, env) {
         : fallbackCookieStr
 
       if (!isCdkCookieUsable(cookieStr)) {
+        const loginSummary = summarizeLiPassResult(result) || {}
+        console.warn('[direct-login] missing usable cdk cookie', JSON.stringify({
+          ret: loginSummary.ret,
+          msg: sanitizeSensitiveText(loginSummary.msg || ''),
+          isLogin: Boolean(loginSummary.is_login),
+          topKeys: loginSummary.topKeys || '',
+          channelInfoKeys: loginSummary.channelInfoKeys || '',
+          hasOpenidField: Boolean(loginSummary.hasOpenidField),
+          hasLiToken: Boolean(loginSummary.hasLiToken),
+          hasChannelToken: Boolean(loginSummary.hasChannelToken),
+          hasUsableGameToken: Boolean(loginSummary.hasUsableGameToken),
+          notifyKeys: loginSummary.notifyKeys || [],
+          userInfoError: sanitizeSensitiveText(userInfoError || ''),
+          gameAuthError: sanitizeSensitiveText(gameAuthError || ''),
+          blLoginStatus,
+          blLoginError: sanitizeSensitiveText(blLoginError || ''),
+          blCookieCount: blLoginCookies.length,
+          blCookieKeys: blLoginCookies.map(c => c.split('=')[0]).filter(Boolean),
+          blLoginAttempts
+        }))
         const failurePayload = {
           code: -1,
           message: '账号密码登录成功，但未获取到 CDK 兑换所需的游戏侧 game_token。请确认账号已绑定 NIKKE，或先继续使用官方浏览器登录方式。'
@@ -1485,6 +1519,14 @@ async function handleDirectLogin(request, env) {
         })
       }
 
+      if (debugEnabled) {
+        console.info('[direct-login] success', JSON.stringify({
+          cookieKeys: cookieStr.split(';').map(c => c.trim().split('=')[0]).filter(Boolean),
+          hasGameToken: Boolean(getCookieValue(cookieStr, 'game_token')),
+          hasOpenid: Boolean(getCookieValue(cookieStr, 'game_openid')),
+          hasUid: Boolean(getCookieValue(cookieStr, 'game_uid'))
+        }))
+      }
       return new Response(JSON.stringify({
         code: 0,
         data: {
@@ -1501,12 +1543,19 @@ async function handleDirectLogin(request, env) {
     }
 
     // ret=2170 表示需要机器检查（验证码），返回正确的 captchaAppId
-    if (result?.ret === 2170 && result?.extra_json?.machine_check_conf?.appid) {
+    if (result?.ret === 2170 && machineCheckAppId) {
+      if (debugEnabled) {
+        console.info('[direct-login] machine check required', JSON.stringify({
+          ret: result.ret,
+          msg: sanitizeSensitiveText(result.msg || ''),
+          captchaAppId: machineCheckAppId
+        }))
+      }
       return new Response(JSON.stringify({
         code: -1,
         ret: 2170,
         message: result.msg || 'machine check err!',
-        captchaAppId: result.extra_json.machine_check_conf.appid
+        captchaAppId: machineCheckAppId
       }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
       })
@@ -1516,6 +1565,11 @@ async function handleDirectLogin(request, env) {
       code: -1,
       message: result.msg || 'Login failed'
     }
+    console.warn('[direct-login] login failed', JSON.stringify({
+      ret: result?.ret,
+      isLogin: Boolean(result?.is_login),
+      msg: sanitizeSensitiveText(result?.msg || '')
+    }))
     if (debugEnabled) {
       failurePayload.debug = summarizeLiPassResult(result) || {
         ret: result?.ret,

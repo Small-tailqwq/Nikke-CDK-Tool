@@ -2,6 +2,8 @@ import axios from 'axios'
 import { showCustomMessage } from './customMessage'
 import { generateHistoryServerInfo } from './serverUtils'
 
+const AUTH_DEBUG = import.meta.env.VITE_AUTH_DEBUG === 'true'
+
 // 🔧 注意：normalizeApplicationCookie函数已移除
 // 现在Cookie在存储时就已经转换为标准格式，API调用时直接使用
 
@@ -780,17 +782,42 @@ export const refreshCookieByCredential = async (email, password, ticket = '', ra
       }
     }
 
+    const message = result?.message || result?.data?.message || '凭证登录失败'
+    const failureSummary = {
+      code: result?.code,
+      ret: result?.ret,
+      message,
+      captchaAppId: result?.captchaAppId || '',
+    }
+    if (AUTH_DEBUG) {
+      console.debug(
+        `凭证刷新未成功: code=${failureSummary.code}, ret=${failureSummary.ret}, message=${failureSummary.message}, captchaAppId=${failureSummary.captchaAppId || '(none)'}`,
+        failureSummary
+      )
+    }
+
     return {
       success: false,
       ret: result?.ret,
       captchaAppId: result?.captchaAppId,
-      message: result?.message || result?.data?.message || '凭证登录失败',
+      message,
+      debug: result?.debug,
     }
   } catch (error) {
-    console.error('凭证刷新失败:', error)
+    const data = error.response?.data
+    const message = data?.message || data?.data?.message || error.message || '凭证刷新失败'
+    if (AUTH_DEBUG) {
+      console.debug(
+        `凭证刷新请求异常: status=${error.response?.status || '(none)'}, ret=${data?.ret}, message=${message}, captchaAppId=${data?.captchaAppId || '(none)'}`,
+        error
+      )
+    }
     return {
       success: false,
-      message: error.message || '凭证刷新失败',
+      ret: data?.ret,
+      captchaAppId: data?.captchaAppId,
+      message,
+      debug: data?.debug,
     }
   }
 }
