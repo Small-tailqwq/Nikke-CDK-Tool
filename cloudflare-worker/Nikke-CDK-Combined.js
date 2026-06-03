@@ -1176,7 +1176,7 @@ async function fetchLiPassUserInfo(uid, token, cookie = '') {
     'Content-Type': 'application/json',
     'Origin': 'https://www.blablalink.com',
     'Referer': 'https://www.blablalink.com/',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
   }
   if (cookie) headers['Cookie'] = cookie
 
@@ -1225,7 +1225,7 @@ async function fetchIntlGameAuthLogin(liLoginResult, email, guestId) {
       'Content-Type': 'application/json',
       'Origin': 'https://www.blablalink.com',
       'Referer': 'https://www.blablalink.com/login',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36'
     },
     body
   })
@@ -1298,6 +1298,7 @@ async function fetchBlablalinkGameLogin(gameBody) {
 async function handleDirectLogin(request, env) {
   const origin = request.headers.get('Origin')
   const debugEnabled = new URL(request.url).searchParams.get('debug') === '1'
+  const userAgent = request.headers.get('User-Agent') || ''
 
   try {
     const { email, password, ticket, randstr, captchaAppId, deviceInfo } = await request.json()
@@ -1375,7 +1376,7 @@ async function handleDirectLogin(request, env) {
         'Content-Type': 'application/json',
         'Origin': 'https://www.blablalink.com',
         'Referer': 'https://www.blablalink.com/',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36'
+        'User-Agent': userAgent
       },
       body
     })
@@ -1494,6 +1495,18 @@ async function handleDirectLogin(request, env) {
           userName: getCookieValue(cookieStr, 'game_user_name') || gameAuthResult?.nickname || gameAuthResult?.user_name || enrichedResult.nickname || enrichedResult.user_name || '',
           uid: getCookieValue(cookieStr, 'game_uid') || gameAuthResult?.uid || enrichedResult.uid || ''
         }
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+      })
+    }
+
+    // ret=2170 表示需要机器检查（验证码），返回正确的 captchaAppId
+    if (result?.ret === 2170 && result?.extra_json?.machine_check_conf?.appid) {
+      return new Response(JSON.stringify({
+        code: -1,
+        ret: 2170,
+        message: result.msg || 'machine check err!',
+        captchaAppId: result.extra_json.machine_check_conf.appid
       }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
       })

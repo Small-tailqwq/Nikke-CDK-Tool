@@ -107,21 +107,23 @@ export async function loadTencentCaptchaSdk(timeoutMs = 10000) {
 
 export async function getTencentCaptcha(options = {}) {
   const {
-    appid = LI_PASS_CAPTCHA_APPID,
+    appid = '',
     timeoutMs = 45000,
     fallback = true,
     captchaOptions = { type: 'popup' },
   } = options
+
+  const effectiveAppid = appid || LI_PASS_CAPTCHA_APPID
 
   try {
     const Captcha = await loadTencentCaptchaSdk()
     return await new Promise((resolve, reject) => {
       const timer = window.setTimeout(() => reject(new Error('验证码弹窗超时')), timeoutMs)
       const captcha = new Captcha(
-        appid,
+        effectiveAppid,
         (res) => {
           window.clearTimeout(timer)
-          resolve({ ...res, appid })
+          resolve({ ...res, appid: effectiveAppid })
         },
         captchaOptions
       )
@@ -129,7 +131,7 @@ export async function getTencentCaptcha(options = {}) {
     })
   } catch (error) {
     if (!fallback) throw error
-    return fallbackCaptchaInput(appid)
+    return fallbackCaptchaInput(effectiveAppid)
   }
 }
 

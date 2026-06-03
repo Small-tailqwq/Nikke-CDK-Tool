@@ -802,6 +802,8 @@ export const refreshCookieByCredential = async (email, password, ticket = '', ra
 
     return {
       success: false,
+      ret: result?.ret,
+      captchaAppId: result?.captchaAppId,
       message: result?.message || result?.data?.message || '凭证登录失败',
     }
   } catch (error) {

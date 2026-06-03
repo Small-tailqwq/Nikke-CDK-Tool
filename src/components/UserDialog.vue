@@ -1301,9 +1301,10 @@ const handleEmailLogin = async () => {
       emailForm.password, '', '', ''
     )
 
-    if (!loginResult.success && isMachineCheckError(loginResult.message)) {
+    if (!loginResult.success && (loginResult.ret === 2170 || isMachineCheckError(loginResult.message))) {
       emailLoginStatus.value = '正在打开腾讯验证码...'
-      const captchaResult = await getTencentCaptcha()
+      const captchaAppId = loginResult.captchaAppId || ''
+      const captchaResult = await getTencentCaptcha({ appid: captchaAppId })
       if (captchaResult.ret !== 0) {
         emailLoginStatus.value = ''
         showCustomMessage('验证码验证失败，请重试', 'warning')
