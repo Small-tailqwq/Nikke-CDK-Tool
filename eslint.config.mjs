@@ -7,7 +7,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const compat = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
 })
 
 export default [
