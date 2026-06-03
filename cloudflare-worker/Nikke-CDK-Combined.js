@@ -1151,10 +1151,10 @@ function buildLoginDeviceInfo(ts, guestId) {
     screen_height: 1440,
     screen_width: 2560,
     device_brand: 'Google Inc.',
-    device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
+    device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36',
     network_type: '4g',
-    ram_total: 103,
-    rom_total: 103,
+    ram_total: 104,
+    rom_total: 104,
     cpu_name: 'Win32',
     android_imei: '',
     ios_idfa: '',
@@ -1300,7 +1300,7 @@ async function handleDirectLogin(request, env) {
   const debugEnabled = new URL(request.url).searchParams.get('debug') === '1'
 
   try {
-    const { email, password, ticket, randstr, captchaAppId } = await request.json()
+    const { email, password, ticket, randstr, captchaAppId, deviceInfo } = await request.json()
 
     if (!email || !password) {
       return new Response(JSON.stringify({
@@ -1329,22 +1329,22 @@ async function handleDirectLogin(request, env) {
         ticket: ticket || '',
         randstr: randstr || ''
       }),
-      device_info: {
+      device_info: deviceInfo || {
         guest_id: crypto.randomUUID(),
         lang_type: 'en',
         app_version: 'WebWidget_1.31.0',
         screen_height: 1440,
         screen_width: 2560,
         device_brand: 'Google Inc.',
-        device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML; like Gecko) Chrome/147.0.0.0 Safari/537.36',
+        device_model: '5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML; like Gecko) Chrome/148.0.0.0 Safari/537.36',
         network_type: '4g',
-        ram_total: 70,
-        rom_total: 70,
+        ram_total: 104,
+        rom_total: 104,
         cpu_name: 'Win32',
         android_imei: '',
         ios_idfa: '',
         page: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
-        page_with_search: 'https%3A%2F%2Fwww.blablalink.com%2Flogin%3Fto%3D%2F%26back_to%3D%2F',
+        page_with_search: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
         ts: deviceTs
       }
     }
