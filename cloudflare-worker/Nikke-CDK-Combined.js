@@ -1301,7 +1301,7 @@ async function handleDirectLogin(request, env) {
   const userAgent = request.headers.get('User-Agent') || ''
 
   try {
-    const { email, password, ticket, randstr, captchaAppId, deviceInfo } = await request.json()
+    const { email, password, ticket, randstr, captchaAppId } = await request.json()
 
     if (!email || !password) {
       return new Response(JSON.stringify({
@@ -1330,7 +1330,7 @@ async function handleDirectLogin(request, env) {
         ticket: ticket || '',
         randstr: randstr || ''
       }),
-      device_info: deviceInfo || {
+      device_info: {
         guest_id: crypto.randomUUID(),
         lang_type: 'en',
         app_version: 'WebWidget_1.31.0',
