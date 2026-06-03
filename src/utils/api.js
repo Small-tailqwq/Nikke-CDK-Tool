@@ -756,25 +756,6 @@ export const refreshCookieByCredential = async (email, password, ticket = '', ra
       throw new Error('缺少登录凭证')
     }
 
-    const deviceInfo = {
-      guest_id: crypto.randomUUID(),
-      lang_type: 'en',
-      app_version: 'WebWidget_1.31.0',
-      screen_height: window.screen.height,
-      screen_width: window.screen.width,
-      device_brand: 'Google Inc.',
-      device_model: navigator.userAgent,
-      network_type: '4g',
-      ram_total: Math.round(navigator.deviceMemory ? navigator.deviceMemory * 3.25 : 0) || 104,
-      rom_total: Math.round(navigator.deviceMemory ? navigator.deviceMemory * 3.25 : 0) || 104,
-      cpu_name: navigator.platform || 'Win32',
-      android_imei: '',
-      ios_idfa: '',
-      page: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
-      page_with_search: 'https%3A%2F%2Fwww.blablalink.com%2Flogin',
-      ts: Date.now() - 2500
-    }
-
     const response = await api.post(
       '/api/login',
       {
@@ -783,7 +764,6 @@ export const refreshCookieByCredential = async (email, password, ticket = '', ra
         ticket,
         randstr,
         captchaAppId,
-        deviceInfo,
       },
       { withCredentials: false }
     )
