@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' https://global.captcha.gtimg.com https://sg.captcha.qcloud.com 'sha256-9q74kc+Fgr6PfTFRQ+C8noFec0UufxHW90S5dK5EuRI=';
+      script-src 'self' 'unsafe-inline' https://global.captcha.gtimg.com https://sg.captcha.qcloud.com;
       worker-src blob:;
       style-src 'self' 'unsafe-inline';
       img-src 'self' data: https:;
@@ -15,11 +15,7 @@
       frame-src https://global.captcha.gtimg.com https://ssl.captcha.qq.com https://sg.captcha.qcloud.com;
     ">
     <title>NIKKE CDK Tools</title>
-    <script>
-      if (typeof global === 'undefined') {
-        window.global = window;
-      }
-    </script>
+    <script src="/global-polyfill.js"></script>
   </head>
   <body>
     <div id="app"></div>
