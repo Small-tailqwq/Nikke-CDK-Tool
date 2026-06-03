@@ -62,6 +62,12 @@ _research/
 3. **Artifacts with captured real data** (e.g. probe JSON output) must go into `_research/artifacts/` with a `.gitignore` entry or be cleaned up promptly. Prefer not to commit them at all.
 4. **`_research/` contents are not part of the application**: Do not import from `_research/` in any `src/` or `public/` code; do not reference it in build scripts or deploy workflows.
 
+## Git Conventions
+
+- Commit messages must be written in **Chinese** only (统一使用中文编写提交信息)
+- Use conventional commit prefixes: `feat:`, `fix:`, `chore:`, `refactor:`, `ci:`, `docs:` 等
+- 简短标题 + 可选详细说明，中英文混夹是不允许的
+
 ## High-Value Constraints
 
 - Edit `public/cdk-list.source.json`; do not hand-edit `public/cdk-list.json`
