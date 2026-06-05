@@ -9,7 +9,7 @@ export const themeMode = ref('auto')
 // 当前实际应用的主题
 export const theme = ref('dark')
 
-function getSystemTheme() {
+export function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
@@ -30,7 +30,7 @@ function getInitialTheme() {
 }
 
 // 监听系统主题变化
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
   if (themeMode.value === 'auto') {
     theme.value = e.matches ? 'dark' : 'light'
   }
@@ -72,4 +72,4 @@ getInitialTheme()
 watchEffect(() => {
   document.documentElement.classList.toggle('dark', theme.value === 'dark')
   document.documentElement.classList.toggle('light', theme.value === 'light')
-}) 
+})

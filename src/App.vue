@@ -13,18 +13,18 @@
               <el-button
                 circle
                 size="small"
-                @click="openDocumentation"
                 title="使用手册"
                 class="help-btn"
+                @click="openDocumentation"
               >
                 <AppIcon name="help" hover />
               </el-button>
               <el-button
                 circle
                 size="small"
-                @click="toggleTheme"
                 :title="getThemeTitle()"
                 class="theme-toggle-btn"
+                @click="onToggleTheme"
               >
                 <el-icon v-if="getThemeIcon() !== 'A'">
                   <component :is="getThemeIcon()" />
@@ -106,7 +106,7 @@
               <el-tooltip content="后端API代理服务" placement="top">
                 <el-tag size="small" type="info" effect="plain">Cloudflare Worker</el-tag>
               </el-tooltip>
-              <el-tooltip content="AI 辅助编程 CLI" placement="top">
+              <el-tooltip content="开源AI编程代理" placement="top">
                 <el-tag size="small" type="info" effect="plain">OpenCode</el-tag>
               </el-tooltip>
               <el-tooltip
@@ -118,10 +118,10 @@
                   size="small"
                   type="info"
                   effect="plain"
-                  @click="doroStore.handleActivationClick"
                   style="user-select: none"
                   tabindex="-1"
                   :class="{ 'falling-button': doroStore.isButtonFalling }"
+                  @click="doroStore.handleActivationClick"
                 >
                   Doro
                 </el-tag>
@@ -131,14 +131,14 @@
             <div class="friend-links">
               <el-tooltip content="超绝收菜神器" placement="top">
                 <a
-                  href="https://github.com/1204244136/DoroHelper"
+                  href="https://github.com/1204244136/MDA"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="friend-link"
                 >
                   <el-tag size="small" type="success" effect="plain">
                     <AppIcon name="github" class="github-icon" />
-                    DoroHelper
+                    MDA
                   </el-tag>
                 </a>
               </el-tooltip>
@@ -163,9 +163,7 @@
                   class="friend-link sponsor-link"
                   @click.prevent="openSponsorPage"
                 >
-                  <el-tag size="small" type="danger" effect="dark">
-                    ❤ 赞助支持
-                  </el-tag>
+                  <el-tag size="small" type="danger" effect="dark"> ❤ 赞助支持 </el-tag>
                 </a>
               </el-tooltip>
             </div>
@@ -176,9 +174,15 @@
     <FloatingDoro v-if="doroStore.isVisible" />
     <DoroSummonAnimation
       v-if="doroStore.isPhysicsBall"
-      :startX="doroStore.explosionPosition.x"
-      :startY="doroStore.explosionPosition.y"
-      @summonEnd="doroStore.finishSummonAnimation"
+      :start-x="doroStore.explosionPosition.x"
+      :start-y="doroStore.explosionPosition.y"
+      @summon-end="doroStore.finishSummonAnimation"
+    />
+    <ThemeTransition
+      :visible="ttVisible"
+      :direction="ttDirection"
+      @switch-theme="onTransitionSwitch"
+      @complete="onTransitionComplete"
     />
   </div>
 </template>
@@ -189,7 +193,15 @@ import { useRoute } from 'vue-router'
 import { useNavStore } from './stores/nav'
 import { useDoroStore } from './stores/doro'
 import { useUserStore } from './stores/user'
-import { theme, toggleTheme, getThemeIcon, getThemeTitle } from './stores/theme'
+import {
+  theme,
+  toggleTheme,
+  getThemeIcon,
+  getThemeTitle,
+  themeMode,
+  getSystemTheme,
+} from './stores/theme'
+import ThemeTransition from './components/ThemeTransition.vue'
 const FloatingDoro = defineAsyncComponent(() => import('./components/FloatingDoro.vue'))
 const DoroSummonAnimation = defineAsyncComponent(
   () => import('./components/DoroSummonAnimation.vue')
@@ -206,9 +218,54 @@ const navStore = useNavStore()
 const doroStore = useDoroStore()
 const userStore = useUserStore()
 
+const ttVisible = ref(false)
+const ttDirection = ref('star-trail')
+let ttPendingThemeMode = null
+let ttPendingThemeValue = null
+
+function onToggleTheme(event) {
+  let nextMode, nextTheme
+  if (themeMode.value === 'light') {
+    nextMode = 'dark'
+    nextTheme = 'dark'
+  } else if (themeMode.value === 'dark') {
+    nextMode = 'auto'
+    nextTheme = getSystemTheme()
+  } else {
+    nextMode = 'light'
+    nextTheme = 'light'
+  }
+
+  if (nextTheme === theme.value) {
+    toggleTheme()
+    return
+  }
+
+  ttDirection.value = nextTheme === 'dark' ? 'star-trail' : 'sunrise'
+  ttPendingThemeMode = nextMode
+  ttPendingThemeValue = nextTheme
+  ttVisible.value = true
+}
+
+// Stripes fully cover the screen — switch theme behind the overlay
+function onTransitionSwitch() {
+  if (ttPendingThemeMode !== null) {
+    themeMode.value = ttPendingThemeMode
+    theme.value = ttPendingThemeValue
+    localStorage.setItem('theme-preference', ttPendingThemeMode)
+  }
+}
+
+// Stripes exit animation done — cleanup
+function onTransitionComplete() {
+  ttVisible.value = false
+  ttPendingThemeMode = null
+  ttPendingThemeValue = null
+}
+
 // 闪烁标题数组 - 像Minecraft一样的随机展示
 const splashTexts = [
-  '试试 DoroHelper!',
+  '试试 Maa Doro Assistant!',
   '没有任何AI受到伤害',
   '续期是一个谎言',
   '我这怎么能跑',
@@ -276,10 +333,7 @@ const openDocumentation = () => {
 
 // 打开赞助页面
 const openSponsorPage = () => {
-  window.open(
-    'https://afdian.com/a/thesmalltail',
-    '_blank'
-  )
+  window.open('https://afdian.com/a/thesmalltail', '_blank')
 }
 
 // 处理导航点击
@@ -372,7 +426,9 @@ onMounted(async () => {
     if (pendingBlaUsers.length > 0) {
       console.log(`[App] 开始执行 Blabla 每日任务，待执行 ${pendingBlaUsers.length} 个账号...`)
       if (blaUsers.length > 0) {
-        blaProgressMessage = new ProgressMessage(`正在准备 BlaBla 任务，共 ${pendingBlaUsers.length} 个账号...`)
+        blaProgressMessage = new ProgressMessage(
+          `正在准备 BlaBla 任务，共 ${pendingBlaUsers.length} 个账号...`
+        )
         let successCount = 0
         let failCount = 0
         const blaSummaryLines = []

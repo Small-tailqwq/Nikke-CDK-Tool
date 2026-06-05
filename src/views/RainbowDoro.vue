@@ -195,7 +195,7 @@ function spawnMeteor() {
     // 生成1-6个橘子
     const groupSize = 1 + Math.floor(Math.random() * 6)
     const baseX = Math.random() * w
-    const baseSpeed = 2 + Math.random() * 3
+    const baseSpeed = 0.8 + Math.random() * 1.2
 
     for (let i = 0; i < groupSize; i++) {
       meteors.push({
@@ -226,7 +226,7 @@ function spawnShootingStar() {
     shootingStars.push({
       x: startX,
       y: startY,
-      speed: 4 + Math.random() * 3,
+      speed: 1.5 + Math.random() * 1.5,
       size: 20 + Math.random() * 10,
       angle: fromLeft ? Math.PI / 4 : (3 * Math.PI) / 4,
     })

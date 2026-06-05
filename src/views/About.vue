@@ -56,7 +56,7 @@
         </li>
         <li>
           2025-08-13：<br />
-          和 DoroHelper 互相加了点广告，广告保持最低侵入性原则，保持最低状态的影响<br />
+          和 Maa Doro Assistant 互相加了点广告，广告保持最低侵入性原则，保持最低状态的影响<br />
           广告关键词拉满，会轻易被广告拦截器拦截，但是拦截后会有一个新的提示和广告跳转链接（拦了，但没完全拦）<br />
           因为添加了广告卡片，对 CDK
           展示界面的排版做了新的修改，现在是从左到右从上到下的伪瀑布流。<br />
@@ -103,7 +103,7 @@
           大神弄的，前后调试大概花了两天，这里非常感谢小黑盒的热心盒友 @哥谭下小雪
           同志，愿意提供国服的 CDK
           兑换参数供我调试分析，虽然这哥们第一天参数漏给一段导致我排查了半天，但是最后结果还是美好的。再次向你表示感谢。<br />
-          然后就是收到了 DoroHelper 现任开发者的很多建议，例如 CDK
+          然后就是收到了 Maa Doro Assistant 现任开发者的很多建议，例如 CDK
           公告部分和兑换部分差太远了，使用起来比较割裂，不能同步云端记录，不能根据账号兑换记录智能筛选未兑换的
           CDK 啥的一大堆的建议。现在也是将这些功能成功落地了，可喜可贺可口可乐~<br />
           然后还收到了B站网友 @奈何明月不独照我 的一个需求，添加 CDK
@@ -191,17 +191,202 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount } from 'vue'
+import { onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useNavStore } from '../stores/nav'
 
 const navStore = useNavStore()
 
+let matrixAnimId = null
+let matrixRunning = false
+
+function startMatrixEffect() {
+  const pre = document.getElementById('tiresult')
+  if (!pre) return
+
+  const allB = [...pre.querySelectorAll('b')]
+  for (const b of allB) {
+    if (b.textContent.length <= 1) continue
+    const frag = document.createDocumentFragment()
+    for (const ch of b.textContent) {
+      const nb = document.createElement('b')
+      nb.style.color = b.style.color
+      nb.textContent = ch
+      frag.appendChild(nb)
+    }
+    b.replaceWith(frag)
+  }
+
+  const text = pre.textContent || ''
+  const lines = text.split('\n').filter((l) => l.length > 0)
+  const cells = [...pre.querySelectorAll('b')]
+
+  const grid = []
+  let idx = 0
+  for (const line of lines) {
+    const row = []
+    for (let i = 0; i < line.length; i++) {
+      if (idx < cells.length) row.push(cells[idx++])
+    }
+    if (row.length > 0) grid.push(row)
+  }
+
+  const rows = grid.length
+  const cols = Math.max(...grid.map((r) => r.length))
+
+  const orig = grid.map((row) => row.map((el) => ({ char: el.textContent, color: el.style.color })))
+
+  function restoreCell(r, c) {
+    const el = grid[r]?.[c]
+    const o = orig[r]?.[c]
+    if (!el || !o) return
+    el.textContent = o.char
+    el.style.color = o.color
+    el.style.textShadow = ''
+  }
+
+  function restoreColumn(c) {
+    for (let r = 0; r < rows; r++) {
+      if (c < grid[r].length) restoreCell(r, c)
+    }
+  }
+
+  const drops = []
+  for (let c = 0; c < cols; c++) {
+    drops.push({
+      y: -(Math.random() * rows),
+      speed: 0.15 + Math.random() * 0.8,
+      tailLen: 4 + Math.floor(Math.random() * 10),
+      cooldown: Math.floor(Math.random() * 200),
+      active: Math.random() < 0.3,
+      skip: Math.random() < 0.15,
+    })
+  }
+
+  function updateDrop(c) {
+    const drop = drops[c]
+    if (drop.skip) return
+
+    if (drop.cooldown > 0) {
+      drop.cooldown--
+      if (drop.cooldown <= 0) {
+        drop.active = true
+        drop.y = -(drop.tailLen + Math.random() * 3)
+        drop.speed = 0.15 + Math.random() * 0.8
+        drop.tailLen = 4 + Math.floor(Math.random() * 10)
+      }
+      return
+    }
+
+    if (!drop.active) return
+
+    drop.y += drop.speed
+
+    if (Math.floor(drop.y) >= rows + 2) {
+      restoreColumn(c)
+      drop.active = false
+      drop.cooldown = 30 + Math.floor(Math.random() * 200)
+      return
+    }
+
+    restoreColumn(c)
+
+    const headY = Math.floor(drop.y)
+    const trail = drop.tailLen
+
+    for (let t = 0; t < trail; t++) {
+      const r = headY - t
+      if (r < 0 || r >= rows) continue
+      if (c >= grid[r].length) continue
+
+      const el = grid[r][c]
+      const o = orig[r][c]
+      if (!el || !o) continue
+
+      const p = t / trail
+      const brightness = 1 - p * p
+
+      el.textContent = Math.random() < 0.45 ? (Math.random() > 0.5 ? '0' : '1') : o.char
+
+      if (t === 0) {
+        el.style.color = '#ffffff'
+        el.style.textShadow = '0 0 4px #00ff41, 0 0 12px #00ff41, 0 0 24px rgba(0,255,65,0.7)'
+      } else if (brightness > 0.5) {
+        const g = Math.round(brightness * 255)
+        el.style.color = `rgb(10, ${g}, 10)`
+        el.style.textShadow = `0 0 ${brightness * 12}px #00ff41`
+      } else if (brightness > 0.15) {
+        const g = Math.round(brightness * 200)
+        el.style.color = `rgb(5, ${g}, 5)`
+        el.style.textShadow = brightness > 0.2 ? `0 0 ${brightness * 6}px rgba(0,255,65,0.5)` : ''
+      } else {
+        const g = Math.round(brightness * 120)
+        el.style.color = `rgb(3, ${g}, 3)`
+        el.style.textShadow = ''
+      }
+    }
+  }
+
+  let frameCount = 0
+  let phase = 0
+  let tickSkip = 0
+
+  function tick() {
+    if (!matrixRunning) return
+    frameCount++
+    tickSkip++
+    if (tickSkip % 2 !== 0) {
+      matrixAnimId = requestAnimationFrame(tick)
+      return
+    }
+
+    if (frameCount % 300 === 0) {
+      phase = (phase + 1) % 4
+    }
+
+    if (phase === 3 && frameCount % 4 === 0) {
+      for (let c = 0; c < cols; c++) {
+        const drop = drops[c]
+        if (!drop.skip && !drop.active) {
+          drop.active = true
+          drop.y = -(drop.tailLen + Math.random() * 5)
+          drop.speed = 0.3 + Math.random() * 0.6
+        }
+      }
+    }
+
+    for (let c = 0; c < cols; c++) {
+      updateDrop(c)
+    }
+
+    matrixAnimId = requestAnimationFrame(tick)
+  }
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      restoreCell(r, c)
+    }
+  }
+
+  matrixRunning = true
+  tick()
+}
+
+function stopMatrixEffect() {
+  matrixRunning = false
+  if (matrixAnimId) {
+    cancelAnimationFrame(matrixAnimId)
+    matrixAnimId = null
+  }
+}
+
 onMounted(() => {
   navStore.setRainbowMode(true)
+  nextTick(startMatrixEffect)
 })
 
 onBeforeUnmount(() => {
   navStore.setRainbowMode(false)
+  stopMatrixEffect()
 })
 </script>
 
@@ -406,28 +591,25 @@ blockquote {
   padding: 16px;
   --fs: 9px;
 
-  /* 居中显示 */
   text-align: center;
   margin: 20px auto;
   display: block;
   width: fit-content;
   max-width: 100%;
 
-  /* 保持正常长宽比 */
   font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
   line-height: 1;
   letter-spacing: 0;
   word-spacing: 0;
 
-  /* 边框和阴影 */
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 
-  /* 防止换行 */
   white-space: pre;
   overflow-x: auto;
 
-  /* 移动端适配 */
+  animation: matrixBorderPulse 4s ease-in-out infinite;
+
   @media screen and (max-width: 768px) {
     font-size: 6px;
     padding: 12px;
@@ -442,13 +624,31 @@ blockquote {
     border-radius: 4px;
   }
 
-  /* 暗色模式适配 */
   @media (prefers-color-scheme: dark) {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
   }
 
   html.dark & {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+  }
+
+  b {
+    transition: none;
+  }
+}
+
+@keyframes matrixBorderPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(0, 255, 65, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(0, 255, 65, 0.25),
+      0 0 20px rgba(0, 255, 65, 0.08);
   }
 }
 </style>
