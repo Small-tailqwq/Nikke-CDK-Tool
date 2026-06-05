@@ -24,12 +24,12 @@ export const useUserStore = defineStore('user', () => {
 
   // 计算属性
   const userCount = computed(() => users.value.length)
-  const userOptions = computed(() => users.value.map(user => ({
-    label: user.name,
-    value: user.id
-  })))
-
-
+  const userOptions = computed(() =>
+    users.value.map((user) => ({
+      label: user.name,
+      value: user.id,
+    }))
+  )
 
   // 获取用户列表
   const fetchUsers = async () => {
@@ -40,7 +40,7 @@ export const useUserStore = defineStore('user', () => {
 
       // 🔧 兼容性处理：检查并迁移老版本数据
       let hasUpdates = false
-      loadedUsers = loadedUsers.map(user => {
+      loadedUsers = loadedUsers.map((user) => {
         // 优先判断cookieActualExpireDate字段
         if (user.server !== 'cn' && user.cookie) {
           if (user.cookieActualExpireDate) {
@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', () => {
               cookieOriginal: user.cookie,
               cookieExpireDays: 0,
               cookieActualExpireDate: expireDate.toISOString(),
-              needsCookieUpdate: true
+              needsCookieUpdate: true,
             }
             hasUpdates = true
             return migratedUser
@@ -72,7 +72,7 @@ export const useUserStore = defineStore('user', () => {
         if (user.server !== 'cn' && user.cookie && !user.cookieOriginal) {
           return {
             ...user,
-            cookieOriginal: user.cookie
+            cookieOriginal: user.cookie,
           }
         }
         return user
@@ -105,7 +105,7 @@ export const useUserStore = defineStore('user', () => {
       const newUser = {
         id: Date.now(),
         ...userData,
-        createTime: new Date().toLocaleString()
+        createTime: new Date().toLocaleString(),
       }
       if (userStorage.addUser(newUser)) {
         users.value.push(newUser)
@@ -123,13 +123,13 @@ export const useUserStore = defineStore('user', () => {
   const updateUser = async (id, userData) => {
     logger.startOperation('更新用户', { userId: id, updateFields: Object.keys(userData) })
     try {
-      const index = users.value.findIndex(u => u.id === id)
+      const index = users.value.findIndex((u) => u.id === id)
       if (index !== -1) {
         const updatedUser = {
           ...users.value[index],
           ...userData,
           id: users.value[index].id,
-          createTime: users.value[index].createTime
+          createTime: users.value[index].createTime,
         }
 
         // 🔧 修复：如果更新了Cookie，重新检测Cookie状态
@@ -143,10 +143,13 @@ export const useUserStore = defineStore('user', () => {
 
           // 从每日检测状态中移除，允许重新检测
           if (dailyCheckStatus.value.checkedUserIds.includes(id)) {
-            dailyCheckStatus.value.checkedUserIds = dailyCheckStatus.value.checkedUserIds.filter(uid => uid !== id)
+            dailyCheckStatus.value.checkedUserIds = dailyCheckStatus.value.checkedUserIds.filter(
+              (uid) => uid !== id
+            )
           }
           if (dailyCheckStatus.value.dismissedWarnings.includes(id)) {
-            dailyCheckStatus.value.dismissedWarnings = dailyCheckStatus.value.dismissedWarnings.filter(uid => uid !== id)
+            dailyCheckStatus.value.dismissedWarnings =
+              dailyCheckStatus.value.dismissedWarnings.filter((uid) => uid !== id)
           }
           saveDailyCheckStatus()
 
@@ -165,7 +168,9 @@ export const useUserStore = defineStore('user', () => {
               // 添加取消标志
               let isCancelled = false
               const detection = {
-                cancel: () => { isCancelled = true }
+                cancel: () => {
+                  isCancelled = true
+                },
               }
               cookieDetectionMap.set(id, detection)
 
@@ -178,19 +183,26 @@ export const useUserStore = defineStore('user', () => {
               }
 
               if (result.success) {
-                logger.operationSuccess('用户 Cookie检测', { userName: updatedUser.name, status: '正常' })
+                logger.operationSuccess('用户 Cookie检测', {
+                  userName: updatedUser.name,
+                  status: '正常',
+                })
                 // 更新Cookie状态为正常，从API响应中获取实际过期时间
                 const expireDays = result.data?.expireDays || 30
                 await updateUser(id, {
                   cookieExpireDays: expireDays,
-                  cookieActualExpireDate: new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000).toISOString()
+                  cookieActualExpireDate: new Date(
+                    Date.now() + expireDays * 24 * 60 * 60 * 1000
+                  ).toISOString(),
                 })
               } else {
-                logger.warn(`用户 ${updatedUser.name} 的新Cookie仍然无效`, { message: result.message })
+                logger.warn(`用户 ${updatedUser.name} 的新Cookie仍然无效`, {
+                  message: result.message,
+                })
                 // 保持失效状态
                 await updateUser(id, {
                   cookieExpireDays: -1,
-                  cookieActualExpireDate: new Date().toISOString()
+                  cookieActualExpireDate: new Date().toISOString(),
                 })
               }
             } catch (error) {
@@ -223,11 +235,11 @@ export const useUserStore = defineStore('user', () => {
   const deleteUser = async (id) => {
     logger.startOperation('删除用户', { userId: id })
     try {
-      const user = users.value.find(u => u.id === id)
+      const user = users.value.find((u) => u.id === id)
       const userName = user?.name || `ID:${id}`
 
       if (userStorage.deleteUser(id)) {
-        users.value = users.value.filter(u => u.id !== id)
+        users.value = users.value.filter((u) => u.id !== id)
         logger.operationSuccess('删除用户', { userId: id, userName })
         return true
       }
@@ -250,7 +262,7 @@ export const useUserStore = defineStore('user', () => {
     const idStr = String(id)
     logger.debug(`getUserById: 尝试查找ID=${idStr} (类型: ${typeof id})`)
 
-    const user = users.value.find(u => String(u.id) === idStr)
+    const user = users.value.find((u) => String(u.id) === idStr)
     if (user) {
       logger.debug(`getUserById: 找到用户 ${user.name}, ID=${user.id}`)
       return user
@@ -265,7 +277,7 @@ export const useUserStore = defineStore('user', () => {
   const dailyCheckStatus = ref({
     lastCheckDate: null,
     checkedUserIds: [], // 今日已检测的用户ID
-    dismissedWarnings: [] // 今日已关闭的警告用户ID
+    dismissedWarnings: [], // 今日已关闭的警告用户ID
   })
 
   // 初始化每日检测状态
@@ -281,7 +293,7 @@ export const useUserStore = defineStore('user', () => {
           dailyCheckStatus.value = {
             lastCheckDate: today,
             checkedUserIds: [],
-            dismissedWarnings: []
+            dismissedWarnings: [],
           }
           saveDailyCheckStatus()
           logger.info('每日检测状态已重置为今日')
@@ -294,7 +306,7 @@ export const useUserStore = defineStore('user', () => {
         dailyCheckStatus.value = {
           lastCheckDate: new Date().toDateString(),
           checkedUserIds: [],
-          dismissedWarnings: []
+          dismissedWarnings: [],
         }
         saveDailyCheckStatus()
         logger.info('首次访问，已初始化每日检测状态')
@@ -304,7 +316,7 @@ export const useUserStore = defineStore('user', () => {
       dailyCheckStatus.value = {
         lastCheckDate: new Date().toDateString(),
         checkedUserIds: [],
-        dismissedWarnings: []
+        dismissedWarnings: [],
       }
     }
   }
@@ -318,8 +330,6 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-
-
   /**
    * 每日首次访问时自动检测所有国际服用户的Cookie状态
    * 检测到问题会显示常驻警告提示
@@ -329,7 +339,7 @@ export const useUserStore = defineStore('user', () => {
       console.log('[UserStore] 开始每日Cookie状态检测')
 
       // 获取所有国际服用户（排除国服和已经是异常状态的用户）
-      const globalUsers = users.value.filter(user => {
+      const globalUsers = users.value.filter((user) => {
         // 只检测国际服和港澳台服用户
         if (user.server === 'cn' || !user.cookie) {
           return false
@@ -361,8 +371,10 @@ export const useUserStore = defineStore('user', () => {
         return
       }
 
-      console.log(`[UserStore] 发现${globalUsers.length}个用户需要检测Cookie状态:`,
-        globalUsers.map(u => `${u.name}(当前${u.cookieExpireDays}天)`))
+      console.log(
+        `[UserStore] 发现${globalUsers.length}个用户需要检测Cookie状态:`,
+        globalUsers.map((u) => `${u.name}(当前${u.cookieExpireDays}天)`)
+      )
 
       let checkedCount = 0
       let problemUsers = []
@@ -384,13 +396,13 @@ export const useUserStore = defineStore('user', () => {
             problemUsers.push({
               user: user,
               problem: 'invalid',
-              message: result.message || 'Cookie已失效'
+              message: result.message || 'Cookie已失效',
             })
 
             // 更新用户状态为异常
             await updateUser(user.id, {
               cookieExpireDays: -1,
-              cookieActualExpireDate: new Date().toISOString()
+              cookieActualExpireDate: new Date().toISOString(),
             })
 
             console.log(`[CookieCheck] 用户 ${user.name} Cookie已失效`)
@@ -400,11 +412,10 @@ export const useUserStore = defineStore('user', () => {
             // 如果检测成功，可以更新角色信息（可选）
             if (result.playerInfo) {
               await updateUser(user.id, {
-                playerInfo: result.playerInfo
+                playerInfo: result.playerInfo,
               })
             }
           }
-
         } catch (error) {
           console.warn(`[CookieCheck] 检测用户 ${user.name} 时出错:`, error)
 
@@ -413,21 +424,22 @@ export const useUserStore = defineStore('user', () => {
           checkedCount++
 
           // 如果是明确的认证错误，标记为问题用户
-          if (error.message && (
-            error.message.includes('token is invalid') ||
-            error.message.includes('无法从Cookie中提取') ||
-            error.message.includes('认证失败')
-          )) {
+          if (
+            error.message &&
+            (error.message.includes('token is invalid') ||
+              error.message.includes('无法从Cookie中提取') ||
+              error.message.includes('认证失败'))
+          ) {
             problemUsers.push({
               user: user,
               problem: 'error',
-              message: '检测失败，可能已失效'
+              message: '检测失败，可能已失效',
             })
 
             // 更新用户状态为异常
             await updateUser(user.id, {
               cookieExpireDays: -1,
-              cookieActualExpireDate: new Date().toISOString()
+              cookieActualExpireDate: new Date().toISOString(),
             })
           }
         }
@@ -438,14 +450,14 @@ export const useUserStore = defineStore('user', () => {
 
       // 生成警告信息
       if (problemUsers.length > 0) {
-        const newWarnings = problemUsers.map(item => ({
+        const newWarnings = problemUsers.map((item) => ({
           id: `cookie-warning-${item.user.id}`,
           userId: item.user.id,
           userName: item.user.name,
           userServer: item.user.server,
           problem: item.problem,
           message: item.message,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }))
 
         // 添加到警告列表
@@ -454,8 +466,9 @@ export const useUserStore = defineStore('user', () => {
         console.log(`[CookieCheck] 发现${problemUsers.length}个用户存在Cookie问题，已生成警告`)
       }
 
-      console.log(`[UserStore] 每日Cookie状态检测完成：检测${checkedCount}个用户，发现${problemUsers.length}个问题`)
-
+      console.log(
+        `[UserStore] 每日Cookie状态检测完成：检测${checkedCount}个用户，发现${problemUsers.length}个问题`
+      )
     } catch (error) {
       console.error('[UserStore] 每日Cookie状态检测异常:', error)
     }
@@ -464,7 +477,7 @@ export const useUserStore = defineStore('user', () => {
   // 关闭特定的Cookie警告
   const dismissCookieWarning = (warningId, userId) => {
     // 从警告列表中移除
-    cookieWarnings.value = cookieWarnings.value.filter(w => w.id !== warningId)
+    cookieWarnings.value = cookieWarnings.value.filter((w) => w.id !== warningId)
 
     // 标记为今日已关闭
     if (userId && !dailyCheckStatus.value.dismissedWarnings.includes(userId)) {
@@ -477,13 +490,13 @@ export const useUserStore = defineStore('user', () => {
 
   // 关闭所有Cookie警告
   const dismissAllCookieWarnings = () => {
-    const userIds = cookieWarnings.value.map(w => w.userId)
+    const userIds = cookieWarnings.value.map((w) => w.userId)
 
     // 清空警告列表
     cookieWarnings.value = []
 
     // 标记所有为今日已关闭
-    userIds.forEach(userId => {
+    userIds.forEach((userId) => {
       if (!dailyCheckStatus.value.dismissedWarnings.includes(userId)) {
         dailyCheckStatus.value.dismissedWarnings.push(userId)
       }
@@ -499,7 +512,13 @@ export const useUserStore = defineStore('user', () => {
       return { success: false, message: '未保存账号密码凭证' }
     }
 
-    const result = await refreshCookieByCredential(credential.email, credential.password, '', '', '')
+    const result = await refreshCookieByCredential(
+      credential.email,
+      credential.password,
+      '',
+      '',
+      ''
+    )
     if (!result.success || !result.cookie) {
       return {
         success: false,
@@ -543,7 +562,7 @@ export const useUserStore = defineStore('user', () => {
       console.log('[UserStore] 开始自动Cookie续期检测')
 
       // 过滤出需要续期的用户（国际服/港澳台服，且Cookie剩余天数≤7天）
-      const usersNeedRenewal = users.value.filter(user => {
+      const usersNeedRenewal = users.value.filter((user) => {
         if (user.server === 'cn' || !user.cookie) {
           return false
         }
@@ -555,8 +574,10 @@ export const useUserStore = defineStore('user', () => {
         return
       }
 
-      console.log(`[UserStore] 发现${usersNeedRenewal.length}个用户需要自动续期:`,
-        usersNeedRenewal.map(u => `${u.name}(${u.cookieExpireDays}天)`))
+      console.log(
+        `[UserStore] 发现${usersNeedRenewal.length}个用户需要自动续期:`,
+        usersNeedRenewal.map((u) => `${u.name}(${u.cookieExpireDays}天)`)
+      )
 
       let renewedCount = 0
       let failedCount = 0
@@ -612,8 +633,9 @@ export const useUserStore = defineStore('user', () => {
         showCustomMessage(`自动续期失败：${failedCount}个用户续期失败`, 'error')
       }
 
-      console.log(`[UserStore] 自动Cookie续期完成：成功${renewedCount}个，失败${failedCount}个，跳过${skippedCount}个`)
-
+      console.log(
+        `[UserStore] 自动Cookie续期完成：成功${renewedCount}个，失败${failedCount}个，跳过${skippedCount}个`
+      )
     } catch (error) {
       console.error('[UserStore] 自动Cookie续期检测异常:', error)
     }
@@ -643,20 +665,24 @@ export const useUserStore = defineStore('user', () => {
         try {
           const detectionResult = await detectServerFromCookieAsync(user.cookie)
 
-          if (detectionResult && detectionResult.detectedServer &&
+          if (
+            detectionResult &&
+            detectionResult.detectedServer &&
             detectionResult.confidence > 0.8 &&
-            detectionResult.detectedServer !== user.server) {
-
-            logger.info(`检测到用户 ${user.name} 的服务器类型需要修复: ${user.server} -> ${detectionResult.detectedServer} (${detectionResult.suggestion})`)
+            detectionResult.detectedServer !== user.server
+          ) {
+            logger.info(
+              `检测到用户 ${user.name} 的服务器类型需要修复: ${user.server} -> ${detectionResult.detectedServer} (${detectionResult.suggestion})`
+            )
 
             // 更新用户的服务器类型
             const updatedUser = {
               ...user,
-              server: detectionResult.detectedServer
+              server: detectionResult.detectedServer,
             }
 
             // 更新内存中的用户数据
-            const userIndex = users.value.findIndex(u => u.id === user.id)
+            const userIndex = users.value.findIndex((u) => u.id === user.id)
             if (userIndex !== -1) {
               users.value[userIndex] = updatedUser
               hasChanges = true
@@ -664,7 +690,7 @@ export const useUserStore = defineStore('user', () => {
                 name: user.name,
                 from: user.server,
                 to: detectionResult.detectedServer,
-                reason: detectionResult.suggestion
+                reason: detectionResult.suggestion,
               })
             }
           }
@@ -679,7 +705,7 @@ export const useUserStore = defineStore('user', () => {
         userStorage.saveUsers(users.value)
         logger.operationSuccess('服务器类型修复完成', {
           fixedCount: fixedUsers.length,
-          details: fixedUsers
+          details: fixedUsers,
         })
 
         // 显示修复结果给用户
@@ -693,7 +719,6 @@ export const useUserStore = defineStore('user', () => {
 
       // 标记修复已完成（使用新版本号）
       localStorage.setItem('server_types_fixed_v2', 'true')
-
     } catch (error) {
       logger.operationError('服务器类型修复失败', error)
     }
@@ -726,7 +751,8 @@ export const useUserStore = defineStore('user', () => {
 
           // 根据region_name的模式判断服务器类型
           // 国际服区域：全球区、韩区、日区、北美区、东南亚区等
-          if (regionName === '日区' ||
+          if (
+            regionName === '日区' ||
             regionName === '全球区' ||
             regionName === '韩区' ||
             regionName === '北美区' ||
@@ -735,7 +761,8 @@ export const useUserStore = defineStore('user', () => {
             regionName === 'Global' ||
             regionName === 'Korea' ||
             regionName === 'NA' ||
-            regionName === 'SEA') {
+            regionName === 'SEA'
+          ) {
             detectedServer = 'global'
             confidence = 0.95
             suggestion = `检测到国际服特征 (游戏服区: ${regionName})`
@@ -761,7 +788,7 @@ export const useUserStore = defineStore('user', () => {
             confidence,
             channelId,
             suggestion,
-            regionName
+            regionName,
           }
         }
       } catch (apiError) {
@@ -785,13 +812,9 @@ export const useUserStore = defineStore('user', () => {
     cookieWarnings,
     dailyCheckStatus,
 
-
-
     // 计算属性
     userCount,
     userOptions,
-
-
 
     // 方法
     fetchUsers,
@@ -799,8 +822,6 @@ export const useUserStore = defineStore('user', () => {
     updateUser,
     deleteUser,
     getUserById,
-
-
 
     // Cookie检测和管理方法
     initDailyCheckStatus,
@@ -812,6 +833,6 @@ export const useUserStore = defineStore('user', () => {
     detectAndFixServerTypes,
 
     // Cookie自动续期方法
-    performAutoRenewal
+    performAutoRenewal,
   }
-}) 
+})

@@ -137,8 +137,8 @@
             <el-switch v-model="draftConfig.enabled" />
           </div>
           <div class="section-help">
-            关闭时继续沿用默认通用购买配置；开启后仅当前账号使用单独的每月兑换商品设置。
-            当前提供 {{ monthlyProductOptions.length }} 个固定商品可选。
+            关闭时继续沿用默认通用购买配置；开启后仅当前账号使用单独的每月兑换商品设置。 当前提供
+            {{ monthlyProductOptions.length }} 个固定商品可选。
           </div>
           <el-select
             v-model="draftConfig.items"
@@ -255,9 +255,7 @@
                 <div v-for="(message, index) in recentMessages" :key="index" class="log-line">
                   {{ message }}
                 </div>
-                <div v-if="user.blaLastRun" class="log-time">
-                  最近执行: {{ user.blaLastRun }}
-                </div>
+                <div v-if="user.blaLastRun" class="log-time">最近执行: {{ user.blaLastRun }}</div>
               </div>
             </div>
             <div v-else class="empty-text">暂无执行日志，后续执行后会在这里显示。</div>
@@ -476,9 +474,7 @@ const hasExchangeRunThisMonth = computed(() => {
   const redeemDate = new Date(props.user.blaLastRedeemAt)
   if (Number.isNaN(redeemDate.getTime())) return false
   const now = new Date()
-  return (
-    redeemDate.getFullYear() === now.getFullYear() && redeemDate.getMonth() === now.getMonth()
-  )
+  return redeemDate.getFullYear() === now.getFullYear() && redeemDate.getMonth() === now.getMonth()
 })
 
 const exchangeTargetCount = computed(() => activeExchangeItems.value.length)
@@ -555,12 +551,16 @@ const exchangeProgressDetailText = computed(() => {
 
 const redeemedItemsText = computed(() => {
   if (!exchangeTargetCount.value) return '暂无'
-  return redeemedExchangeItems.value.length ? redeemedExchangeItems.value.join(' / ') : '本月暂无已兑商品'
+  return redeemedExchangeItems.value.length
+    ? redeemedExchangeItems.value.join(' / ')
+    : '本月暂无已兑商品'
 })
 
 const pendingItemsText = computed(() => {
   if (!exchangeTargetCount.value) return '暂无'
-  return pendingExchangeItems.value.length ? pendingExchangeItems.value.join(' / ') : '本月无待兑商品'
+  return pendingExchangeItems.value.length
+    ? pendingExchangeItems.value.join(' / ')
+    : '本月无待兑商品'
 })
 
 const logSummaryText = computed(() => {
@@ -690,7 +690,9 @@ const runTasksNow = async () => {
     if (result.exchange?.attempted && result.exchange?.lastRedeemMessage) {
       summaryParts.push(result.exchange.lastRedeemMessage)
     }
-    const summary = summaryParts.length ? `BlaBla 已执行：${summaryParts.join('，')}` : 'BlaBla 已执行'
+    const summary = summaryParts.length
+      ? `BlaBla 已执行：${summaryParts.join('，')}`
+      : 'BlaBla 已执行'
     showCustomMessage(summary, result.success ? 'success' : 'warning')
   } catch (error) {
     overviewError.value = error.message || '执行 BlaBla 任务失败'

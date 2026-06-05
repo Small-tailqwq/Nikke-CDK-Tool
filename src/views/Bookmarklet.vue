@@ -32,7 +32,7 @@
     />
 
     <h3>调试信息</h3>
-    <el-input type="textarea" :autosize="{ minRows: 6 }" v-model="bookmarkletSrc" />
+    <el-input v-model="bookmarkletSrc" type="textarea" :autosize="{ minRows: 6 }" />
   </div>
 </template>
 

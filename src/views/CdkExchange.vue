@@ -5,13 +5,13 @@
       <template #header>
         <div class="card-header">
           <span>选择用户</span>
-          <span class="selected-count" v-if="selectedUserIds.length">
+          <span v-if="selectedUserIds.length" class="selected-count">
             已选择 {{ selectedUserIds.length }} 个用户
           </span>
         </div>
       </template>
 
-      <div class="user-cards-container" v-loading="userStore.loading">
+      <div v-loading="userStore.loading" class="user-cards-container">
         <transition-group name="user-card-list">
           <!-- 用户卡片 (显示所有用户) -->
           <div
@@ -86,9 +86,9 @@
           <span>CDK兑换</span>
           <el-button
             type="primary"
-            @click="handleExchange"
             :loading="exchanging"
             :disabled="!canExchange"
+            @click="handleExchange"
           >
             {{ exchangeButtonText }}
           </el-button>
@@ -106,9 +106,9 @@
                 :rows="4"
                 placeholder="请输入CDK，每行一个&#10;按 Enter 换行"
                 :disabled="exchanging"
-                @keydown.enter.prevent="handleEnterKey"
                 resize="none"
                 class="cdk-textarea"
+                @keydown.enter.prevent="handleEnterKey"
               />
               <div class="form-tip">
                 <el-icon><InfoFilled /></el-icon>
@@ -156,9 +156,9 @@
       </template>
 
       <el-table
+        v-loading="exchangeStore.loading"
         :data="exchangeStore.recentHistory"
         stripe
-        v-loading="exchangeStore.loading"
         :fit="true"
         class="history-table"
       >
@@ -246,10 +246,10 @@
                 <el-button
                   link
                   type="primary"
-                  @click="refreshCaptcha"
                   :loading="captchaLoading"
                   size="small"
                   class="captcha-refresh-btn"
+                  @click="refreshCaptcha"
                 >
                   刷新
                 </el-button>
@@ -263,21 +263,16 @@
         <div class="dialog-footer">
           <div class="dialog-footer-left">
             <el-button @click="cancelCnExchange">取消</el-button>
-            <el-button 
-              v-if="globalCdkTotal > 1"
-              type="danger" 
-              plain
-              @click="cancelAllCnExchange"
-            >
+            <el-button v-if="globalCdkTotal > 1" type="danger" plain @click="cancelAllCnExchange">
               取消全部
             </el-button>
           </div>
           <div class="dialog-footer-right">
             <el-button
               type="primary"
-              @click="submitCnExchange"
               :loading="captchaLoading"
               :disabled="!captchaForm.captcha"
+              @click="submitCnExchange"
             >
               兑换
             </el-button>
@@ -673,7 +668,7 @@ const handleExchange = async () => {
         console.log('用户取消了全部兑换，停止为后续用户兑换')
         break
       }
-      
+
       // 对于国服用户，计算该用户的CDK总数
       const userCdkCount = user.server === 'cn' ? cdkList.length : 1
 
@@ -683,7 +678,7 @@ const handleExchange = async () => {
           console.log('用户取消了全部兑换，停止后续兑换')
           break
         }
-        
+
         const cdk = cdkList[cdkIndex]
         // 记录兑换开始时间
         const exchangeStartTime = new Date()

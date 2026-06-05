@@ -5,49 +5,49 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/announcement'
+      redirect: '/announcement',
     },
     {
       path: '/helper/bookmarklet',
       name: 'bookmarklet',
       component: () => import('../views/Bookmarklet.vue'),
-      meta: { hidden: true }
+      meta: { hidden: true },
     },
     {
       path: '/auth/callback',
       name: 'auth-callback',
       component: () => import('../views/CallbackAuth.vue'),
-      meta: { hidden: true }
+      meta: { hidden: true },
     },
     {
       path: '/cdk',
       name: 'cdk',
-      component: () => import('../views/CdkExchange.vue')
+      component: () => import('../views/CdkExchange.vue'),
     },
     {
       path: '/user',
       name: 'user',
-      component: () => import('../views/UserManagement.vue')
+      component: () => import('../views/UserManagement.vue'),
     },
     {
       path: '/history',
       name: 'history',
-      component: () => import('../views/ExchangeHistory.vue')
+      component: () => import('../views/ExchangeHistory.vue'),
     },
     {
       path: '/announcement',
       name: 'announcement',
-      component: () => import('../views/CdkAnnouncement.vue')
+      component: () => import('../views/CdkAnnouncement.vue'),
     },
     {
       path: '/rainbow-doro',
       component: () => import('../views/RainbowDoro.vue'),
-      meta: { hidden: true }
+      meta: { hidden: true },
     },
     {
       path: '/about',
       name: 'about',
-      component: () => import('../views/About.vue')
+      component: () => import('../views/About.vue'),
     },
     {
       path: '/admin',
@@ -58,9 +58,9 @@ const router = createRouter({
         if (!import.meta.env.DEV) {
           return { path: '/' }
         }
-      }
-    }
-  ]
+      },
+    },
+  ],
 })
 
-export default router 
+export default router

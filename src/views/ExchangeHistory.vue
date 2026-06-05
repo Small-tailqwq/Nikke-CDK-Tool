@@ -5,10 +5,10 @@
         <div class="card-header">
           <span>兑换历史</span>
           <div class="header-actions">
-            <el-select 
-              v-model="selectedUser" 
-              placeholder="选择用户" 
-              clearable 
+            <el-select
+              v-model="selectedUser"
+              placeholder="选择用户"
+              clearable
               size="small"
               @visible-change="handleDropdownVisibleChange"
             >
@@ -19,10 +19,10 @@
                 :value="user.id"
               />
             </el-select>
-            <el-select 
-              v-model="selectedServer" 
-              placeholder="选择服务器" 
-              clearable 
+            <el-select
+              v-model="selectedServer"
+              placeholder="选择服务器"
+              clearable
               size="small"
               @visible-change="handleDropdownVisibleChange"
             >
@@ -33,10 +33,10 @@
                 :value="server.value"
               />
             </el-select>
-            <el-select 
-              v-model="selectedSource" 
-              placeholder="选择来源" 
-              clearable 
+            <el-select
+              v-model="selectedSource"
+              placeholder="选择来源"
+              clearable
               size="small"
               @visible-change="handleDropdownVisibleChange"
             >
@@ -51,13 +51,13 @@
               type="primary"
               size="small"
               plain
-              @click="syncAllHistory"
               :loading="syncLoading"
               :disabled="!hasGlobalUsers"
+              @click="syncAllHistory"
             >
               同步全部历史
             </el-button>
-            <el-dropdown @command="handleClearCommand" trigger="click">
+            <el-dropdown trigger="click" @command="handleClearCommand">
               <el-button type="danger" size="small" plain>
                 清除历史
                 <el-icon class="el-icon--right"><arrow-down /></el-icon>
@@ -76,9 +76,9 @@
       </template>
 
       <el-table
+        v-loading="loading"
         :data="historyList"
         stripe
-        v-loading="loading"
         class="history-table"
         @row-click="handleRowClick"
       >
@@ -153,9 +153,9 @@
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
           :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
+          size="small"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
-          size="small"
         />
       </div>
     </el-card>

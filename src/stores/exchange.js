@@ -37,7 +37,7 @@ export const useExchangeStore = defineStore('exchange', () => {
         server: record.server || 'unknown',
         serverName: record.serverName || '未知',
         source: record.source || '本地', // 标记来源：本地-本地兑换, 云端-云端同步
-        ...record
+        ...record,
       }
 
       // 添加到内存中
@@ -60,11 +60,13 @@ export const useExchangeStore = defineStore('exchange', () => {
     // 为每条记录添加唯一ID
     const recordsWithId = records.map((record) => ({
       ...record,
-      id: record.id || `${record.userId}-${record.cdk}-${record.date}-${Math.random().toString(36).substring(2, 10)}`
+      id:
+        record.id ||
+        `${record.userId}-${record.cdk}-${record.date}-${Math.random().toString(36).substring(2, 10)}`,
     }))
 
     // 简化逻辑：只有当添加的是云端记录时，才尝试与本地记录融合
-    const isAddingCloudRecords = recordsWithId.some(record => record.source === '云端')
+    const isAddingCloudRecords = recordsWithId.some((record) => record.source === '云端')
 
     let mergedRecords
     if (isAddingCloudRecords) {
@@ -101,24 +103,26 @@ export const useExchangeStore = defineStore('exchange', () => {
     // 处理每条新记录
     for (const newRecord of newRecords) {
       // 查找可能的重复记录
-      const similarRecords = existingRecords.filter(record =>
-        // 相同CDK码
-        record.cdk === newRecord.cdk &&
-        // 相同用户
-        record.userId === newRecord.userId &&
-        // 时间接近（30秒内）
-        Math.abs(new Date(record.date) - new Date(newRecord.date)) < 30 * 1000
+      const similarRecords = existingRecords.filter(
+        (record) =>
+          // 相同CDK码
+          record.cdk === newRecord.cdk &&
+          // 相同用户
+          record.userId === newRecord.userId &&
+          // 时间接近（30秒内）
+          Math.abs(new Date(record.date) - new Date(newRecord.date)) < 30 * 1000
       )
 
       if (similarRecords.length > 0) {
         // 找到可能的重复记录，进行融合
         // 按时间排序，找到最接近的记录
-        const closestRecord = similarRecords.sort((a, b) =>
-          Math.abs(new Date(a.date) - new Date(newRecord.date)) -
-          Math.abs(new Date(b.date) - new Date(newRecord.date))
+        const closestRecord = similarRecords.sort(
+          (a, b) =>
+            Math.abs(new Date(a.date) - new Date(newRecord.date)) -
+            Math.abs(new Date(b.date) - new Date(newRecord.date))
         )[0]
 
-        const index = result.findIndex(r => r.id === closestRecord.id)
+        const index = result.findIndex((r) => r.id === closestRecord.id)
         if (index !== -1) {
           // 智能融合规则：
           const isLocalRecord = closestRecord.source === '本地'
@@ -127,17 +131,24 @@ export const useExchangeStore = defineStore('exchange', () => {
           const isCloudOldRecord = closestRecord.source === '云端'
 
           // 融合条件检查：只有当一个记录是本地来源，另一个是云端来源时才进行融合
-          const shouldMerge = (isLocalRecord && isCloudRecord) || (isLocalNewRecord && isCloudOldRecord)
+          const shouldMerge =
+            (isLocalRecord && isCloudRecord) || (isLocalNewRecord && isCloudOldRecord)
 
           if (shouldMerge) {
-            console.log(`📋 融合记录: ${closestRecord.source} + ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+            console.log(
+              `📋 融合记录: ${closestRecord.source} + ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`
+            )
 
             // 识别云端和本地记录
-            const cloudRecord = isCloudRecord ? newRecord : (isCloudOldRecord ? closestRecord : null)
-            const localRecord = isLocalRecord ? closestRecord : (isLocalNewRecord ? newRecord : null)
+            const cloudRecord = isCloudRecord ? newRecord : isCloudOldRecord ? closestRecord : null
+            const localRecord = isLocalRecord ? closestRecord : isLocalNewRecord ? newRecord : null
 
-            console.log(`📋 融合详情: 云端记录=${cloudRecord ? '有' : '无'}, 本地记录=${localRecord ? '有' : '无'}`)
-            console.log(`📋 融合结果: 时间=${cloudRecord ? cloudRecord.date : localRecord.date}, 状态=${closestRecord.success || newRecord.success ? '成功' : '失败'}, 信息=${localRecord ? localRecord.message : cloudRecord.message}`)
+            console.log(
+              `📋 融合详情: 云端记录=${cloudRecord ? '有' : '无'}, 本地记录=${localRecord ? '有' : '无'}`
+            )
+            console.log(
+              `📋 融合结果: 时间=${cloudRecord ? cloudRecord.date : localRecord.date}, 状态=${closestRecord.success || newRecord.success ? '成功' : '失败'}, 信息=${localRecord ? localRecord.message : cloudRecord.message}`
+            )
 
             // 融合记录
             result[index] = {
@@ -161,25 +172,30 @@ export const useExchangeStore = defineStore('exchange', () => {
               mergedFrom: `${closestRecord.source}+${newRecord.source}`,
 
               // 记录融合时间
-              mergedAt: new Date().toISOString()
+              mergedAt: new Date().toISOString(),
             }
 
             // 标记为已处理
             processedNewRecords.add(newRecord.id)
           } else {
             // 相同来源的记录，检查是否为真正的重复记录
-            const isDuplicateRecord = closestRecord.success === newRecord.success &&
+            const isDuplicateRecord =
+              closestRecord.success === newRecord.success &&
               closestRecord.message === newRecord.message &&
               closestRecord.code === newRecord.code
 
             if (isDuplicateRecord) {
               // 真正的重复记录，跳过
-              console.log(`⚠️ 跳过完全重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+              console.log(
+                `⚠️ 跳过完全重复记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`
+              )
               console.log(`⚠️ 跳过原因: 完全相同的记录，避免重复`)
               processedNewRecords.add(newRecord.id)
             } else {
               // 虽然来源相同，但结果不同，应该保留为独立记录
-              console.log(`📝 保留独立记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`)
+              console.log(
+                `📝 保留独立记录: ${closestRecord.source} = ${newRecord.source} (CDK: ${newRecord.cdk}, 用户: ${newRecord.userName || '未知'})`
+              )
               console.log(`📝 保留原因: 虽然来源相同但结果不同，视为不同的尝试`)
               // 不标记为已处理，让它被添加为新记录
             }
@@ -220,7 +236,7 @@ export const useExchangeStore = defineStore('exchange', () => {
       if (!record.id) {
         return {
           ...record,
-          id: `${record.userId || 'unknown'}-${record.cdk || 'unknown'}-${record.date || new Date().toISOString()}-${Math.random().toString(36).substring(2, 10)}`
+          id: `${record.userId || 'unknown'}-${record.cdk || 'unknown'}-${record.date || new Date().toISOString()}-${Math.random().toString(36).substring(2, 10)}`,
         }
       }
       return record
@@ -243,7 +259,7 @@ export const useExchangeStore = defineStore('exchange', () => {
       return {
         success: false,
         message: '只支持同步国际服用户的历史记录',
-        count: 0
+        count: 0,
       }
     }
 
@@ -278,7 +294,7 @@ export const useExchangeStore = defineStore('exchange', () => {
             page: currentPage,
             pageSize: pageSize,
             syncAll: false, // 每次只获取一页
-            user: user // 🔧 修复：传递完整的用户对象以正确识别服务器类型
+            user: user, // 🔧 修复：传递完整的用户对象以正确识别服务器类型
           })
 
           if (!result.success || !result.records || result.records.length === 0) {
@@ -288,7 +304,7 @@ export const useExchangeStore = defineStore('exchange', () => {
               return {
                 success: false,
                 message: result.message || '同步历史记录失败',
-                count: 0
+                count: 0,
               }
             }
             break
@@ -300,7 +316,9 @@ export const useExchangeStore = defineStore('exchange', () => {
           totalPages = result.totalPages || Math.ceil(totalRecords / pageSize)
 
           // 同步进度由调用方的ProgressMessage显示，这里不再重复显示
-          console.log(`已同步第${currentPage}页，共${totalPages}页，当前${allRecords.length}条记录，总计${totalRecords}条`)
+          console.log(
+            `已同步第${currentPage}页，共${totalPages}页，当前${allRecords.length}条记录，总计${totalRecords}条`
+          )
 
           // 判断是否还有更多页面
           hasMorePages = result.hasMorePages && currentPage < totalPages
@@ -324,7 +342,7 @@ export const useExchangeStore = defineStore('exchange', () => {
             totalPages: totalPages,
             pageSize: pageSize,
             hasMorePages: false,
-            isComplete: true
+            isComplete: true,
           }
         }
       } else {
@@ -333,7 +351,7 @@ export const useExchangeStore = defineStore('exchange', () => {
           page,
           pageSize,
           syncAll: false,
-          user: user // 🔧 修复：传递完整的用户对象以正确识别服务器类型
+          user: user, // 🔧 修复：传递完整的用户对象以正确识别服务器类型
         })
 
         if (result.success && result.records && result.records.length > 0) {
@@ -349,7 +367,7 @@ export const useExchangeStore = defineStore('exchange', () => {
             totalPages: result.totalPages,
             pageSize: result.pageSize,
             hasMorePages: result.hasMorePages,
-            isComplete: !result.hasMorePages
+            isComplete: !result.hasMorePages,
           }
         }
 
@@ -361,7 +379,7 @@ export const useExchangeStore = defineStore('exchange', () => {
           totalPages: result.totalPages || 1,
           pageSize: result.pageSize,
           hasMorePages: result.hasMorePages || false,
-          isComplete: !result.hasMorePages
+          isComplete: !result.hasMorePages,
         }
       }
 
@@ -373,14 +391,14 @@ export const useExchangeStore = defineStore('exchange', () => {
         totalPages: 1,
         pageSize: pageSize,
         hasMorePages: false,
-        isComplete: true
+        isComplete: true,
       }
     } catch (error) {
       console.error('同步历史记录失败:', error)
       return {
         success: false,
         message: error.message || '同步历史记录失败',
-        count: 0
+        count: 0,
       }
     } finally {
       loading.value = false
@@ -392,13 +410,13 @@ export const useExchangeStore = defineStore('exchange', () => {
     loading.value = true
     try {
       const userStore = useUserStore()
-      const globalUsers = userStore.users.filter(user => user.server !== 'cn')
+      const globalUsers = userStore.users.filter((user) => user.server !== 'cn')
 
       if (globalUsers.length === 0) {
         return {
           success: false,
           message: '没有可同步的国际服用户',
-          count: 0
+          count: 0,
         }
       }
 
@@ -415,7 +433,7 @@ export const useExchangeStore = defineStore('exchange', () => {
           console.log(`正在同步用户 ${user.name} 的历史记录...`)
           const result = await syncUserHistory(user, {
             syncAll: true,
-            pageSize: pageSize
+            pageSize: pageSize,
           })
 
           if (result.success) {
@@ -438,7 +456,7 @@ export const useExchangeStore = defineStore('exchange', () => {
         return {
           success: false,
           message: '所有用户同步失败',
-          count: 0
+          count: 0,
         }
       }
 
@@ -447,14 +465,14 @@ export const useExchangeStore = defineStore('exchange', () => {
         message: `成功同步了 ${successCount} 个用户的历史记录，共 ${totalSynced} 条`,
         count: totalSynced,
         successUsers: successCount,
-        failUsers: failCount
+        failUsers: failCount,
       }
     } catch (error) {
       console.error('同步所有历史记录失败:', error)
       return {
         success: false,
         message: error.message || '同步历史记录失败',
-        count: 0
+        count: 0,
       }
     } finally {
       loading.value = false
@@ -471,6 +489,6 @@ export const useExchangeStore = defineStore('exchange', () => {
     clearHistory,
     replaceHistory,
     syncUserHistory,
-    syncAllHistory
+    syncAllHistory,
   }
-}) 
+})

@@ -10,8 +10,8 @@
       :description="getWarningDescription(warning)"
       show-icon
       :closable="true"
-      @close="handleClose(warning)"
       class="cookie-warning-item"
+      @close="handleClose(warning)"
     >
       <template #default>
         <div class="warning-content">
@@ -34,28 +34,17 @@
 
       <template #action>
         <div class="warning-actions">
-          <el-button
-            size="small"
-            type="primary"
-            @click="handleEditUser(warning.userId)"
-          >
+          <el-button size="small" type="primary" @click="handleEditUser(warning.userId)">
             更新Cookie
           </el-button>
-          <el-button size="small" @click="handleClose(warning)">
-            关闭
-          </el-button>
+          <el-button size="small" @click="handleClose(warning)"> 关闭 </el-button>
         </div>
       </template>
     </el-alert>
 
     <!-- 全部关闭按钮 -->
     <div v-if="cookieWarnings.length > 1" class="warning-actions-bar">
-      <el-button
-        size="small"
-        type="info"
-        @click="handleCloseAll"
-        :icon="CloseBold"
-      >
+      <el-button size="small" type="info" :icon="CloseBold" @click="handleCloseAll">
         关闭所有警告 ({{ cookieWarnings.length }})
       </el-button>
     </div>
@@ -106,8 +95,8 @@ const handleCloseAll = () => {
   userStore.dismissAllCookieWarnings()
 }
 
-  // 处理编辑用户（跳转到用户管理页面并打开编辑对话框）
-  const handleEditUser = (userId) => {
+// 处理编辑用户（跳转到用户管理页面并打开编辑对话框）
+const handleEditUser = (userId) => {
   // 跳转到用户管理页面（修正路由路径，与 router/index.js 保持一致）
   router.push('/user')
 

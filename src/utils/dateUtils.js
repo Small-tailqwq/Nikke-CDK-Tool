@@ -20,7 +20,7 @@ export function formatCookieExpireTime(expireDate) {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
     }
 
     return date.toLocaleDateString('zh-CN', options)
@@ -87,4 +87,4 @@ export function getCookieExpireTagType(expireDate) {
   } catch (error) {
     return 'info'
   }
-} 
+}

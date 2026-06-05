@@ -40,7 +40,7 @@
             applyBtnText
           }}</el-button>
           <el-button @click="goUsers">前往用户管理</el-button>
-          <el-button @click="toggleRaw" text>{{
+          <el-button text @click="toggleRaw">{{
             showRaw ? '收起原始数据' : '展开原始数据'
           }}</el-button>
         </div>
@@ -264,7 +264,10 @@ function writeToStorage() {
       source: parsed.value?.href ? String(parsed.value.href).split('?')[0] : '',
       hasCookie: Boolean(standardCookie.value),
       cookieKeys: standardCookie.value
-        ? standardCookie.value.split(';').map((part) => part.trim().split('=')[0]).filter(Boolean)
+        ? standardCookie.value
+            .split(';')
+            .map((part) => part.trim().split('=')[0])
+            .filter(Boolean)
         : [],
       derived: derived.value,
     }

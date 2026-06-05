@@ -125,13 +125,13 @@ export const userStorage = {
   updateUser: (id, userData) => {
     try {
       const users = userStorage.loadUsers()
-      const index = users.findIndex(u => u.id === id)
+      const index = users.findIndex((u) => u.id === id)
       if (index !== -1) {
         users[index] = {
           ...users[index],
           ...userData,
           id: users[index].id, // 确保保留 id
-          createTime: users[index].createTime // 确保保留创建时间
+          createTime: users[index].createTime, // 确保保留创建时间
         }
         return userStorage.saveUsers(users)
       }
@@ -146,13 +146,13 @@ export const userStorage = {
   deleteUser: (id) => {
     try {
       const users = userStorage.loadUsers()
-      const newUsers = users.filter(u => u.id !== id)
+      const newUsers = users.filter((u) => u.id !== id)
       return userStorage.saveUsers(newUsers)
     } catch (error) {
       console.error('删除用户失败:', error)
       return false
     }
-  }
+  },
 }
 
 // 兑换历史操作
@@ -178,5 +178,5 @@ export const historyStorage = {
   },
 
   // 清空历史
-  clearHistory: () => historyStorage.saveHistory([])
-} 
+  clearHistory: () => historyStorage.saveHistory([]),
+}

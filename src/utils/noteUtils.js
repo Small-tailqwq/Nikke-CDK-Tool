@@ -50,7 +50,7 @@ export function extractLinksFromNote(note) {
     links.push({
       url: url,
       text: text,
-      index: match.index
+      index: match.index,
     })
   }
 
@@ -74,4 +74,4 @@ export function getPlainTextNote(note) {
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
-} 
+}

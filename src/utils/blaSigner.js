@@ -22,12 +22,7 @@ const BLA_TASK_TYPE = {
 
 const BLA_MONTHLY_LIMIT_CODE = 1100010
 
-const DIRECT_COMPLETE_NAME_PATTERNS = [
-  /遊玩遊戲/i,
-  /游玩游戏/i,
-  /play\s*game/i,
-  /launch\s*game/i,
-]
+const DIRECT_COMPLETE_NAME_PATTERNS = [/遊玩遊戲/i, /游玩游戏/i, /play\s*game/i, /launch\s*game/i]
 
 const normalizeExchangeItems = (items) => {
   if (!Array.isArray(items)) return []
@@ -67,15 +62,11 @@ async function req(path, cookie, payload = null) {
   const url = `${API_BASE}${path}`
   for (let attempt = 0; attempt <= REQUEST_RETRY_COUNT; attempt++) {
     try {
-      const resp = await axios.post(
-        url,
-        payload === null ? { cookie } : { cookie, payload },
-        {
-          headers: HEADERS,
-          timeout: TIMEOUT,
-          withCredentials: false,
-        }
-      )
+      const resp = await axios.post(url, payload === null ? { cookie } : { cookie, payload }, {
+        headers: HEADERS,
+        timeout: TIMEOUT,
+        withCredentials: false,
+      })
       return resp.data
     } catch (e) {
       const status = e.response?.status
@@ -111,7 +102,11 @@ const getTaskName = (task) => {
   return '未命名任务'
 }
 
-const isDirectCompleteTask = (task, taskName = getTaskName(task), taskType = task?.task_type ?? null) => {
+const isDirectCompleteTask = (
+  task,
+  taskName = getTaskName(task),
+  taskType = task?.task_type ?? null
+) => {
   if (!task?.task_id) return false
 
   if (taskType === BLA_TASK_TYPE.AUTO_REPEAT_A || taskType === BLA_TASK_TYPE.AUTO_REPEAT_B) {
@@ -549,12 +544,7 @@ export async function fetchBlaOverview(cookie, options = {}) {
 }
 
 export async function runBlaTasks(cookie, options = {}) {
-  const {
-    onProgress,
-    exchangeEnabled = false,
-    exchangeItems = [],
-    exchangeRecord = {},
-  } = options
+  const { onProgress, exchangeEnabled = false, exchangeItems = [], exchangeRecord = {} } = options
   const messages = []
   let allSuccess = true
 

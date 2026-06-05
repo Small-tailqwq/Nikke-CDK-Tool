@@ -16,8 +16,8 @@ const api = axios.create({
   timeout: 10000,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 // 请求拦截（保留行为最小化，可用于注入 headers 或 AbortController.signal）
@@ -70,7 +70,7 @@ export const exchangeCDK = async (cookie, cdk) => {
     // 🔧 简化：直接使用标准格式Cookie（存储时已转换）
     const response = await api.post('/global/exchange', {
       cdkey: cdk,
-      cookie: cookie
+      cookie: cookie,
     })
 
     const { code, msg } = response.data
@@ -78,7 +78,7 @@ export const exchangeCDK = async (cookie, cdk) => {
       return {
         success: true,
         message: '兑换成功',
-        code: 0
+        code: 0,
       }
     }
 
@@ -88,7 +88,7 @@ export const exchangeCDK = async (cookie, cdk) => {
       1302015: 'CDK无效',
       1302016: '该账号已兑换过此CDK',
       1302017: 'CDK使用次数已耗尽',
-      300001: '游戏未登录或Cookie已过期'
+      300001: '游戏未登录或Cookie已过期',
     }
 
     const alreadyRedeemed = code === 1302016
@@ -96,7 +96,7 @@ export const exchangeCDK = async (cookie, cdk) => {
       success: false,
       message: errorMessages[code] || msg || '兑换失败',
       code,
-      alreadyRedeemed
+      alreadyRedeemed,
     }
   } catch (error) {
     console.error('CDK兑换失败:', error)
@@ -105,13 +105,13 @@ export const exchangeCDK = async (cookie, cdk) => {
       return {
         success: false,
         message: '请求超时，请检查网络连接或稍后重试',
-        code: -1
+        code: -1,
       }
     }
     return {
       success: false,
       message: error.message || '网络错误，请稍后重试',
-      code: -1
+      code: -1,
     }
   }
 }
@@ -122,29 +122,29 @@ export const exchangeCDKCN = async (gameParams, cdk, captchaCode) => {
     // 构建国服兑换请求参数（基于真实请求格式）
     const exchangeData = {
       // 核心配置 - 使用动态获取的Chart ID（Worker会自动处理）
-      iChartId: gameParams.iChartId || "372756", // 优先使用用户参数中的值
-      iSubChartId: gameParams.iSubChartId || "372756", // 优先使用用户参数中的值
-      sIdeToken: gameParams.sIdeToken || "0HzkLt", // 优先使用用户参数中的值
+      iChartId: gameParams.iChartId || '372756', // 优先使用用户参数中的值
+      iSubChartId: gameParams.iSubChartId || '372756', // 优先使用用户参数中的值
+      sIdeToken: gameParams.sIdeToken || '0HzkLt', // 优先使用用户参数中的值
 
       // CDK和验证码
       sPassword: cdk,
       sCode: captchaCode,
 
       // 游戏基础信息（必须按真实请求的顺序）
-      gameid: gameParams.gameid || "28063",
-      os: gameParams.os || "5",
-      channelid: gameParams.channelid || "2",
+      gameid: gameParams.gameid || '28063',
+      os: gameParams.os || '5',
+      channelid: gameParams.channelid || '2',
       seq: gameParams.seq,
       ts: gameParams.ts,
       version: gameParams.version,
-      source: "",
+      source: '',
       sig: gameParams.sig,
       itopencodeparam: gameParams.itopencodeparam,
 
       // 服务器和角色信息
-      sPlatId: "1",
-      sArea: gameParams.area_id || "2",
-      sPartition: "1",
+      sPlatId: '1',
+      sArea: gameParams.area_id || '2',
+      sPartition: '1',
       sRoleId: gameParams.role_id,
       role_id: gameParams.role_id,
       role_name: gameParams.role_name,
@@ -152,15 +152,15 @@ export const exchangeCDKCN = async (gameParams, cdk, captchaCode) => {
       zone_id: gameParams.zone_id,
 
       // 编码参数
-      lang_type: gameParams.lang_type || "zh-CN",
-      algorithm: gameParams.algorithm || "itop",
-      encode: gameParams.encode || "2",
+      lang_type: gameParams.lang_type || 'zh-CN',
+      algorithm: gameParams.algorithm || 'itop',
+      encode: gameParams.encode || '2',
       nickname: gameParams.nickname,
-      encodeparam: "",
+      encodeparam: '',
 
       // 关键：传递验证码会话和完整用户数据
       verifysession: gameParams.verifysession,
-      cookie: gameParams.cookie
+      cookie: gameParams.cookie,
     }
 
     // 调用新的国服CDK兑换Worker API
@@ -172,21 +172,20 @@ export const exchangeCDKCN = async (gameParams, cdk, captchaCode) => {
     if (result.ret === 0 || result.iRet === 0) {
       return {
         success: true,
-        message: '兑换成功'
+        message: '兑换成功',
       }
     }
 
     // 直接使用官方返回的错误信息，无需前端映射
     return {
       success: false,
-      message: result.sMsg || '兑换失败'
+      message: result.sMsg || '兑换失败',
     }
-
   } catch (error) {
     console.error('国服CDK兑换失败:', error)
     return {
       success: false,
-      message: error.message || '网络错误，请稍后重试'
+      message: error.message || '网络错误，请稍后重试',
     }
   }
 }
@@ -201,13 +200,13 @@ export const getCaptchaCN = async () => {
       success: true,
       captchaUrl: response.data.captchaUrl,
       aid: aid,
-      verifysession: response.data.verifysession
+      verifysession: response.data.verifysession,
     }
   } catch (error) {
     console.error('获取验证码失败:', error)
     return {
       success: false,
-      message: '获取验证码失败'
+      message: '获取验证码失败',
     }
   }
 }
@@ -235,12 +234,12 @@ export const parseGameUrlCN = (gameUrl) => {
       algorithm: params.get('algorithm'),
       encode: params.get('encode'),
       nickname: params.get('nickname'),
-      itopencodeparam: params.get('itopencodeparam')
+      itopencodeparam: params.get('itopencodeparam'),
     }
 
     // 验证必要参数是否存在（只检查最核心的参数）
     const requiredParams = ['role_id', 'role_name', 'area_id']
-    const missingParams = requiredParams.filter(param => !parsedParams[param])
+    const missingParams = requiredParams.filter((param) => !parsedParams[param])
 
     const isValid = missingParams.length === 0
 
@@ -249,7 +248,7 @@ export const parseGameUrlCN = (gameUrl) => {
       params: parsedParams,
       missingParams,
       // 为了向后兼容，也直接返回参数
-      ...parsedParams
+      ...parsedParams,
     }
   } catch (error) {
     console.error('解析游戏URL失败:', error)
@@ -257,7 +256,7 @@ export const parseGameUrlCN = (gameUrl) => {
       isValid: false,
       params: {},
       missingParams: [],
-      error: error.message
+      error: error.message,
     }
   }
 }
@@ -289,7 +288,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
     const requestPayload = {
       cookie: cookie,
       page_num: page,
-      page_size: pageSize
+      page_size: pageSize,
     }
 
     // 添加请求负载日志
@@ -306,15 +305,15 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
 
     // 格式化时间的辅助函数，确保格式统一为 YYYY-MM-DD HH:mm:ss
     const formatDate = (timestamp) => {
-      const date = new Date(timestamp * 1000);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      const seconds = String(date.getSeconds()).padStart(2, '0');
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    };
+      const date = new Date(timestamp * 1000)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      const seconds = String(date.getSeconds()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
 
     // 成功响应处理
     if (code === 0) {
@@ -323,25 +322,28 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
         const records = data.cdk_redemption_list
 
         if (Array.isArray(records) && records.length > 0) {
-          console.log(`成功获取第${page}页历史记录，共${records.length}条，总计${data.total || "未知"}条`)
+          console.log(
+            `成功获取第${page}页历史记录，共${records.length}条，总计${data.total || '未知'}条`
+          )
 
           // 计算是否为最后一页
-          const isLastPage = data.is_last_page === true ||
-            (data.total && records.length + (page - 1) * pageSize >= data.total);
+          const isLastPage =
+            data.is_last_page === true ||
+            (data.total && records.length + (page - 1) * pageSize >= data.total)
 
           return {
             success: true,
-            data: records.map(item => ({
+            data: records.map((item) => ({
               date: formatDate(item.timestamp || Math.floor(Date.now() / 1000)),
               cdk: item.cdk,
               success: item.status === true,
               message: item.status === true ? '兑换成功' : '兑换失败',
-              source: '云端'
+              source: '云端',
             })),
             total: data.total || records.length,
             isLastPage: isLastPage,
             currentPage: page,
-            pageSize: pageSize
+            pageSize: pageSize,
           }
         }
       }
@@ -352,16 +354,16 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
 
         return {
           success: true,
-          data: data.map(item => ({
+          data: data.map((item) => ({
             date: formatDate(item.create_time || item.timestamp || Math.floor(Date.now() / 1000)),
             cdk: item.cdkey || item.cdk,
             success: item.status === 1 || item.status === true,
-            message: (item.status === 1 || item.status === true) ? '兑换成功' : '兑换失败',
-            source: '云端' // 标记来源为云端
+            message: item.status === 1 || item.status === true ? '兑换成功' : '兑换失败',
+            source: '云端', // 标记来源为云端
           })),
           total: data.length,
           isLastPage: true, // 对于数组格式，假设只有一页
-          currentPage: page
+          currentPage: page,
         }
       }
 
@@ -370,20 +372,24 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
         const records = data.records || data.list || data.items || []
 
         if (Array.isArray(records) && records.length > 0) {
-          console.log(`成功获取第${page}页历史记录，共${records.length}条，总计${data.total || "未知"}条`)
+          console.log(
+            `成功获取第${page}页历史记录，共${records.length}条，总计${data.total || '未知'}条`
+          )
 
           return {
             success: true,
-            data: records.map(item => ({
-              date: formatDate(item.create_time || item.time || item.timestamp || Math.floor(Date.now() / 1000)),
+            data: records.map((item) => ({
+              date: formatDate(
+                item.create_time || item.time || item.timestamp || Math.floor(Date.now() / 1000)
+              ),
               cdk: item.cdkey || item.cdk || item.code || '未知CDK',
               success: item.status === 1 || item.success === true,
-              message: (item.status === 1 || item.success === true) ? '兑换成功' : '兑换失败',
-              source: '云端'
+              message: item.status === 1 || item.success === true ? '兑换成功' : '兑换失败',
+              source: '云端',
             })),
             total: data.total || records.length,
             isLastPage: data.is_last_page === true || (data.total && records.length >= data.total),
-            currentPage: page
+            currentPage: page,
           }
         }
       }
@@ -395,7 +401,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
         message: '没有历史记录',
         data: [],
         isLastPage: true,
-        currentPage: page
+        currentPage: page,
       }
     }
 
@@ -406,7 +412,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
       message: msg || '获取历史记录失败',
       data: [],
       isLastPage: true,
-      currentPage: page
+      currentPage: page,
     }
   } catch (error) {
     console.error(`获取第${page}页历史记录失败:`, error)
@@ -415,7 +421,7 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
       message: error.message || '网络错误，请稍后重试',
       data: [],
       isLastPage: true,
-      currentPage: page
+      currentPage: page,
     }
   }
 }
@@ -438,7 +444,7 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
       return {
         success: false,
         message: result.message || '同步历史记录失败',
-        records: []
+        records: [],
       }
     }
 
@@ -447,22 +453,24 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
       return {
         success: true,
         message: '没有可同步的历史记录',
-        records: []
+        records: [],
       }
     }
 
     // 生成服务器信息
-    const serverInfo = user ? generateHistoryServerInfo(user) : {
-      server: 'global',
-      serverName: '国际服'
-    }
+    const serverInfo = user
+      ? generateHistoryServerInfo(user)
+      : {
+          server: 'global',
+          serverName: '国际服',
+        }
 
     // 处理当前页数据
-    const records = result.data.map(item => ({
+    const records = result.data.map((item) => ({
       ...item,
       userId,
       userName,
-      ...serverInfo
+      ...serverInfo,
     }))
 
     // 获取总记录数和当前页数
@@ -487,7 +495,7 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
         totalPages,
         pageSize,
         hasMorePages: true,
-        nextPage: page + 1
+        nextPage: page + 1,
       }
     }
 
@@ -508,15 +516,14 @@ export const syncUserExchangeHistory = async (cookie, userName, userId, options 
       totalPages: totalPages || 1,
       pageSize,
       isLastPage: result.isLastPage || page >= totalPages,
-      hasMorePages: !result.isLastPage && page < totalPages
+      hasMorePages: !result.isLastPage && page < totalPages,
     }
-
   } catch (error) {
     console.error('同步历史记录失败:', error)
     return {
       success: false,
       message: error.message || '网络错误，请稍后重试',
-      records: []
+      records: [],
     }
   }
 }
@@ -536,13 +543,13 @@ export const getUserGamePlayerInfo = async (cookie) => {
 
     // 构建请求数据
     const requestData = {
-      intl_openid: `${gameGameid}-${gameOpenid}`
+      intl_openid: `${gameGameid}-${gameOpenid}`,
     }
 
     // 使用Worker代理请求
     const response = await api.post('/global/player-info', {
       cookie: cookie,
-      payload: requestData
+      payload: requestData,
     })
 
     const result = response.data
@@ -550,20 +557,19 @@ export const getUserGamePlayerInfo = async (cookie) => {
     if (result.code === 0 && result.data) {
       return {
         success: true,
-        data: result.data
+        data: result.data,
       }
     }
 
     return {
       success: false,
-      message: result.msg || '获取角色信息失败'
+      message: result.msg || '获取角色信息失败',
     }
-
   } catch (error) {
     console.error('获取角色信息失败:', error)
     return {
       success: false,
-      message: error.message || '网络错误，请稍后重试'
+      message: error.message || '网络错误，请稍后重试',
     }
   }
 }
@@ -576,7 +582,7 @@ export const getRegionList = async (cookie) => {
     // 使用Worker代理请求
     const response = await api.post('/global/region-list', {
       cookie: cookie,
-      game_id: '29080' // Nikke的game_id
+      game_id: '29080', // Nikke的game_id
     })
 
     const result = response.data
@@ -584,27 +590,26 @@ export const getRegionList = async (cookie) => {
     if (result.code === 0 && result.data && result.data.area_list) {
       // 构建area_id到区域名的映射
       const regionMap = {}
-      result.data.area_list.forEach(area => {
+      result.data.area_list.forEach((area) => {
         regionMap[area.area_id] = area.area_name
       })
 
       return {
         success: true,
         data: result.data.area_list,
-        regionMap: regionMap
+        regionMap: regionMap,
       }
     }
 
     return {
       success: false,
-      message: result.msg || '获取区域列表失败'
+      message: result.msg || '获取区域列表失败',
     }
-
   } catch (error) {
     console.error('获取区域列表失败:', error)
     return {
       success: false,
-      message: error.message || '网络错误，请稍后重试'
+      message: error.message || '网络错误，请稍后重试',
     }
   }
 }
@@ -615,7 +620,7 @@ export const getGlobalUserCompleteInfo = async (cookie) => {
     // 并行获取角色信息和区域列表
     const [playerInfoResult, regionListResult] = await Promise.all([
       getUserGamePlayerInfo(cookie),
-      getRegionList(cookie)
+      getRegionList(cookie),
     ])
 
     if (!playerInfoResult.success) {
@@ -634,15 +639,14 @@ export const getGlobalUserCompleteInfo = async (cookie) => {
       data: {
         ...playerInfoResult.data,
         region_name: regionName,
-        region_id: playerInfoResult.data.area_id
-      }
+        region_id: playerInfoResult.data.area_id,
+      },
     }
-
   } catch (error) {
     console.error('获取完整角色信息失败:', error)
     return {
       success: false,
-      message: error.message || '网络错误，请稍后重试'
+      message: error.message || '网络错误，请稍后重试',
     }
   }
 }
@@ -673,11 +677,11 @@ export const renewGlobalCookie = async (cookie) => {
       game_openid: params.game_openid,
       game_channelid: parseInt(params.game_channelid),
       game_token: params.game_token,
-      game_id: params.game_gameid || "29080", // NIKKE Global默认值
-      game_expire_time: Math.floor(Date.now() / 1000) + (29 * 24 * 60 * 60), // 🔧 改为29天，避免时间偏差
+      game_id: params.game_gameid || '29080', // NIKKE Global默认值
+      game_expire_time: Math.floor(Date.now() / 1000) + 29 * 24 * 60 * 60, // 🔧 改为29天，避免时间偏差
       game_uid: params.game_uid,
       game_user_name: params.game_user_name,
-      game_adult_status: parseInt(params.game_adult_status || "1")
+      game_adult_status: parseInt(params.game_adult_status || '1'),
     }
 
     console.log('🔄 发送Cookie续期请求:', {
@@ -685,13 +689,13 @@ export const renewGlobalCookie = async (cookie) => {
       game_channelid: params.game_channelid,
       game_token: params.game_token.substring(0, 20) + '...',
       game_expire_time: requestBody.game_expire_time,
-      expireDate: new Date(requestBody.game_expire_time * 1000).toISOString()
+      expireDate: new Date(requestBody.game_expire_time * 1000).toISOString(),
     })
 
     // 通过Cloudflare Worker发送续期请求
     const response = await api.post('/global/cookie-renewal', {
       cookie: cookie,
-      requestBody: requestBody
+      requestBody: requestBody,
     })
 
     const result = response.data
@@ -704,8 +708,8 @@ export const renewGlobalCookie = async (cookie) => {
     const renewedParams = parseCookieParams(result.data?.newCookie || '')
     const tokenChanged = Boolean(
       renewedParams.game_token &&
-      params.game_token &&
-      renewedParams.game_token !== params.game_token
+        params.game_token &&
+        renewedParams.game_token !== params.game_token
     )
 
     // 观察结果表明：/api/user/Login 会返回 Set-Cookie，但很多情况下只是回写原 token，
@@ -718,7 +722,7 @@ export const renewGlobalCookie = async (cookie) => {
           ...result.data,
           tokenChanged: false,
           observedMode: 'token-echo',
-        }
+        },
       }
     }
 
@@ -731,17 +735,16 @@ export const renewGlobalCookie = async (cookie) => {
       totalCookies: result.data.totalCookies,
       hasGameToken: result.data.hasGameToken,
       expireDays: result.data.expireDays,
-      renewedAt: result.data.renewedAt
+      renewedAt: result.data.renewedAt,
     })
 
     return result
-
   } catch (error) {
     console.error('Cookie续期失败:', error)
     return {
       success: false,
       message: error.message || 'Cookie续期失败',
-      error: error
+      error: error,
     }
   }
 }
@@ -752,7 +755,13 @@ export const renewGlobalCookie = async (cookie) => {
  * @param {string} password
  * @returns {Promise<{success:boolean,cookie?:string,userName?:string,uid?:string,message?:string}>}
  */
-export const refreshCookieByCredential = async (email, password, ticket = '', randstr = '', captchaAppId = '') => {
+export const refreshCookieByCredential = async (
+  email,
+  password,
+  ticket = '',
+  randstr = '',
+  captchaAppId = ''
+) => {
   try {
     if (!email || !password) {
       throw new Error('缺少登录凭证')
@@ -829,7 +838,7 @@ export const refreshCookieByCredential = async (email, password, ticket = '', ra
  */
 const parseCookieParams = (cookie) => {
   const params = {}
-  const cookiePairs = cookie.split(';').map(pair => pair.trim())
+  const cookiePairs = cookie.split(';').map((pair) => pair.trim())
 
   for (const pair of cookiePairs) {
     const [key, value] = pair.split('=')
@@ -870,11 +879,11 @@ export const autoRenewUserCookie = async (user) => {
   if (!shouldRenewCookie(expireDays)) {
     return {
       success: false,
-      message: `Cookie还有${expireDays}天有效期，暂无需续期`
+      message: `Cookie还有${expireDays}天有效期，暂无需续期`,
     }
   }
 
   console.log(`用户 ${user.name} 的Cookie还有${expireDays}天过期，开始自动续期...`)
 
   return await renewGlobalCookie(user.cookie)
-} 
+}

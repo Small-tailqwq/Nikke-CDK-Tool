@@ -8,11 +8,11 @@ export const regionMapping = {
   NA: '北美区',
   SEA: '东南亚区',
   // 支持中文区域名称的映射（可能API直接返回中文）
-  '全球区': '全球区',
-  '日区': '日区',
-  '韩区': '韩区',
-  '北美区': '北美区',
-  '东南亚区': '东南亚区',
+  全球区: '全球区',
+  日区: '日区',
+  韩区: '韩区',
+  北美区: '北美区',
+  东南亚区: '东南亚区',
 }
 
 // 服务器选项配置
@@ -86,7 +86,7 @@ export const getDetailedServerInfo = (user) => {
     // 国服：服务器 + 平台区
     return {
       serverName: '国服',
-      subRegion: getCnPlatformText(user)
+      subRegion: getCnPlatformText(user),
     }
   } else if (user.server === 'global' || user.server === 'tw') {
     // 国际服/港澳台服：主服务器 + 具体区域
@@ -99,13 +99,13 @@ export const getDetailedServerInfo = (user) => {
 
     return {
       serverName,
-      subRegion
+      subRegion,
     }
   } else {
     // 其他情况
     return {
       serverName: user.serverName || getServerName(user.server),
-      subRegion: null
+      subRegion: null,
     }
   }
 }
@@ -127,6 +127,6 @@ export const generateHistoryServerInfo = (user) => {
 
   return {
     server: user.server,
-    serverName: subRegion ? `${serverName} | ${subRegion}` : serverName
+    serverName: subRegion ? `${serverName} | ${subRegion}` : serverName,
   }
-} 
+}

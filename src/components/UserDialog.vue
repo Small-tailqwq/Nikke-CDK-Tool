@@ -3,10 +3,10 @@
     v-model="dialogVisible"
     :title="isEdit ? '编辑用户' : '添加用户'"
     :width="isMobile ? '90%' : '600px'"
-    @close="handleClose"
     class="user-dialog"
     :fullscreen="isMobile"
     :close-on-click-modal="false"
+    @close="handleClose"
   >
     <el-form
       ref="formRef"
@@ -35,11 +35,11 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="UID" v-if="isEdit">
+      <el-form-item v-if="isEdit" label="UID">
         <el-input v-model="form.uid" disabled />
       </el-form-item>
 
-      <el-form-item label="游戏URL" v-if="form.server === 'cn'" prop="gameUrl">
+      <el-form-item v-if="form.server === 'cn'" label="游戏URL" prop="gameUrl">
         <el-input
           v-model="form.gameUrl"
           type="textarea"
@@ -69,7 +69,11 @@
           </template>
         </el-alert>
         <el-form-item label="邮箱">
-          <el-input v-model="emailForm.email" placeholder="your@email.com" autocomplete="username" />
+          <el-input
+            v-model="emailForm.email"
+            placeholder="your@email.com"
+            autocomplete="username"
+          />
         </el-form-item>
         <el-form-item label="密码">
           <el-input
@@ -86,18 +90,25 @@
           </el-checkbox>
         </el-form-item>
         <el-form-item>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <el-button type="primary" @click="handleEmailLogin" :loading="emailLoginLoading" :disabled="!emailForm.email || !emailForm.password">
+          <div style="display: flex; gap: 8px; align-items: center">
+            <el-button
+              type="primary"
+              :loading="emailLoginLoading"
+              :disabled="!emailForm.email || !emailForm.password"
+              @click="handleEmailLogin"
+            >
               获取Token并填充Cookie
             </el-button>
             <el-button @click="showEmailLogin = false">取消</el-button>
-            <el-text v-if="emailLoginStatus" type="info" size="small">{{ emailLoginStatus }}</el-text>
+            <el-text v-if="emailLoginStatus" type="info" size="small">{{
+              emailLoginStatus
+            }}</el-text>
           </div>
         </el-form-item>
       </template>
 
       <!-- 国际服显示Cookie信息 -->
-      <el-form-item label="Cookie信息" prop="cookie" v-if="form.server !== 'cn'">
+      <el-form-item v-if="form.server !== 'cn'" label="Cookie信息" prop="cookie">
         <template v-if="isEdit && !showCookie">
           <el-card class="cookie-mask" shadow="never" @click="showCookie = true">
             <div class="cookie-mask-content">
@@ -115,7 +126,7 @@
           <div class="cookie-content">
             <div class="cookie-content-header">
               <span class="cookie-content-title">Cookie 详情</span>
-              <el-button type="primary" link @click="showCookie = false" class="cookie-hide-btn">
+              <el-button type="primary" link class="cookie-hide-btn" @click="showCookie = false">
                 <el-icon><ArrowLeft /></el-icon>
                 返回
               </el-button>
@@ -128,7 +139,7 @@
             />
 
             <!-- Cookie工具栏 - 编辑模式 -->
-            <div class="cookie-tools" v-if="form.cookie">
+            <div v-if="form.cookie" class="cookie-tools">
               <div class="cookie-tools-left">
                 <span class="format-info">
                   <el-icon><InfoFilled /></el-icon>
@@ -140,9 +151,9 @@
                   size="small"
                   type="primary"
                   plain
-                  @click="convertCookieFormat"
                   :disabled="!isApplicationFormat"
                   :icon="Refresh"
+                  @click="convertCookieFormat"
                 >
                   转换为标准格式
                 </el-button>
@@ -150,9 +161,9 @@
                   size="small"
                   type="success"
                   plain
-                  @click="validateCookieManually"
                   :loading="manualValidationLoading"
                   :icon="Check"
+                  @click="validateCookieManually"
                 >
                   验证Cookie
                 </el-button>
@@ -169,7 +180,7 @@
           />
 
           <!-- Cookie工具栏 -->
-          <div class="cookie-tools" v-if="form.cookie">
+          <div v-if="form.cookie" class="cookie-tools">
             <div class="cookie-tools-left">
               <span class="format-info">
                 <el-icon><InfoFilled /></el-icon>
@@ -181,9 +192,9 @@
                 size="small"
                 type="primary"
                 plain
-                @click="convertCookieFormat"
                 :disabled="!isApplicationFormat"
                 :icon="Refresh"
+                @click="convertCookieFormat"
               >
                 转换为标准格式
               </el-button>
@@ -191,9 +202,9 @@
                 size="small"
                 type="success"
                 plain
-                @click="validateCookieManually"
                 :loading="manualValidationLoading"
                 :icon="Check"
+                @click="validateCookieManually"
               >
                 验证Cookie
               </el-button>
@@ -236,7 +247,7 @@
       </el-form-item>
 
       <!-- 国服显示角色信息 -->
-      <el-form-item label="角色信息" v-if="form.server === 'cn' && parsedGameInfo">
+      <el-form-item v-if="form.server === 'cn' && parsedGameInfo" label="角色信息">
         <div class="cn-game-info">
           <div class="info-card">
             <div class="info-row">
@@ -259,14 +270,14 @@
 
       <!-- 国际服/港澳台服显示角色信息 -->
       <el-form-item
-        label="角色信息"
         v-if="
           (form.server === 'global' || form.server === 'tw') &&
           (parsedGlobalInfo || globalInfoLoading)
         "
+        label="角色信息"
       >
-        <div class="global-game-info" v-loading="globalInfoLoading">
-          <div class="info-card" v-if="parsedGlobalInfo">
+        <div v-loading="globalInfoLoading" class="global-game-info">
+          <div v-if="parsedGlobalInfo" class="info-card">
             <!-- 第一行：Cookie过期时间 -->
             <div v-if="cookieExpireDate" class="info-row expire-time-row">
               <span class="info-label">过期时间:</span>
@@ -302,7 +313,7 @@
               <span class="info-value">{{ parsedGlobalInfo.team_combat?.toLocaleString() }}</span>
             </div>
           </div>
-          <div class="loading-placeholder" v-else-if="globalInfoLoading">
+          <div v-else-if="globalInfoLoading" class="loading-placeholder">
             <span>正在获取角色信息...</span>
           </div>
         </div>
@@ -311,7 +322,7 @@
       <el-divider content-position="left">BlaBla 任务</el-divider>
       <el-form-item label="自动执行">
         <el-switch v-model="form.blaEnabled" />
-        <span style="margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary);">
+        <span style="margin-left: 8px; font-size: 12px; color: var(--el-text-color-secondary)">
           开启后每日访问自动执行 Blabla Link 签到任务
         </span>
       </el-form-item>
@@ -320,20 +331,20 @@
     <template #footer>
       <div class="dialog-footer">
         <div class="dialog-footer-left">
-          <el-button type="info" link @click="openHelpLink" class="help-button">
+          <el-button type="info" link class="help-button" @click="openHelpLink">
             <el-icon><QuestionFilled /></el-icon>
             获取帮助
           </el-button>
-          <el-button type="primary" link @click="openBookmarkletHelper" class="help-button">
+          <el-button type="primary" link class="help-button" @click="openBookmarkletHelper">
             <el-icon><Link /></el-icon>
             官方登录助手
           </el-button>
           <el-button
             type="success"
             link
-            @click="openProxyLogin"
             class="help-button"
             :loading="proxyLoginLoading"
+            @click="openProxyLogin"
           >
             <el-icon><Upload /></el-icon>
             官方代理登录
@@ -341,9 +352,9 @@
           <el-button
             type="warning"
             link
-            @click="openEmailLogin"
             class="help-button"
             :loading="emailLoginLoading"
+            @click="openEmailLogin"
           >
             <template v-if="!emailLoginLoading">
               <el-icon><Message /></el-icon>
@@ -353,7 +364,7 @@
         </div>
         <div class="dialog-footer-right">
           <el-button @click="handleClose">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="saving"> 保存 </el-button>
+          <el-button type="primary" :loading="saving" @click="handleSubmit"> 保存 </el-button>
         </div>
       </div>
     </template>
@@ -1300,10 +1311,16 @@ const handleEmailLogin = async () => {
   try {
     let loginResult = await refreshCookieByCredential(
       emailForm.email.trim(),
-      emailForm.password, '', '', ''
+      emailForm.password,
+      '',
+      '',
+      ''
     )
 
-    if (!loginResult.success && (loginResult.ret === 2170 || isMachineCheckError(loginResult.message))) {
+    if (
+      !loginResult.success &&
+      (loginResult.ret === 2170 || isMachineCheckError(loginResult.message))
+    ) {
       emailLoginStatus.value = '正在打开腾讯验证码...'
       const captchaAppId = loginResult.captchaAppId || ''
       const captchaResult = await getTencentCaptcha({ appid: captchaAppId })
@@ -1361,20 +1378,19 @@ const handleEmailLogin = async () => {
       showCustomMessage(translateLoginError(loginResult.message || '获取Token失败'), 'error', 0)
     }
   } catch (e) {
-      emailLoginStatus.value = ''
-      const errMsg = (e.message || '').toLowerCase()
-      if (errMsg.includes('验证码') || errMsg.includes('captcha') || errMsg.includes('tcaptcha')) {
-        showCustomMessage('验证码加载失败，请检查网络或关闭广告拦截器后重试', 'error', 0)
-      } else {
-        showCustomMessage('获取Token失败: ' + (e.message || '网络错误'), 'error', 0)
-      }
+    emailLoginStatus.value = ''
+    const errMsg = (e.message || '').toLowerCase()
+    if (errMsg.includes('验证码') || errMsg.includes('captcha') || errMsg.includes('tcaptcha')) {
+      showCustomMessage('验证码加载失败，请检查网络或关闭广告拦截器后重试', 'error', 0)
+    } else {
+      showCustomMessage('获取Token失败: ' + (e.message || '网络错误'), 'error', 0)
+    }
   } finally {
     emailLoginLoading.value = false
   }
 }
 
 // “发送到 CallbackAuth”完成后续流程
-
 
 // 打开帮助链接
 const openHelpLink = () => {

@@ -1,7 +1,7 @@
 /**
  * Cookie 解密工具
  * 用于解密 Worker 在登录响应中注入的加密 Cookie 数据
- * 
+ *
  * 安全特性：
  * - 三重密钥派生：SID + Token + Salt
  * - 使用 PBKDF2 生成强密钥（100000次迭代）
@@ -23,21 +23,18 @@ async function deriveKey(sid, token, salt) {
   const password = encoder.encode(`${sid}:${token}`)
 
   // 导入密码材料
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    password,
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits', 'deriveKey']
-  )
+  const keyMaterial = await crypto.subtle.importKey('raw', password, { name: 'PBKDF2' }, false, [
+    'deriveBits',
+    'deriveKey',
+  ])
 
   // 使用 PBKDF2 派生密钥
   const key = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
       salt: salt,
-      iterations: 100000,  // 10万次迭代，增强安全性
-      hash: 'SHA-256'
+      iterations: 100000, // 10万次迭代，增强安全性
+      hash: 'SHA-256',
     },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
@@ -58,7 +55,7 @@ async function deriveKey(sid, token, salt) {
 export async function decryptCookieData(encryptedBase64, sid, token) {
   try {
     // Base64 解码
-    const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0))
+    const combined = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0))
 
     // 数据结构: [Salt(16字节)] + [IV(12字节)] + [加密数据]
     const salt = combined.slice(0, 16)
@@ -68,18 +65,14 @@ export async function decryptCookieData(encryptedBase64, sid, token) {
     console.log('[Cookie解密] 开始解密:', {
       saltLength: salt.length,
       ivLength: iv.length,
-      encryptedLength: encrypted.length
+      encryptedLength: encrypted.length,
     })
 
     // 使用 SID + Token + Salt 派生密钥
     const key = await deriveKey(sid, token, salt)
 
     // 解密数据
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      key,
-      encrypted
-    )
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted)
 
     // 转换为字符串
     const decoder = new TextDecoder()
@@ -87,7 +80,6 @@ export async function decryptCookieData(encryptedBase64, sid, token) {
 
     console.log('[Cookie解密] 解密成功，Cookie长度:', result.length)
     return result
-
   } catch (error) {
     console.error('[Cookie解密] 失败:', error)
     throw new Error('Cookie 解密失败: ' + error.message)
@@ -104,7 +96,7 @@ export async function decryptCookieData(encryptedBase64, sid, token) {
 export async function decryptCookieDataLegacy(encryptedBase64, sid) {
   try {
     // Base64 解码
-    const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0))
+    const combined = Uint8Array.from(atob(encryptedBase64), (c) => c.charCodeAt(0))
 
     // 旧版结构: [IV(12字节)] + [加密数据]
     const iv = combined.slice(0, 12)
@@ -124,11 +116,7 @@ export async function decryptCookieDataLegacy(encryptedBase64, sid) {
     )
 
     // 解密数据
-    const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv },
-      key,
-      encrypted
-    )
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted)
 
     // 转换为字符串
     const decoder = new TextDecoder()
@@ -173,7 +161,6 @@ export async function extractEncryptedCookies(responseData, sid, token = null) {
 
     console.log('[Cookie提取] 成功解密，Cookie长度:', decrypted.length)
     return decrypted
-
   } catch (error) {
     console.error('[Cookie提取] 所有解密方法均失败:', error)
     return null

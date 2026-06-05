@@ -72,8 +72,7 @@ export const notifyBlaRunCompletion = ({
   if (!canUseNotification()) return false
   if (Notification.permission !== 'granted' || !getBlaNotificationEnabled()) return false
 
-  const title =
-    failCount > 0 ? 'BlaBla 每日任务已完成，存在异常' : 'BlaBla 每日任务已完成'
+  const title = failCount > 0 ? 'BlaBla 每日任务已完成，存在异常' : 'BlaBla 每日任务已完成'
   const notification = new Notification(title, {
     body: buildNotificationBody({ successCount, failCount, totalCount, lines }),
     tag: 'nikke-bla-daily-run',

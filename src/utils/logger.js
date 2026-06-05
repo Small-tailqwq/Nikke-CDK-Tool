@@ -8,7 +8,7 @@ export const LogLevel = {
   DEBUG: 0,
   INFO: 1,
   WARN: 2,
-  ERROR: 3
+  ERROR: 3,
 }
 
 // 当前日志级别配置（生产环境可设置为INFO或WARN）
@@ -60,11 +60,16 @@ const log = (level, module, message, ...args) => {
  */
 const getLevelName = (level) => {
   switch (level) {
-    case LogLevel.DEBUG: return 'DEBUG'
-    case LogLevel.INFO: return 'INFO'
-    case LogLevel.WARN: return 'WARN'
-    case LogLevel.ERROR: return 'ERROR'
-    default: return 'UNKNOWN'
+    case LogLevel.DEBUG:
+      return 'DEBUG'
+    case LogLevel.INFO:
+      return 'INFO'
+    case LogLevel.WARN:
+      return 'WARN'
+    case LogLevel.ERROR:
+      return 'ERROR'
+    default:
+      return 'UNKNOWN'
   }
 }
 
@@ -111,7 +116,7 @@ export const createLogger = (moduleName) => {
       log(LogLevel.ERROR, moduleName, `❌ 操作失败: ${operation}`, {
         error: errorMessage,
         stack: errorStack,
-        context
+        context,
       })
     },
 
@@ -128,10 +133,10 @@ export const createLogger = (moduleName) => {
 
       log(level, moduleName, `${symbol} API调用: ${api}`, {
         params,
-        response: success ? response : (response?.message || response),
-        success
+        response: success ? response : response?.message || response,
+        success,
       })
-    }
+    },
   }
 }
 
@@ -145,7 +150,7 @@ export const handleGlobalError = (error, context = 'Unknown') => {
   logger.operationError(context, error, {
     userAgent: navigator.userAgent,
     url: window.location.href,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   })
 }
 

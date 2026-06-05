@@ -44,18 +44,18 @@
             <el-button
               type="success"
               size="small"
-              @click="handleBatchRenewCookies"
               :loading="batchRenewLoading"
               :disabled="!hasRenewableUsers"
+              @click="handleBatchRenewCookies"
             >
               批量刷新
             </el-button>
             <el-button
               type="warning"
               size="small"
-              @click="handleFixServerTypes"
               :loading="fixServerTypesLoading"
               plain
+              @click="handleFixServerTypes"
             >
               修复服务器类型
             </el-button>
@@ -64,7 +64,7 @@
         </div>
       </template>
 
-      <el-table :data="userStore.users" stripe v-loading="userStore.loading" class="user-table">
+      <el-table v-loading="userStore.loading" :data="userStore.users" stripe class="user-table">
         <el-table-column v-if="getColumnVisible('name')" prop="name" label="用户名" min-width="100">
           <template #default="{ row }">
             <el-tooltip :content="row.name" placement="top">
@@ -207,13 +207,13 @@
               </div>
 
               <!-- 第二行：续期 同步 -->
-              <div class="button-row" v-if="shouldShowRenewButton(row) || row.server !== 'cn'">
+              <div v-if="shouldShowRenewButton(row) || row.server !== 'cn'" class="button-row">
                 <el-button
                   v-if="shouldShowRenewButton(row)"
                   size="small"
                   :type="hasSavedLoginCredential(row) ? 'primary' : 'warning'"
-                  @click="handleRenewUserCookie(row)"
                   :loading="getRenewLoading(row.id)"
+                  @click="handleRenewUserCookie(row)"
                 >
                   {{ getRenewButtonText(row) }}
                 </el-button>
@@ -221,8 +221,8 @@
                   v-if="row.server !== 'cn'"
                   size="small"
                   type="success"
-                  @click="handleSyncHistory(row)"
                   :loading="syncLoading"
+                  @click="handleSyncHistory(row)"
                 >
                   {{ isCompactScreen ? '同' : '同步' }}
                 </el-button>
@@ -252,7 +252,7 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="deleteDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="confirmDelete" :loading="deleting"> 确定 </el-button>
+          <el-button type="danger" :loading="deleting" @click="confirmDelete"> 确定 </el-button>
         </span>
       </template>
     </el-dialog>
@@ -268,13 +268,13 @@
 
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="syncHistoryDialogVisible = false" :disabled="syncLoading"
+          <el-button :disabled="syncLoading" @click="syncHistoryDialogVisible = false"
             >取消</el-button
           >
-          <el-button @click="syncRecentPage" :loading="syncLoading" :disabled="syncLoading"
+          <el-button :loading="syncLoading" :disabled="syncLoading" @click="syncRecentPage"
             >最近20条</el-button
           >
-          <el-button type="primary" @click="syncAll" :loading="syncLoading">全部</el-button>
+          <el-button type="primary" :loading="syncLoading" @click="syncAll">全部</el-button>
         </span>
       </template>
     </el-dialog>
@@ -356,9 +356,13 @@ const loadColumnState = () => {
   return null
 }
 const visibleColumns = ref(loadColumnState() || DEFAULT_COLUMNS.map((c) => ({ ...c })))
-watch(visibleColumns, () => {
-  localStorage.setItem(COLUMNS_KEY, JSON.stringify(visibleColumns.value))
-}, { deep: true })
+watch(
+  visibleColumns,
+  () => {
+    localStorage.setItem(COLUMNS_KEY, JSON.stringify(visibleColumns.value))
+  },
+  { deep: true }
+)
 const getColumnVisible = (key) => visibleColumns.value.find((c) => c.key === key)?.visible || false
 
 const blaRanToday = (user) => hasUserBlaRunToday(user)
@@ -581,11 +585,16 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
   let usedCaptcha = false
   let credentialResult = await refreshCookieByCredential(
     credential.email,
-    credential.password, '', '', ''
+    credential.password,
+    '',
+    '',
+    ''
   )
 
-  if (!credentialResult.success &&
-      (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))) {
+  if (
+    !credentialResult.success &&
+    (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))
+  ) {
     let captchaResult
     try {
       captchaResult = await getTencentCaptcha({
@@ -614,8 +623,10 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
 
   if (!credentialResult.success || !credentialResult.cookie) {
     let message = credentialResult.message || '获取Token失败'
-    if (usedCaptcha &&
-        (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))) {
+    if (
+      usedCaptcha &&
+      (credentialResult.ret === 2170 || isMachineCheckError(credentialResult.message))
+    ) {
       message = `验证码完成后仍被上游拒绝：${message}`
       if (credentialResult.captchaAppId) {
         message += `（captchaAppId=${credentialResult.captchaAppId}）`

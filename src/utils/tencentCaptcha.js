@@ -15,7 +15,9 @@ let integrityCache = null
 async function getIntegrity() {
   if (integrityCache) return integrityCache
   try {
-    const res = await fetch(`${API_BASE}/api/captcha-integrity`, { signal: AbortSignal.timeout(3000) })
+    const res = await fetch(`${API_BASE}/api/captcha-integrity`, {
+      signal: AbortSignal.timeout(3000),
+    })
     if (!res.ok) return null
     integrityCache = await res.json()
     return integrityCache

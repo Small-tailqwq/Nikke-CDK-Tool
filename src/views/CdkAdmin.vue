@@ -44,11 +44,7 @@
           <el-icon><Upload /></el-icon>
           保存到本地文件
         </el-button>
-        <el-button
-          type="info"
-          :disabled="!cdkData"
-          @click="exportJSON"
-        >
+        <el-button type="info" :disabled="!cdkData" @click="exportJSON">
           <el-icon><Download /></el-icon>
           导出 JSON
         </el-button>
@@ -99,7 +95,11 @@
             {{ item.code }}
           </span>
           <el-tag
-            :type="(item.type === 'group' ? item.cdks?.[0]?.status : item.status) === '可用' ? 'success' : 'danger'"
+            :type="
+              (item.type === 'group' ? item.cdks?.[0]?.status : item.status) === '可用'
+                ? 'success'
+                : 'danger'
+            "
             effect="plain"
             size="small"
           >
@@ -191,11 +191,7 @@
             </el-checkbox-group>
           </el-form-item>
           <el-form-item label="状态">
-            <el-switch
-              v-model="formData._available"
-              active-text="可用"
-              inactive-text="已过期"
-            />
+            <el-switch v-model="formData._available" active-text="可用" inactive-text="已过期" />
           </el-form-item>
           <el-form-item label="备注">
             <el-input
@@ -224,11 +220,7 @@
       <template v-if="formData._type === 'group' && formData._cdks">
         <el-divider>组合内的 CDK</el-divider>
         <div class="group-cdk-list">
-          <div
-            v-for="(sub, si) in formData._cdks"
-            :key="si"
-            class="group-cdk-row"
-          >
+          <div v-for="(sub, si) in formData._cdks" :key="si" class="group-cdk-row">
             <div class="group-cdk-fields">
               <el-input
                 v-model="sub.code"
@@ -236,18 +228,8 @@
                 style="width: 180px"
                 size="small"
               />
-              <el-input
-                v-model="sub.name"
-                placeholder="名称"
-                style="width: 140px"
-                size="small"
-              />
-              <el-input
-                v-model="sub.reward"
-                placeholder="奖励"
-                style="width: 180px"
-                size="small"
-              />
+              <el-input v-model="sub.name" placeholder="名称" style="width: 140px" size="small" />
+              <el-input v-model="sub.reward" placeholder="奖励" style="width: 180px" size="small" />
               <el-select
                 v-model="sub.servers"
                 multiple
@@ -259,11 +241,7 @@
                 <el-option label="国服" value="cn" />
                 <el-option label="港澳台" value="tw" />
               </el-select>
-              <el-switch
-                v-model="sub._available"
-                active-text="可用"
-                size="small"
-              />
+              <el-switch v-model="sub._available" active-text="可用" size="small" />
               <el-button size="small" type="danger" @click="removeGroupCdk(si)">
                 <el-icon><Delete /></el-icon>
               </el-button>
@@ -293,7 +271,7 @@
             </div>
           </div>
         </div>
-        <el-button size="small" type="primary" plain @click="addGroupCdk" style="margin-top: 8px">
+        <el-button size="small" type="primary" plain style="margin-top: 8px" @click="addGroupCdk">
           + 添加子 CDK
         </el-button>
       </template>
@@ -320,8 +298,10 @@ const loading = ref(false)
 const fileInputRef = ref(null)
 
 const loadModeHint = computed(() => {
-  if (loadMode.value === 'dev-server') return '自动从 Vite Dev Server 加载 (无需手动选文件)，修改后点"导出 JSON"保存。'
-  if (loadMode.value === 'file-picker') return '已通过本地文件加载，可用 FSA 直接写回（Chromium 专属）或导出 JSON。'
+  if (loadMode.value === 'dev-server')
+    return '自动从 Vite Dev Server 加载 (无需手动选文件)，修改后点"导出 JSON"保存。'
+  if (loadMode.value === 'file-picker')
+    return '已通过本地文件加载，可用 FSA 直接写回（Chromium 专属）或导出 JSON。'
   return '点击"从 Dev Server 加载"自动读取 public/cdk-list.source.json，或"从本地文件加载"手动选择。'
 })
 
@@ -340,7 +320,7 @@ const defaultCdk = () => ({
   _available: true,
   note: '',
   author: '',
-  created: new Date().toISOString().slice(0, 10)
+  created: new Date().toISOString().slice(0, 10),
 })
 
 const defaultGroup = () => ({
@@ -348,7 +328,7 @@ const defaultGroup = () => ({
   groupId: '',
   groupName: '',
   note: '',
-  _cdks: []
+  _cdks: [],
 })
 
 const formData = ref(defaultCdk())
@@ -357,22 +337,24 @@ const formRules = {
   code: [{ required: true, message: '请输入 CDK 代码', trigger: 'blur' }],
   name: [{ required: true, message: '请输入 CDK 名称', trigger: 'blur' }],
   reward: [{ required: true, message: '请输入奖励内容', trigger: 'blur' }],
-  servers: [{ type: 'array', required: true, min: 1, message: '至少选择一个服务器', trigger: 'change' }],
+  servers: [
+    { type: 'array', required: true, min: 1, message: '至少选择一个服务器', trigger: 'change' },
+  ],
   created: [{ required: true, message: '请选择创建日期', trigger: 'change' }],
   groupId: [{ required: true, message: '请输入组合 ID', trigger: 'blur' }],
-  groupName: [{ required: true, message: '请输入组合名称', trigger: 'blur' }]
+  groupName: [{ required: true, message: '请输入组合名称', trigger: 'blur' }],
 }
 
 const totalCount = computed(() => cdkData.value?.cdks?.length || 0)
 
 const cdkCount = computed(() => {
   if (!cdkData.value?.cdks) return 0
-  return cdkData.value.cdks.filter(c => c.type !== 'group').length
+  return cdkData.value.cdks.filter((c) => c.type !== 'group').length
 })
 
 const groupCount = computed(() => {
   if (!cdkData.value?.cdks) return 0
-  return cdkData.value.cdks.filter(c => c.type === 'group').length
+  return cdkData.value.cdks.filter((c) => c.type === 'group').length
 })
 
 const filteredCdks = computed(() => {
@@ -395,13 +377,13 @@ const filteredCdks = computed(() => {
 })
 
 function matchesSingleCdk(cdk, kw) {
-  return [cdk.code, cdk.name, cdk.reward, cdk.note, cdk.author, cdk.created, cdk.status]
-    .some((f) => f?.toLowerCase().includes(kw))
+  return [cdk.code, cdk.name, cdk.reward, cdk.note, cdk.author, cdk.created, cdk.status].some((f) =>
+    f?.toLowerCase().includes(kw)
+  )
 }
 
 function matchesSubCdk(sub, kw) {
-  return [sub.code, sub.name, sub.reward, sub.note]
-    .some((f) => f?.toLowerCase().includes(kw))
+  return [sub.code, sub.name, sub.reward, sub.note].some((f) => f?.toLowerCase().includes(kw))
 }
 
 function getItemKey(item, index) {
@@ -446,7 +428,7 @@ async function loadViaFSAPI() {
     const [handle] = await window.showOpenFilePicker({
       types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
       excludeAcceptAllOption: true,
-      multiple: false
+      multiple: false,
     })
     fileHandle = handle
     const file = await handle.getFile()
@@ -608,8 +590,8 @@ function editItem(index) {
       note: item.note || '',
       _cdks: (item.cdks || []).map((sub) => ({
         ...sub,
-        _available: sub.status !== '已过期'
-      }))
+        _available: sub.status !== '已过期',
+      })),
     }
   } else {
     dialogTitle.value = '编辑普通 CDK'
@@ -624,7 +606,7 @@ function editItem(index) {
       _available: item.status !== '已过期',
       note: item.note || '',
       author: item.author || '',
-      created: item.created || new Date().toISOString().slice(0, 10)
+      created: item.created || new Date().toISOString().slice(0, 10),
     }
   }
   dialogVisible.value = true
@@ -634,12 +616,14 @@ function deleteItem(index) {
   ElMessageBox.confirm('确定要删除此项吗？此操作不可恢复。', '确认删除', {
     confirmButtonText: '删除',
     cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    cdkData.value.cdks.splice(index, 1)
-    updateLastUpdate()
-    ElMessage.success('已删除')
-  }).catch(() => {})
+    type: 'warning',
+  })
+    .then(() => {
+      cdkData.value.cdks.splice(index, 1)
+      updateLastUpdate()
+      ElMessage.success('已删除')
+    })
+    .catch(() => {})
 }
 
 function addGroupCdk() {
@@ -652,7 +636,7 @@ function addGroupCdk() {
     _available: true,
     note: '',
     author: '',
-    created: new Date().toISOString().slice(0, 10)
+    created: new Date().toISOString().slice(0, 10),
   })
 }
 
@@ -660,11 +644,13 @@ function removeGroupCdk(index) {
   ElMessageBox.confirm('确定要删除此子 CDK 吗？此操作将在保存后生效。', '确认删除', {
     confirmButtonText: '删除',
     cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    formData.value._cdks.splice(index, 1)
-    ElMessage.success('已删除，保存后生效')
-  }).catch(() => {})
+    type: 'warning',
+  })
+    .then(() => {
+      formData.value._cdks.splice(index, 1)
+      ElMessage.success('已删除，保存后生效')
+    })
+    .catch(() => {})
 }
 
 async function submitForm() {
@@ -680,9 +666,12 @@ async function submitForm() {
   let savedItem
 
   if (fd._type === 'group') {
-    if (fd.groupId && cdkData.value.cdks.some(
-      (c, i) => c.type === 'group' && c.groupId === fd.groupId && i !== editingGroupIndex.value
-    )) {
+    if (
+      fd.groupId &&
+      cdkData.value.cdks.some(
+        (c, i) => c.type === 'group' && c.groupId === fd.groupId && i !== editingGroupIndex.value
+      )
+    ) {
       ElMessage.error('组合 ID 重复')
       return
     }
@@ -700,13 +689,16 @@ async function submitForm() {
         status: sub._available ? '可用' : '已过期',
         note: sub.note || '',
         author: sub.author || '',
-        created: sub.created || new Date().toISOString().slice(0, 10)
-      }))
+        created: sub.created || new Date().toISOString().slice(0, 10),
+      })),
     }
   } else {
-    if (fd.code && cdkData.value.cdks.some(
-      (c, i) => c.type !== 'group' && c.code === fd.code && i !== editingIndex.value
-    )) {
+    if (
+      fd.code &&
+      cdkData.value.cdks.some(
+        (c, i) => c.type !== 'group' && c.code === fd.code && i !== editingIndex.value
+      )
+    ) {
       ElMessage.error('CDK 代码重复')
       return
     }
@@ -719,7 +711,7 @@ async function submitForm() {
       status: fd._available ? '可用' : '已过期',
       note: fd.note || '',
       author: fd.author || '',
-      created: fd.created || new Date().toISOString().slice(0, 10)
+      created: fd.created || new Date().toISOString().slice(0, 10),
     }
   }
 
