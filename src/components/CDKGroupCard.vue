@@ -1,19 +1,23 @@
 <template>
-  <div class="cdk-group-card-wrapper">
+  <div
+    class="cdk-group-card-wrapper"
+    @pointerenter="onPointerEnter"
+    @pointermove="onPointerMove"
+    @pointerleave="onPointerLeave"
+  >
     <!-- 卡片重叠效果的背景层 -->
     <div class="card-stack-bg card-stack-1"></div>
     <div class="card-stack-bg card-stack-2"></div>
 
-    <!-- 主卡片 -->
-    <el-card
-      class="cdk-group-card"
+    <!-- 主卡片 — NIKKE 玻璃卡 -->
+    <div
+      class="nikke-card"
       :class="{
         available: getGroupStatus(group) === '可用',
         unavailable: getGroupStatus(group) === '已过期',
         'partially-available': getGroupStatus(group) === '部分可用',
         expanding: isExpanded,
       }"
-      body-style="padding: 0; display: flex; flex-direction: column;"
     >
       <!-- 复选框 -->
       <div class="cdk-checkbox-wrapper">
@@ -109,7 +113,7 @@
 
         <!-- 展开/收起按钮 - 上移 -->
         <div class="expand-button">
-          <el-button type="primary" size="default" plain @click="toggleExpanded">
+          <el-button type="primary" size="default" @click="toggleExpanded">
             <el-icon><Grid /></el-icon>
             查看详情
           </el-button>
@@ -137,7 +141,7 @@
         <!-- Footer信息合并到content中 -->
         <!-- CDK组合没有author字段，移除此部分 -->
       </div>
-    </el-card>
+    </div>
 
     <!-- 遮罩层和展开的子CDK卡片 -->
     <teleport to="body">
@@ -218,8 +222,8 @@
                     :class="{ copied: copiedCode === subCdk.code }"
                     @mousedown="copyCdk(subCdk.code, $event)"
                   >
-                    {{ subCdk.code }}
-                    <el-icon><Document /></el-icon>
+                    <span class="code-text" :style="'--char-count:'+subCdk.code.length">{{ subCdk.code }}</span>
+                    <el-icon class="copy-icon"><Document /></el-icon>
                   </el-tag>
                 </div>
 
@@ -290,6 +294,7 @@ import {
 import { showCustomMessage } from '../utils/customMessage'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
+import { useCardTilt } from '@/composables/useCardTilt'
 
 interface Props {
   group: CDKGroup
@@ -304,6 +309,8 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+const { onPointerEnter, onPointerMove, onPointerLeave } = useCardTilt()
 
 // 展开状态
 const isExpanded = ref(false)
@@ -445,7 +452,7 @@ const handleCopySuccess = (code: string, e: MouseEvent) => {
 
   setTimeout(() => {
     copiedCode.value = null
-  }, 1000)
+  }, 1500)
 }
 
 const copyCdk = async (code: string, e: MouseEvent) => {
@@ -524,263 +531,193 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 
 <style lang="scss" scoped>
 .cdk-group-card-wrapper {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --img-brightness: 1;
+  --shadow-x: 0px;
+  --shadow-y: 0px;
+  --shadow-blur: 0px;
   position: relative;
   z-index: 1;
+  height: 100%;
+  perspective: 800px;
+
+  &:hover {
+    z-index: 6;
+  }
 }
 
-/* =============== 卡片重叠效果 =============== */
+/* =============== NIKKE 玻璃卡片 =============== */
 .card-stack-bg {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 4px;
+  left: 4px;
   right: 0;
   bottom: 0;
-  background: var(--el-bg-color);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color-light);
+  background: rgba(0, 212, 255, 0.04);
+  border-radius: var(--cdk-card-radius, 12px);
+  border: 1px solid rgba(0, 212, 255, 0.06);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: -1;
+  transform-origin: center top;
+  pointer-events: none;
 }
 
 .card-stack-1 {
-  transform: translate(2px, 2px) scale(0.98);
-  opacity: 0.8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translate(2px, 2px);
+  opacity: 0.6;
 }
 
 .card-stack-2 {
-  transform: translate(4px, 4px) scale(0.96);
-  opacity: 0.6;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transform: translate(4px, 4px);
+  opacity: 0.3;
 }
 
-.cdk-group-card {
+.nikke-card {
   position: relative;
   overflow: hidden;
-  border-radius: 8px;
-  border: none;
-  /* 移除固定高度，让卡片自适应内容高度 */
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  background: var(--el-bg-color);
+  border-radius: var(--cdk-card-radius, 12px);
+  border: 1px solid var(--cdk-glass-border);
+  transition:
+    transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    border-color 0.28s ease,
+    background 0.28s ease,
+    box-shadow 0.32s ease;
+  background: var(--cdk-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   z-index: 2;
-
-  &:hover {
-    @media screen and (min-width: 769px) {
-      transform: translateY(-6px) scale(1.02);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
-
-      /* 悬停时背景卡片也有动画 */
-      ~ .card-stack-1 {
-        transform: translate(1px, 1px) scale(0.99);
-        opacity: 0.9;
-      }
-
-      ~ .card-stack-2 {
-        transform: translate(2px, 2px) scale(0.98);
-        opacity: 0.7;
-      }
-    }
-  }
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  will-change: transform;
+  transform:
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translateY(0px)
+    scale(1);
+  box-shadow: 0 18px 28px rgba(5, 8, 15, 0.18);
 
   &.expanding {
-    transform: scale(1.05);
+    transform: scale(1.03);
     z-index: 3000;
 
     .card-stack-1,
     .card-stack-2 {
       opacity: 0;
-      transform: scale(0.8);
+      transform: scale(0.85);
     }
   }
 
   &.available {
-    border-top: 4px solid var(--el-color-success);
-
-    .card-stack-1,
-    .card-stack-2 {
-      border-top: 4px solid var(--el-color-success);
-    }
+    border-color: var(--cdk-border-available);
   }
 
   &.unavailable {
-    border-top: 4px solid var(--el-color-danger);
-
-    .card-stack-1,
-    .card-stack-2 {
-      border-top: 4px solid var(--el-color-danger);
-    }
+    opacity: 0.8; /* 调整过期卡片的不透明度，避免亮色模式下过于暗淡 */
+    border-color: var(--cdk-border-unavailable);
   }
 
   &.partially-available {
-    border-top: 4px solid var(--el-color-warning);
-
-    .card-stack-1,
-    .card-stack-2 {
-      border-top: 4px solid var(--el-color-warning);
-    }
+    border-color: var(--cdk-border-partially);
   }
 }
 
-/* =============== 复选框样式（与单个CDK卡片保持一致） =============== */
+@media (hover: hover) and (pointer: fine) {
+  .cdk-group-card-wrapper:hover .nikke-card {
+    transform:
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y))
+      translateY(-8px)
+      scale(1.028);
+    border-color: var(--cdk-border-hover);
+    background: var(--cdk-glass-hover-bg);
+    box-shadow:
+      var(--shadow-x) var(--shadow-y) var(--shadow-blur) rgba(5, 8, 15, 0.32),
+      var(--cdk-state-shadow, 0 0 0 rgba(0,0,0,0));
+  }
+
+  .cdk-group-card-wrapper:hover .nikke-card.available {
+    border-color: var(--cdk-border-available-hover);
+    --cdk-state-shadow: var(--cdk-glow-cyan);
+  }
+
+  .cdk-group-card-wrapper:hover .nikke-card.unavailable {
+    border-color: var(--cdk-border-unavailable-hover);
+    --cdk-state-shadow: var(--cdk-glow-red);
+  }
+
+  .cdk-group-card-wrapper:hover .nikke-card.partially-available {
+    border-color: var(--cdk-border-partially-hover);
+    --cdk-state-shadow: var(--cdk-glow-orange);
+  }
+
+  .cdk-group-card-wrapper:hover .card-stack-1 {
+    transform: translate(1px, 3px) scale(1.008) rotate(-0.25deg);
+    opacity: 0.78;
+  }
+
+  .cdk-group-card-wrapper:hover .card-stack-2 {
+    transform: translate(3px, 6px) scale(1.012) rotate(0.35deg);
+    opacity: 0.46;
+  }
+
+  .cdk-group-card-wrapper:hover .cdk-image img {
+    transform: scale(1.045);
+    filter: brightness(var(--img-brightness));
+  }
+}
+
+/* =============== 复选框 =============== */
 .cdk-checkbox-wrapper {
-  --color-checkbox-border-light: rgba(0, 0, 0, 0.2);
-  --color-checkbox-border-dark: rgba(255, 255, 255, 0.3);
-  --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
-  --checkbox-size: 1.5em; /* 24px 转换为相对单位 */
+  --checkbox-size: 1.4em;
 
   position: absolute;
-  top: 0.5em;
-  left: 0.5em;
+  top: 10px;
+  left: 10px;
   z-index: 20;
   width: var(--checkbox-size);
   height: var(--checkbox-size);
-  border-radius: 0.375em; /* 6px */
-  background: var(--el-bg-color);
-  border: 2px solid var(--color-checkbox-border-light); /* 恢复原本的灰色边框 */
-  box-sizing: border-box; /* 确保边框在外部，不影响内部尺寸 */
-  box-shadow: 0 0.0625em 0.1875em rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  background: rgba(5, 6, 10, 0.7);
+  border: 1.5px solid var(--cdk-border-hover);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
-  /* 背景处理策略：提高在动态背景上的可见性 */
-  &::after {
-    content: '';
-    position: absolute;
-    width: 120%;
-    height: 120%;
-    background: var(--checkbox-bg);
-    border-radius: inherit;
-    z-index: -1;
-    transition: opacity 0.3s ease;
-  }
-
-  /* 悬停效果 */
   &:hover {
-    box-shadow: 0 0.125em 0.375em rgba(0, 0, 0, 0.25);
-
-    &::after {
-      --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
-    }
-  }
-
-  /* 暗色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-
-    &:hover::after {
-      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
-    }
-  }
-
-  /* Element Plus 暗色模式 */
-  html.dark & {
-    border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-
-    &:hover::after {
-      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
-    }
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
   }
 }
 
 .cdk-checkbox {
-  --inner-size: 0.875em; /* 14px 转换为相对单位，与外层严格匹配 */
-
   pointer-events: auto;
   margin: 0;
   width: 100%;
   height: 100%;
-  position: relative; /* 为伪元素定位做准备 */
-  border-radius: inherit; /* 继承外层容器的圆角 */
-  transition: all 0.2s ease; /* 平滑状态切换 */
+  position: relative;
+  border-radius: inherit;
 
-  /* 方案A：伪元素填充整个容器范围（100%），添加对勾符号 */
-  &.is-checked {
-    &::after {
-      content: '✓'; /* 添加对勾符号，避免空洞感 */
-      position: absolute;
-      top: 1px; /* 扩展填充范围，覆盖原17px白色层位置 */
-      left: 1px;
-      right: 1px;
-      bottom: 1px;
-      background: var(--el-color-primary); /* 使用主题色变量，支持暗色模式 */
-      border-radius: calc(0.375em - 1px); /* 相应调整内部圆角 */
-      border: none; /* 移除伪元素边框，使用容器原生边框 */
-      z-index: 2; /* 提高层级，确保覆盖白色层 */
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 更流畅的缓动函数 */
-
-      /* 对勾符号样式 */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.75em; /* 12px */
-      font-weight: bold;
-      line-height: 1;
-
-      /* 初始状态：从中心点开始缩放 */
-      transform: scale(0);
-      transform-origin: center;
-    }
-  }
-
-  /* 选中状态的缩放动画 */
   &.is-checked::after {
-    transform: scale(1);
-  }
-
-  /* 悬停状态增强 */
-  &:hover.is-checked::after {
-    background: var(--el-color-primary-light-3); /* 使用主题色变量 */
-    transform: scale(1.02); /* 减小放大幅度，避免过度动画 */
-  }
-
-  /* 激活状态增强 */
-  &:active.is-checked::after {
-    background: var(--el-color-primary-dark-2); /* 使用主题色变量 */
-    transform: scale(0.98); /* 减小缩放幅度，保持平滑 */
-    transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1); /* 更快的激活反馈 */
-  }
-
-  /* 聚焦状态：给整个容器添加光晕效果 */
-  &.is-focus.is-checked::after {
-    box-shadow: 0 0 0 0.125em var(--el-color-primary-light-5);
-  }
-
-  /* 禁用状态保持透明度控制 */
-  &.is-disabled.is-checked {
-    opacity: 0.6; /* 整体透明度应用到容器 */
-
-    &::after {
-      background: var(--el-color-primary);
-      transform: scale(1); /* 确保禁用状态也有正确的缩放 */
-    }
-  }
-
-  /* 为未选中状态添加平滑过渡准备 */
-  &:not(.is-checked)::after {
-    content: '';
+    content: '✓';
     position: absolute;
     top: 1px;
     left: 1px;
     right: 1px;
     bottom: 1px;
-    background: transparent; /* 取消选中时背景透明 */
-    border-radius: calc(0.375em - 1px);
-    border: none; /* 无需边框，使用容器原生边框 */
-    z-index: 2; /* 保持一致的层级 */
-    transform: scale(0);
-    transform-origin: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* 未选中状态的交互效果（悬停、激活时也要确保透明） */
-  &:not(.is-checked):hover::after,
-  &:not(.is-checked):active::after {
-    background: transparent !important; /* 确保取消选中时交互状态也是透明 */
+    background: #00d4ff;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #05060a;
+    font-size: 0.7em;
+    font-weight: 800;
+    line-height: 1;
+    z-index: 2;
   }
 
   :deep(.el-checkbox__input) {
@@ -790,65 +727,41 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     align-items: center;
     justify-content: center;
     margin: 0;
-    position: relative;
-    z-index: 1; /* 确保在伪元素之上 */
-    background: transparent !important; /* 移除白色背景层 */
+    z-index: 1;
+    background: transparent !important;
 
     .el-checkbox__inner {
-      /* 完全隐藏内部小框，避免白色描边效果 */
       width: 0 !important;
       height: 0 !important;
       border: none !important;
       background: transparent !important;
       box-shadow: none !important;
       opacity: 0 !important;
-      visibility: hidden !important;
 
-      &::after {
-        /* 移除默认的√符号，现在用大框的伪元素 */
-        content: none !important;
-        display: none !important;
-      }
+      &::after { content: none !important; }
     }
 
-    /* 所有状态下都隐藏内部小框 */
-    &.is-checked .el-checkbox__inner,
-    &.is-disabled .el-checkbox__inner,
-    &.is-focus .el-checkbox__inner,
-    &:hover .el-checkbox__inner {
-      width: 0 !important;
-      height: 0 !important;
-      border: none !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-    }
-
-    /* 确保所有状态下input元素背景都透明 */
-    &.is-checked,
-    &.is-disabled,
-    &.is-focus,
-    &:hover {
-      background: transparent !important;
-    }
-  }
-
-  /* 移除标签相关样式 */
-  :deep(.el-checkbox__label) {
-    display: none;
+    .el-checkbox__label { display: none; }
   }
 }
 
+/* =============== 图片 =============== */
 .cdk-image {
   width: 100%;
-  height: 120px;
+  height: 130px;
   position: relative;
-  border-radius: 8px 8px 0 0;
-  background: var(--el-fill-color-light);
+  overflow: hidden;
+  background: var(--el-fill-color);
 
-  &.has-image {
-    background: none;
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(transparent, rgba(5, 6, 10, 0.7));
+    pointer-events: none;
   }
 
   img {
@@ -856,13 +769,11 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     height: 100%;
     object-fit: cover;
     display: block;
-    image-rendering: auto;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    transform: scale(1);
+    transform-origin: center center;
+    filter: brightness(1);
+    transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.24s ease;
+    will-change: transform, filter;
   }
 
   .image-placeholder {
@@ -873,135 +784,112 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 13px;
     font-weight: 500;
+    z-index: 1;
 
-    .el-icon {
-      font-size: 24px;
-      opacity: 0.8;
-    }
+    .el-icon { font-size: 22px; }
   }
 
-  @media screen and (max-width: 768px) {
-    height: 100px;
+  @media screen and (max-width: 768px) { height: 110px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nikke-card,
+  .card-stack-bg,
+  .cdk-image img {
+    transition: none !important;
+    animation: none !important;
   }
 }
 
+/* =============== 状态徽章 =============== */
 .cdk-status {
   position: absolute;
   top: 10px;
   right: 10px;
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--cdk-font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
   color: #fff;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
+  z-index: 2;
+  backdrop-filter: blur(4px);
 
-  &.status-available {
-    background: var(--el-color-success);
-  }
-
-  &.status-unavailable {
-    background: var(--el-color-danger);
-  }
-
-  &.status-partially-available {
-    background: var(--el-color-warning);
-  }
+  &.status-available { background: rgba(0, 212, 255, 0.85); }
+  &.status-unavailable { background: rgba(255, 51, 85, 0.85); }
+  &.status-partially-available { background: rgba(240, 160, 48, 0.85); }
 }
 
 .exchange-status {
   position: absolute;
-  top: 35px;
+  top: 34px;
   right: 10px;
   padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: bold;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--cdk-font-mono);
   color: #fff;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  opacity: 0.9;
+  z-index: 2;
+  backdrop-filter: blur(4px);
 
-  &.exchange-not-redeemed {
-    background: var(--el-color-primary);
-  }
-
-  &.exchange-partially-redeemed {
-    background: var(--el-color-warning);
-  }
-
-  &.exchange-redeemed {
-    background: var(--el-color-info);
-  }
-  &.exchange-exhausted {
-    background: var(--el-color-warning);
-    filter: grayscale(20%);
-  }
+  &.exchange-not-redeemed { background: rgba(0, 212, 255, 0.7); }
+  &.exchange-partially-redeemed { background: rgba(240, 160, 48, 0.7); }
+  &.exchange-redeemed { background: rgba(108, 110, 114, 0.7); }
+  &.exchange-exhausted { background: rgba(240, 160, 48, 0.5); }
 }
 
 .group-badge {
   position: absolute;
-  bottom: 10px;
+  bottom: 8px;
   left: 10px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #fff;
-  background: rgba(64, 158, 255, 0.9);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--cdk-font-mono);
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   gap: 4px;
+  z-index: 2;
 
-  .el-icon {
-    font-size: 14px;
-  }
+  .el-icon { font-size: 12px; }
 }
 
+/* =============== 内容区 =============== */
 .cdk-content {
   flex: 1;
-  padding: 16px;
+  padding: 14px 14px 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  transition: background-color 0.3s ease; /* 添加主题切换动画 */
-
-  @media screen and (max-width: 768px) {
-    padding: 12px;
-    gap: 8px;
-  }
+  gap: 10px;
+  position: relative;
+  z-index: 1;
 
   h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
-
-    @media screen and (max-width: 768px) {
-      font-size: 16px;
-    }
+    color: var(--el-text-color-primary);
+    line-height: 1.3;
   }
 
   h4 {
     margin: 0;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--el-text-color-regular);
-  }
-}
-
-.group-description {
-  p {
-    margin: 0;
-    font-size: 14px;
     color: var(--el-text-color-secondary);
-    line-height: 1.4;
+    letter-spacing: 0.3px;
   }
 }
 
@@ -1009,167 +897,118 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   .cdk-codes-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
     align-items: center;
-    margin-top: 6px;
-    line-height: 1.4;
-    /* 限制最多显示2行 */
-    max-height: calc(1.4em * 2 + 6px); /* 2行文字高度 + gap */
+    margin-top: 4px;
+    max-height: calc(1.6em * 2 + 4px);
     overflow: hidden;
 
     .code-preview-tag {
-      font-family: monospace;
-      font-size: 12px;
-      line-height: 1.4;
-      height: 1.4em; /* 固定标签高度 */
+      font-family: var(--cdk-font-mono);
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      padding: 1px 6px;
+      height: auto;
+      line-height: 1.6;
+      border-radius: 3px;
 
       &.expired {
-        background-color: var(--el-color-danger) !important;
-        border-color: var(--el-color-danger) !important;
-        color: #fff !important;
-        opacity: 0.8;
+        opacity: 0.5;
         text-decoration: line-through;
       }
     }
 
     .more-indicator {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--el-text-color-secondary);
       font-style: italic;
-      font-weight: bold;
+      font-weight: 600;
     }
   }
 }
 
 .group-total-reward {
   .reward-text {
-    margin: 0;
-    font-size: 14px;
-    color: var(--el-text-color-primary);
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
     line-height: 1.4;
-    /* 限制显示2行，超出显示省略号 */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    word-break: break-word;
-    max-height: calc(1.4em * 2); /* 2行文字高度 */
   }
 }
 
 .cdk-servers {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
 
 .cdk-note {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
-  margin-top: 8px;
-  position: relative; /* 添加定位上下文 */
-  z-index: 10; /* 提高z-index确保悬浮事件正常工作 */
+  margin-top: 4px;
 
   .note-icon {
-    font-size: 14px !important;
-    width: 14px;
-    height: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    font-size: 12px !important;
   }
 
-  span {
-    line-height: 1;
-  }
+  span { line-height: 1; }
 }
 
 .expand-button {
-  margin-top: 8px;
+  margin-top: auto;
+  padding-top: 8px;
 
   .el-button {
     width: 100%;
-    height: 36px; /* 增加按钮高度 */
+    height: 34px;
+    font-size: 13px;
+    border-radius: 6px;
   }
 }
 
-.cdk-author {
-  margin-top: 12px;
-  padding-top: 8px;
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
-  text-align: right;
-  border-top: 1px solid var(--el-border-color-lighter);
-  transition:
-    color 0.3s ease,
-    border-color 0.3s ease; /* 添加主题切换动画 */
-
-  @media screen and (max-width: 768px) {
-    margin-top: 8px;
-    padding-top: 6px;
-  }
-}
-
-/* =============== 遮罩层样式 =============== */
+/* =============== 遮罩层 =============== */
 .overlay-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(8px);
+  background: rgba(5, 6, 10, 0.8);
+  backdrop-filter: blur(12px);
   z-index: 2500;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  box-sizing: border-box;
-  will-change: opacity, backdrop-filter;
 
-  @media screen and (max-width: 768px) {
-    padding: 12px;
-    align-items: flex-start;
-    padding-top: env(safe-area-inset-top, 12px);
-  }
-
-  @media screen and (max-width: 480px) {
-    padding: 8px;
-  }
+  @media screen and (max-width: 768px) { padding: 12px; align-items: flex-start; }
+  @media screen and (max-width: 480px) { padding: 8px; }
 }
 
 .overlay-container {
-  background: var(--el-bg-color);
+  background: var(--cdk-overlay-bg);
+  border: 1px solid var(--cdk-overlay-border);
   border-radius: 16px;
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
   max-width: 1200px;
   max-height: 90vh;
   width: 100%;
-  position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  will-change: transform;
+  overflow: hidden;
 
-  @media screen and (max-width: 768px) {
-    border-radius: 12px;
-    max-height: 95vh;
-    margin-top: auto;
-  }
-
+  @media screen and (max-width: 768px) { border-radius: 12px; max-height: 95vh; }
   @media screen and (max-width: 480px) {
-    border-radius: 8px;
-    margin: 0;
-    max-height: 100vh;
-    height: 100%;
-    width: 100%;
+    border-radius: 8px; max-height: 100vh; height: 100%; width: 100%;
   }
 }
 
@@ -1177,190 +1016,96 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--el-border-color-light);
-  background: var(--el-bg-color);
-  flex-shrink: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--cdk-overlay-border);
 
   h3 {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
-    line-height: 1.3;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    flex: 1;
-    margin-right: 16px;
-  }
-
-  @media screen and (max-width: 768px) {
-    padding: 16px 20px;
-
-    h3 {
-      font-size: 18px;
-    }
-  }
-
-  @media screen and (max-width: 480px) {
-    padding: 12px 16px;
-
-    h3 {
-      font-size: 16px;
-      margin-right: 12px;
-    }
   }
 }
 
 .sub-cards-container {
-  padding: 24px;
+  padding: 20px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
   overflow-y: auto;
   flex: 1;
 
-  /* 美观的滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 6px;
-  }
-
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 6px; }
   &::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background: var(--scrollbar-thumb-hover);
-    }
-
-    &:active {
-      background: var(--scrollbar-thumb-active);
-    }
-  }
-
-  &::-webkit-scrollbar-corner {
-    background: var(--scrollbar-track);
-  }
-
-  @media screen and (max-width: 1200px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  @media screen and (max-width: 900px) {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 20px;
-    gap: 16px;
-  }
-
-  @media screen and (max-width: 600px) {
-    grid-template-columns: 1fr;
-    padding: 16px;
-    gap: 16px;
+    background: var(--scrollbar-thumb); border-radius: 6px;
+    &:hover { background: var(--scrollbar-thumb-hover); }
   }
 }
 
 .sub-cdk-card {
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: cardFloatIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) var(--delay, 0ms) both;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: var(--cdk-glass-bg);
+  border: 1px solid var(--cdk-glass-border);
+  border-radius: 10px;
+  padding: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: cardRise 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) var(--delay, 0ms) both;
   display: flex;
   flex-direction: column;
-  will-change: transform;
-  position: relative;
-  transform-origin: center bottom;
 
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  }
-
-  /* 子卡片状态边框 */
-  &.available {
-    border-left: 4px solid var(--el-color-success);
-  }
-
-  &.unavailable {
-    border-left: 4px solid var(--el-color-danger);
-    opacity: 0.8;
-  }
+  &.available { border-color: var(--cdk-border-available); }
+  &.unavailable { opacity: 0.8; border-color: var(--cdk-border-unavailable); }
 
   .sub-cdk-header {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    position: relative;
 
     h4 {
       margin: 0;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 600;
       color: var(--el-text-color-primary);
-      line-height: 1.3;
-      flex: 1;
-      margin-right: 8px;
     }
   }
 
   .sub-cdk-status-group {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     align-items: flex-end;
-    flex-shrink: 0;
   }
 
   .sub-cdk-status {
     padding: 2px 6px;
     border-radius: 3px;
     font-size: 10px;
-    font-weight: bold;
+    font-weight: 600;
+    font-family: var(--cdk-font-mono);
     color: #fff;
-    white-space: nowrap;
 
-    &.status-available {
-      background: var(--el-color-success);
-    }
-
-    &.status-unavailable {
-      background: var(--el-color-danger);
-    }
+    &.status-available { background: rgba(0, 212, 255, 0.8); }
+    &.status-unavailable { background: rgba(255, 51, 85, 0.8); }
   }
 
   .sub-cdk-exchange-status {
-    padding: 2px 6px;
-    border-radius: 3px;
+    padding: 1px 5px;
+    border-radius: 2px;
     font-size: 9px;
-    font-weight: bold;
+    font-weight: 600;
+    font-family: var(--cdk-font-mono);
     color: #fff;
-    white-space: nowrap;
-    opacity: 0.9;
 
-    &.exchange-not-redeemed {
-      background: var(--el-color-primary);
-    }
-
-    &.exchange-redeemed {
-      background: var(--el-color-info);
-    }
+    &.exchange-not-redeemed { background: rgba(0, 212, 255, 0.6); }
+    &.exchange-redeemed { background: rgba(108, 110, 114, 0.6); }
   }
 
   .sub-cdk-code-section {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 
     .code-tag {
       position: relative;
@@ -1369,301 +1114,153 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
       display: flex;
       justify-content: center;
       align-items: center;
-      gap: 8px;
-      font-family: monospace;
-      font-size: 14px;
+      gap: 6px;
+      font-family: var(--cdk-font-mono);
+      font-size: 13px;
       cursor: pointer;
       transition: all 0.3s;
+
+      .code-text {
+        position: relative;
+        z-index: 1;
+        transition: color 0.35s, clip-path 0.35s;
+      }
+
+      .copy-icon {
+        position: relative;
+        z-index: 1;
+      }
 
       &::before {
         content: '';
         position: absolute;
-        left: var(--x, 50%);
-        top: var(--y, 50%);
-        width: 20px;
-        height: 20px;
-        background: var(--el-color-success);
-        border-radius: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        pointer-events: none;
-        z-index: 1;
-        opacity: 0;
-        visibility: hidden;
-      }
-
-      &::after {
-        content: '';
-        position: absolute;
         inset: 0;
-        background: var(--el-fill-color-light);
-        transform: translateY(-100%);
+        background: #00d4ff;
+        transform: scaleX(0);
+        transform-origin: left;
         pointer-events: none;
-        z-index: 2;
+        z-index: 0;
+        transition: transform 0.35s ease-out;
       }
 
       &.copied {
-        color: #fff;
-        background: var(--el-color-success);
-        border-color: var(--el-color-success);
+        border-color: #00d4ff;
 
         &::before {
-          opacity: 1;
-          visibility: visible;
-          animation: rippleFill 0.4s ease-out forwards;
+          transform: scaleX(1);
         }
 
-        &::after {
-          animation: curtainReset 0.5s ease-out 0.5s forwards;
+        .code-text {
+          color: #05060a;
+          animation: typeReveal 0.35s steps(var(--char-count, 6)) 0.35s both;
+          transition: none;
         }
-      }
-
-      @media screen and (max-width: 768px) {
-        font-size: 13px;
-        padding: 6px 10px;
-        gap: 6px;
-      }
-
-      @media screen and (max-width: 480px) {
-        font-size: 12px;
-        padding: 8px 12px;
       }
     }
   }
 
   .sub-cdk-reward {
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 
     h4 {
-      margin: 0 0 4px 0;
+      margin: 0 0 3px;
       color: var(--el-text-color-secondary);
-      font-size: 13px;
-      font-weight: 600;
-
-      @media screen and (max-width: 768px) {
-        font-size: 12px;
-      }
+      font-size: 12px;
     }
 
     p {
       margin: 0;
       color: var(--el-text-color-secondary);
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.4;
-
-      @media screen and (max-width: 768px) {
-        font-size: 12px;
-      }
     }
   }
 
   .sub-cdk-servers {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 8px;
+    gap: 4px;
+    margin-bottom: 6px;
   }
 
   .sub-cdk-note {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     color: var(--el-text-color-secondary);
-    font-size: 12px;
+    font-size: 11px;
     cursor: pointer;
-    margin-top: 8px;
+    margin-top: 6px;
 
-    .note-icon {
-      font-size: 14px !important;
-      width: 14px;
-      height: 14px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    span {
-      line-height: 1;
-    }
+    .note-icon { font-size: 12px !important; }
   }
 }
 
-/* =============== 动画效果 =============== */
-/* 
- * 性能优化说明：
- * 1. 使用 cubic-bezier 缓动函数提升动画品质
- * 2. 使用 transform3d 和 scale3d 触发硬件加速
- * 3. 分离 opacity 和 transform 动画避免重绘
- * 4. 使用 will-change 提示浏览器优化
- */
-.card-expand-enter-active {
-  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+/* =============== 动画 =============== */
+.card-expand-enter-active { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.card-expand-leave-active { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.card-expand-enter-from { opacity: 0; }
+.card-expand-leave-to { opacity: 0; }
+.card-expand-enter-from .overlay-container { transform: scale(0.9) translateY(30px); opacity: 0; }
+.card-expand-leave-to .overlay-container { transform: scale(0.95) translateY(10px); opacity: 0; }
+
+@keyframes typeReveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
 }
 
-.card-expand-leave-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.card-expand-enter-from {
-  opacity: 0;
-  backdrop-filter: blur(0px);
-}
-
-.card-expand-leave-to {
-  opacity: 0;
-  backdrop-filter: blur(0px);
-}
-
-.card-expand-enter-from .overlay-container {
-  transform: scale(0.8) translateY(50px);
-  opacity: 0;
-}
-
-.card-expand-leave-to .overlay-container {
-  transform: scale(0.9) translateY(20px);
-  opacity: 0;
-}
-
-.card-expand-enter-from .sub-cdk-card {
-  transform: translateY(30px) scale(0.9);
-  opacity: 0;
-}
-
-.card-expand-leave-to .sub-cdk-card {
-  transform: translateY(-20px) scale(0.95);
-  opacity: 0;
-}
-
-@keyframes cardFloatIn {
-  0% {
-    transform: translateY(60px) scale(0.8) rotateX(15deg);
-    opacity: 0;
-    filter: blur(4px);
+@media (hover: hover) and (pointer: fine) {
+  .sub-cdk-card:hover {
+    transform: translateY(-4px) scale(1.015);
+    border-color: var(--cdk-border-hover);
+    box-shadow: 0 18px 30px rgba(5, 8, 15, 0.2);
   }
-  50% {
-    transform: translateY(-10px) scale(1.05) rotateX(0deg);
-    opacity: 0.8;
-    filter: blur(1px);
+
+  .sub-cdk-card.available:hover {
+    border-color: var(--cdk-border-available-hover);
+    box-shadow:
+      0 18px 30px rgba(5, 8, 15, 0.2),
+      var(--cdk-glow-cyan);
   }
-  100% {
-    transform: translateY(0) scale(1) rotateX(0deg);
-    opacity: 1;
-    filter: blur(0px);
+
+  .sub-cdk-card.unavailable:hover {
+    border-color: var(--cdk-border-unavailable-hover);
+    box-shadow:
+      0 18px 30px rgba(5, 8, 15, 0.2),
+      var(--cdk-glow-red);
   }
 }
 
-/* 复用单个CDK卡片的复制动画 */
-@keyframes rippleFill {
-  to {
-    transform: translate(-50%, -50%) scale(22);
-  }
-}
+.sub-cdk-author { font-size: 11px; color: var(--el-text-color-secondary); }
+.sub-cdk-created { font-size: 11px; color: var(--el-text-color-secondary); }
 
-@keyframes curtainReset {
-  to {
-    transform: translateY(0);
-  }
-}
-
-.sub-cdk-meta {
-  display: flex;
-  flex-direction: column; /* 默认为列布局，在空间足够时改为行布局 */
-  gap: 8px; /* 减小间距以适应列布局 */
-  font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
-
-  @media screen and (min-width: 400px) {
-    /* 在宽度足够的情况下使用行布局 */
-    &.has-space-for-row {
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-  }
-}
-
-.sub-cdk-author {
-  font-size: 12px;
-  color: #909399;
-  /* 移除溢出处理，允许完整显示 */
-  white-space: normal;
-  word-break: break-word;
-}
-
-.sub-cdk-created {
-  font-size: 12px;
-  color: #909399;
-  white-space: nowrap; /* 防止日期换行 */
-}
-
-/* =============== 修复 note tooltip 层级和颜色问题 =============== */
+/* =============== Tooltip =============== */
 :global(.cdk-note-tooltip) {
-  z-index: 9999 !important; /* 提高z-index确保在最上层 */
+  z-index: 9999 !important;
   max-width: 400px !important;
-  background: var(--el-bg-color-overlay, #ffffff) !important;
-  border: 1px solid var(--el-border-color, #dcdfe6) !important;
+  background: #111318 !important;
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 12px !important;
-  /* 智能宽度调整 */
-  min-width: 150px !important;
-  word-wrap: break-word !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  padding: 10px !important;
 
   .note-content {
-    line-height: 1.6 !important;
-    font-size: 14px !important;
-    color: var(--el-text-color-primary, #303133) !important;
-    word-break: break-word !important;
+    line-height: 1.5 !important;
+    font-size: 13px !important;
+    color: #cfd3dc !important;
 
-    a {
-      color: var(--el-color-primary, #409eff) !important;
-      text-decoration: underline !important;
-      transition: color 0.3s ease !important;
-
-      &:hover {
-        color: var(--el-color-primary-light-3, #79bbff) !important;
-        text-decoration: none !important;
-      }
-    }
-
-    /* 避免链接在tooltip中被截断 */
-    a[href] {
-      word-break: break-all !important;
-    }
-  }
-
-  /* 暗色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    background: var(--el-bg-color-overlay, #1a1a1a) !important;
-    border: 1px solid var(--el-border-color, #4c4d4f) !important;
-
-    .note-content {
-      color: var(--el-text-color-primary, #e5eaf3) !important;
-    }
-  }
-
-  /* Element Plus 暗色模式 */
-  html.dark & {
-    background: var(--el-bg-color-overlay, #1a1a1a) !important;
-    border: 1px solid var(--el-border-color, #4c4d4f) !important;
-
-    .note-content {
-      color: var(--el-text-color-primary, #e5eaf3) !important;
-    }
+    a { color: #00d4ff !important; text-decoration: underline !important; }
   }
 }
 
 .note-trigger {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   cursor: pointer;
   transition: color 0.3s ease;
+  color: var(--el-text-color-secondary);
 
-  &:hover {
-    color: var(--el-color-primary);
-  }
+  &:hover { color: #00d4ff; }
 }
 </style>

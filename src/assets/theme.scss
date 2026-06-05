@@ -80,15 +80,39 @@
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.18);
   --scrollbar-thumb-active: rgba(0, 0, 0, 0.24);
+
+  // NIKKE 专用玻璃效果变量 (亮色模式适配)
+  --cdk-glass-bg: rgba(255, 255, 255, 0.9);
+  --cdk-glass-border: rgba(0, 0, 0, 0.15);
+  --cdk-glass-hover-bg: rgba(255, 255, 255, 1);
+  --cdk-glow-cyan: 0 0 16px rgba(0, 180, 220, 0.25), 0 0 1px rgba(0, 180, 220, 0.40);
+  --cdk-glow-orange: 0 0 16px rgba(240, 140, 20, 0.25), 0 0 1px rgba(240, 140, 20, 0.40);
+  --cdk-glow-red: 0 0 16px rgba(230, 30, 60, 0.25), 0 0 1px rgba(230, 30, 60, 0.40);
+  
+  // 卡片状态边框色 - 亮色模式更清晰
+  --cdk-border-hover: rgba(0, 150, 200, 0.5);
+  --cdk-border-available: rgba(0, 160, 220, 0.45);
+  --cdk-border-available-hover: rgba(0, 160, 220, 0.65);
+  --cdk-border-unavailable: rgba(220, 30, 60, 0.35);
+  --cdk-border-unavailable-hover: rgba(220, 30, 60, 0.6);
+  --cdk-border-partially: rgba(220, 120, 10, 0.4);
+  --cdk-border-partially-hover: rgba(220, 120, 10, 0.6);
+  
+  // 弹窗及叠加层 - 亮色模式
+  --cdk-overlay-bg: rgba(255, 255, 255, 0.96);
+  --cdk-overlay-border: rgba(0, 0, 0, 0.15);
+
+  --cdk-card-radius: 12px;
+  --cdk-font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
 }
 
 html.dark {
-  // 基础背景色
-  --el-bg-color: #141414;
-  --el-bg-color-page: #0a0a0a;
-  --el-bg-color-overlay: #1d1e1f;
-  --el-bg-color-secondary: #1a1a1a;
-  --el-bg-color-tertiary: #262727;
+  // 基础背景色 — NIKKE 暗色基地
+  --el-bg-color: #0c0d12;
+  --el-bg-color-page: #05060a;
+  --el-bg-color-overlay: #111318;
+  --el-bg-color-secondary: #0e0f14;
+  --el-bg-color-tertiary: #14151b;
   
   // 文本颜色
   --el-text-color-primary: #e5eaf3;
@@ -97,73 +121,97 @@ html.dark {
   --el-text-color-placeholder: #8d9095;
   --el-text-color-disabled: #6c6e72;
   
-  // 边框颜色
-  --el-border-color: #4c4d4f;
-  --el-border-color-light: #414243;
-  --el-border-color-lighter: #363637;
-  --el-border-color-extra-light: #2b2b2c;
-  --el-border-color-dark: #58585b;
-  --el-border-color-darker: #636466;
+  // 边框颜色 — 霓虹微光
+  --el-border-color: rgba(0, 212, 255, 0.15);
+  --el-border-color-light: rgba(0, 212, 255, 0.10);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.06);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.04);
+  --el-border-color-dark: rgba(0, 212, 255, 0.20);
+  --el-border-color-darker: rgba(0, 212, 255, 0.25);
   
   // 填充颜色
-  --el-fill-color: #303030;
-  --el-fill-color-light: #262727;
-  --el-fill-color-lighter: #1d1e1f;
-  --el-fill-color-extra-light: #191a1b;
-  --el-fill-color-dark: #39393a;
-  --el-fill-color-darker: #424243;
-  --el-fill-color-blank: #141414;
+  --el-fill-color: rgba(255, 255, 255, 0.06);
+  --el-fill-color-light: rgba(255, 255, 255, 0.04);
+  --el-fill-color-lighter: rgba(255, 255, 255, 0.03);
+  --el-fill-color-extra-light: rgba(255, 255, 255, 0.02);
+  --el-fill-color-dark: rgba(255, 255, 255, 0.08);
+  --el-fill-color-darker: rgba(255, 255, 255, 0.10);
+  --el-fill-color-blank: #0c0d12;
 
-  // 遮罩颜色（Loading、弹层等）
-  --el-mask-color: rgba(12, 12, 12, 0.88);
-  --el-mask-color-extra-light: rgba(12, 12, 12, 0.5);
-  --el-loading-spinner-color: var(--el-color-primary);
+  // 遮罩颜色
+  --el-mask-color: rgba(5, 6, 10, 0.88);
+  --el-mask-color-extra-light: rgba(5, 6, 10, 0.5);
+  --el-loading-spinner-color: #00d4ff;
   
-  // 主题色 (暗色模式下使用绿色系)
-  --el-color-primary: #529b2e;
-  --el-color-primary-light-3: #95d475;
-  --el-color-primary-light-5: #b3e19d;
-  --el-color-primary-light-7: #d1edc4;
-  --el-color-primary-light-8: #e1f3d8;
-  --el-color-primary-light-9: #f0f9eb;
-  --el-color-primary-dark-2: #3d7221; /* 修复：应该是更深的绿色，不是蓝色 */
-  --el-color-primary-lighten-20: #7bb946;
+  // 主题色 — NIKKE 霓虹青
+  --el-color-primary: #00d4ff;
+  --el-color-primary-light-3: rgba(0, 212, 255, 0.60);
+  --el-color-primary-light-5: rgba(0, 212, 255, 0.40);
+  --el-color-primary-light-7: rgba(0, 212, 255, 0.25);
+  --el-color-primary-light-8: rgba(0, 212, 255, 0.15);
+  --el-color-primary-light-9: rgba(0, 212, 255, 0.08);
+  --el-color-primary-dark-2: #00a8cc;
+  --el-color-primary-lighten-20: #33ddff;
   
-  // 状态色
-  --el-color-success: #67c23a;
-  --el-color-warning: #e6a23c;
-  --el-color-danger: #f56c6c;
-  --el-color-error: #f56c6c;
-  --el-color-info: #909399;
+  // 状态色 — NIKKE 调色板
+  --el-color-success: #00d4ff;
+  --el-color-warning: #f0a030;
+  --el-color-danger: #ff3355;
+  --el-color-error: #ff3355;
+  --el-color-info: #6c6e72;
   
-  // 菜单相关 - 修复暗色模式下的颜色
-  --el-menu-active-color: #529b2e; /* 使用绿色主题色 */
-  --el-menu-hover-text-color: #95d475; /* 使用绿色悬停色 */
-  --el-menu-text-color: #e5eaf3;
-  --el-menu-bg-color: #141414;
+  // 菜单相关
+  --el-menu-active-color: #00d4ff;
+  --el-menu-hover-text-color: #33ddff;
+  --el-menu-text-color: #cfd3dc;
+  --el-menu-bg-color: #0c0d12;
   
-  // 阴影 (暗色模式下更深)
-  --el-box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.36), 0 8px 20px rgba(0, 0, 0, 0.72);
+  // 阴影
+  --el-box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.48), 0 8px 20px rgba(0, 0, 0, 0.72);
   --el-box-shadow-light: 0 0 12px rgba(0, 0, 0, 0.72);
   --el-box-shadow-lighter: 0 0 6px rgba(0, 0, 0, 0.72);
   --el-box-shadow-dark: 0 16px 48px 16px rgba(0, 0, 0, 0.72), 0 12px 32px rgba(0, 0, 0, 0.84), 0 8px 16px -8px rgba(0, 0, 0, 0.96);
   
   // 导航相关
-  --nav-active-color: #529b2e;
-  --nav-glow-color: #529b2e;
+  --nav-active-color: #00d4ff;
+  --nav-glow-color: #00d4ff;
   
   // 交互状态 - 暗色模式
-  --hover-bg: rgba(255, 255, 255, 0.08);
-  --active-bg: rgba(255, 255, 255, 0.12);
-  --selected-bg: rgba(123, 185, 70, 0.15);
-  --selected-border: #7bb946;
-  --selected-glow: 0 0 0 2px rgba(123, 185, 70, 0.3), 0 0 12px rgba(123, 185, 70, 0.2);
+  --hover-bg: rgba(0, 212, 255, 0.08);
+  --active-bg: rgba(0, 212, 255, 0.12);
+  --selected-bg: rgba(0, 212, 255, 0.12);
+  --selected-border: #00d4ff;
+  --selected-glow: 0 0 0 2px rgba(0, 212, 255, 0.25), 0 0 12px rgba(0, 212, 255, 0.15);
 
-  // 滚动条颜色变量 - 暗色模式  
-  --scrollbar-track: rgba(255, 255, 255, 0.05);
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
-  --scrollbar-thumb-active: rgba(255, 255, 255, 0.35);
+  // NIKKE 专用玻璃效果变量
+  --cdk-glass-bg: rgba(12, 13, 18, 0.65);
+  --cdk-glass-border: rgba(255, 255, 255, 0.06);
+  --cdk-glass-hover-bg: rgba(12, 13, 18, 0.75);
+  --cdk-glow-cyan: 0 0 16px rgba(0, 212, 255, 0.20), 0 0 1px rgba(0, 212, 255, 0.30);
+  --cdk-glow-orange: 0 0 16px rgba(240, 160, 48, 0.20), 0 0 1px rgba(240, 160, 48, 0.30);
+  --cdk-glow-red: 0 0 16px rgba(255, 51, 85, 0.20), 0 0 1px rgba(255, 51, 85, 0.30);
+
+  // 卡片状态边框色 - 暗色模式
+  --cdk-border-hover: rgba(0, 212, 255, 0.25);
+  --cdk-border-available: rgba(0, 212, 255, 0.18);
+  --cdk-border-available-hover: rgba(0, 212, 255, 0.35);
+  --cdk-border-unavailable: rgba(255, 51, 85, 0.10);
+  --cdk-border-unavailable-hover: rgba(255, 51, 85, 0.20);
+  --cdk-border-partially: rgba(240, 160, 48, 0.18);
+  --cdk-border-partially-hover: rgba(240, 160, 48, 0.35);
+  
+  // 弹窗及叠加层 - 暗色模式
+  --cdk-overlay-bg: #0c0d12;
+  --cdk-overlay-border: rgba(0, 212, 255, 0.12);
+
+  --cdk-card-radius: 12px;
+  --cdk-font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+
+  // 滚动条颜色变量
+  --scrollbar-track: rgba(255, 255, 255, 0.03);
+  --scrollbar-thumb: rgba(0, 212, 255, 0.20);
+  --scrollbar-thumb-hover: rgba(0, 212, 255, 0.35);
+  --scrollbar-thumb-active: rgba(0, 212, 255, 0.50);
 }
 
 /* ========== Loading 遮罩与卡片暗色优化 ========== */
@@ -187,16 +235,185 @@ html.dark {
   }
 
   .el-card {
-    background-color: var(--el-bg-color-secondary);
-    border-color: rgba(255, 255, 255, 0.08);
+    background-color: var(--cdk-glass-bg);
+    border-color: var(--cdk-glass-border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .el-card__header {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--cdk-glass-border);
   }
 
   .el-card__body {
     background-color: transparent;
+  }
+
+  // 按钮暗色适配
+  .el-button--primary, .el-button--success {
+    --el-button-bg-color: #00d4ff;
+    --el-button-border-color: #00d4ff;
+    --el-button-text-color: #05060a;
+    --el-button-hover-bg-color: #33ddff;
+    --el-button-hover-border-color: #33ddff;
+    --el-button-hover-text-color: #05060a;
+    --el-button-active-bg-color: #00a8cc;
+    --el-button-active-border-color: #00a8cc;
+
+    &.is-plain {
+      --el-button-bg-color: rgba(0, 212, 255, 0.1);
+      --el-button-border-color: rgba(0, 212, 255, 0.3);
+      --el-button-text-color: #00d4ff;
+      --el-button-hover-bg-color: rgba(0, 212, 255, 0.2);
+      --el-button-hover-border-color: #00d4ff;
+      --el-button-hover-text-color: #ffffff;
+      --el-button-active-bg-color: rgba(0, 212, 255, 0.3);
+      --el-button-active-border-color: #00a8cc;
+    }
+  }
+
+  .el-button--warning {
+    --el-button-bg-color: #f0a030;
+    --el-button-border-color: #f0a030;
+    --el-button-text-color: #05060a;
+    --el-button-hover-bg-color: #f2b34d;
+    --el-button-hover-border-color: #f2b34d;
+    --el-button-hover-text-color: #05060a;
+    --el-button-active-bg-color: #d48920;
+    --el-button-active-border-color: #d48920;
+
+    &.is-plain {
+      --el-button-bg-color: rgba(240, 160, 48, 0.1);
+      --el-button-border-color: rgba(240, 160, 48, 0.3);
+      --el-button-text-color: #f0a030;
+      --el-button-hover-bg-color: rgba(240, 160, 48, 0.2);
+      --el-button-hover-border-color: #f0a030;
+      --el-button-hover-text-color: #ffffff;
+      --el-button-active-bg-color: rgba(240, 160, 48, 0.3);
+      --el-button-active-border-color: #d48920;
+    }
+  }
+
+  .el-button--danger {
+    --el-button-bg-color: #ff3355;
+    --el-button-border-color: #ff3355;
+    --el-button-text-color: #ffffff;
+    --el-button-hover-bg-color: #ff5577;
+    --el-button-hover-border-color: #ff5577;
+    --el-button-hover-text-color: #ffffff;
+    --el-button-active-bg-color: #cc2244;
+    --el-button-active-border-color: #cc2244;
+
+    &.is-plain {
+      --el-button-bg-color: rgba(255, 51, 85, 0.1);
+      --el-button-border-color: rgba(255, 51, 85, 0.3);
+      --el-button-text-color: #ff3355;
+      --el-button-hover-bg-color: rgba(255, 51, 85, 0.2);
+      --el-button-hover-border-color: #ff3355;
+      --el-button-hover-text-color: #ffffff;
+      --el-button-active-bg-color: rgba(255, 51, 85, 0.3);
+      --el-button-active-border-color: #cc2244;
+    }
+  }
+
+  .el-button--info {
+    --el-button-bg-color: #6c6e72;
+    --el-button-border-color: #6c6e72;
+    --el-button-text-color: #ffffff;
+    --el-button-hover-bg-color: #8d9095;
+    --el-button-hover-border-color: #8d9095;
+    --el-button-hover-text-color: #ffffff;
+    --el-button-active-bg-color: #4b4d51;
+    --el-button-active-border-color: #4b4d51;
+
+    &.is-plain {
+      --el-button-bg-color: rgba(108, 110, 114, 0.1);
+      --el-button-border-color: rgba(108, 110, 114, 0.3);
+      --el-button-text-color: #a3a6ad;
+      --el-button-hover-bg-color: rgba(108, 110, 114, 0.2);
+      --el-button-hover-border-color: #6c6e72;
+      --el-button-hover-text-color: #ffffff;
+      --el-button-active-bg-color: rgba(108, 110, 114, 0.3);
+      --el-button-active-border-color: #4b4d51;
+    }
+  }
+
+  // 标签页风格适配
+  .el-tag {
+    --el-tag-bg-color: rgba(0, 212, 255, 0.08);
+    --el-tag-border-color: rgba(0, 212, 255, 0.20);
+    --el-tag-text-color: #00d4ff;
+    --el-tag-hover-color: #33ddff;
+  }
+
+  .el-tag.el-tag--success {
+    --el-tag-bg-color: rgba(0, 212, 255, 0.08);
+    --el-tag-border-color: rgba(0, 212, 255, 0.20);
+    --el-tag-text-color: #00d4ff;
+  }
+
+  .el-tag.el-tag--warning {
+    --el-tag-bg-color: rgba(240, 160, 48, 0.08);
+    --el-tag-border-color: rgba(240, 160, 48, 0.20);
+    --el-tag-text-color: #f0a030;
+  }
+
+  .el-tag.el-tag--danger {
+    --el-tag-bg-color: rgba(255, 51, 85, 0.08);
+    --el-tag-border-color: rgba(255, 51, 85, 0.20);
+    --el-tag-text-color: #ff3355;
+  }
+
+  // 选择器/下拉框适配
+  .el-select-dropdown {
+    background-color: #111318;
+    border-color: rgba(0, 212, 255, 0.15);
+  }
+
+  .el-select-dropdown__item.hover {
+    background-color: rgba(0, 212, 255, 0.08);
+  }
+
+  .el-select-dropdown__item.selected {
+    color: #00d4ff;
+    font-weight: 600;
+  }
+
+  // 表格适配
+  .el-table {
+    --el-table-bg-color: transparent;
+    --el-table-tr-bg-color: transparent;
+    --el-table-header-bg-color: rgba(255, 255, 255, 0.02);
+    --el-table-row-hover-bg-color: rgba(0, 212, 255, 0.08);
+    --el-table-border-color: rgba(255, 255, 255, 0.06);
+    --el-table-border: 1px solid var(--el-table-border-color);
+  }
+
+  .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  // 修复斑马纹的 Hover 状态
+  .el-table--striped .el-table__body tr.el-table__row--striped:hover td.el-table__cell,
+  .el-table--striped .el-table__body tr.el-table__row--striped.hover-row td.el-table__cell {
+    background-color: var(--el-table-row-hover-bg-color);
+  }
+
+  // 输入框
+  .el-input__wrapper {
+    background-color: rgba(255, 255, 255, 0.04);
+    box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.10) !important;
+  }
+
+  .el-input__wrapper.is-focus {
+    box-shadow: 0 0 0 1px #00d4ff, 0 0 8px rgba(0, 212, 255, 0.25) !important;
+  }
+
+  // 弹窗
+  .el-dialog,
+  .el-message-box {
+    background-color: #111318;
+    border-color: rgba(0, 212, 255, 0.12);
   }
 }
 
@@ -453,44 +670,63 @@ img, .image-optimize {
   }
 }
 
-/* 暗色模式下的按钮样式调整 */
+/* 暗色模式下的按钮样式调整 — NIKKE 霓虹 */
 html.dark {
   .el-button {
     &:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
         0 4px 12px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 0 0 1px rgba(0, 212, 255, 0.15);
     }
     
     &--primary:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
-        0 6px 16px rgba(82, 155, 46, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 6px 16px rgba(0, 212, 255, 0.35),
+        0 0 0 1px rgba(0, 212, 255, 0.20);
     }
     
     &--success:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
-        0 6px 16px rgba(103, 194, 58, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 6px 16px rgba(0, 212, 255, 0.35),
+        0 0 0 1px rgba(0, 212, 255, 0.20);
     }
     
     &--warning:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
-        0 6px 16px rgba(230, 162, 60, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 6px 16px rgba(240, 160, 48, 0.35),
+        0 0 0 1px rgba(240, 160, 48, 0.20);
     }
     
     &--danger:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
-        0 6px 16px rgba(245, 108, 108, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 6px 16px rgba(255, 51, 85, 0.35),
+        0 0 0 1px rgba(255, 51, 85, 0.20);
     }
     
     &--info:hover:not(.is-disabled):not(.is-loading) {
       box-shadow: 
-        0 6px 16px rgba(144, 147, 153, 0.4),
+        0 4px 12px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.08);
     }
+  }
+}
+
+/* ========== NIKKE 卡片入场动画 ========== */
+@keyframes cardRise {
+  0% {
+    opacity: 0;
+    transform: translateY(30px) scale(0.96);
+    filter: blur(6px);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translateY(-4px) scale(1.01);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0px);
   }
 }
 
@@ -711,18 +947,18 @@ body:has(.el-select-dropdown.el-popper) {
   }
 }
 
-/* 暗色模式下的交互增强 */
+/* 暗色模式下的交互增强 — NIKKE */
 html.dark {
   .interactive-card {
     &:hover {
       box-shadow: 
         0 8px 24px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.08);
+        0 0 0 1px rgba(0, 212, 255, 0.12);
     }
     
     &.selected {
       box-shadow: 
-        0 12px 32px rgba(82, 155, 46, 0.3),
+        0 12px 32px rgba(0, 212, 255, 0.2),
         0 0 0 2px var(--el-color-primary);
     }
   }
@@ -730,6 +966,6 @@ html.dark {
   .el-input__wrapper.is-focus {
     box-shadow: 
       0 0 0 1px var(--el-color-primary),
-      0 0 8px rgba(82, 155, 46, 0.3) !important;
+      0 0 8px rgba(0, 212, 255, 0.25) !important;
   }
 } 

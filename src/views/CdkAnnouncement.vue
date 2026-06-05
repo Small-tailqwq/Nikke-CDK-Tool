@@ -1,98 +1,89 @@
 <template>
   <div class="cdk-announcement">
-    <el-row :gutter="20" class="mb-4">
-      <el-col :span="24">
-        <el-card class="filter-card">
-          <div class="filter-header">
-            <div class="filter-left">
-              <el-form :inline="true" :model="filterForm" class="filter-form">
-                <el-form-item label="服务器">
-                  <el-select
-                    v-model="filterForm.server"
-                    placeholder="选择服务器"
-                    clearable
-                    size="small"
-                    style="width: 120px"
-                    @visible-change="handleDropdownVisibleChange"
-                  >
-                    <el-option label="国际服" :value="'global'" />
-                    <el-option label="港澳台服" :value="'tw'" />
-                    <el-option label="国服" :value="'cn'" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="状态">
-                  <el-select
-                    v-model="filterForm.status"
-                    placeholder="选择状态"
-                    clearable
-                    size="small"
-                    style="width: 110px"
-                    @change="handleStatusChange"
-                    @visible-change="handleDropdownVisibleChange"
-                  >
-                    <el-option label="可用" value="可用" />
-                    <el-option label="部分可用" value="部分可用" />
-                    <el-option label="已过期" value="已过期" />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="角色">
-                  <el-select
-                    v-model="filterForm.character"
-                    placeholder="选择角色"
-                    clearable
-                    size="small"
-                    style="width: 140px"
-                    @change="handleCharacterChange"
-                    @visible-change="handleDropdownVisibleChange"
-                  >
-                    <el-option
-                      v-for="user in userStore.users"
-                      :key="user.id"
-                      :label="user.name"
-                      :value="user.id"
-                    />
-                  </el-select>
-                </el-form-item>
-                <el-form-item label="排序">
-                  <el-select
-                    v-model="filterForm.sortOrder"
-                    placeholder="选择排序"
-                    size="small"
-                    style="width: 110px"
-                    @visible-change="handleDropdownVisibleChange"
-                  >
-                    <el-option label="最新优先" value="desc" />
-                    <el-option label="最早优先" value="asc" />
-                  </el-select>
-                </el-form-item>
-              </el-form>
-            </div>
-            <div class="filter-right">
-              <!-- 批量操作按钮 -->
-              <el-button
-                v-if="selectedCdks.length > 0"
-                type="success"
-                size="small"
-                @click="handleBatchExchange"
-                class="action-btn"
-              >
-                批量兑换 ({{ selectedCdks.length }})
-              </el-button>
-              <!-- CDK提交按钮 -->
-              <el-button
-                type="primary"
-                size="small"
-                @click="openSubmitCdk"
-                plain
-                class="action-btn"
-              >
-                提交 CDK 入口
-              </el-button>
-            </div>
+    <!-- NIKKE 情报过滤面板 -->
+    <div class="filter-panel">
+      <div class="filter-panel-inner">
+        <div class="filter-fields">
+          <div class="filter-item">
+            <span class="filter-label">服务器</span>
+            <el-select
+              v-model="filterForm.server"
+              placeholder="选择服务器"
+              clearable
+              size="small"
+              style="width: 110px"
+              @visible-change="handleDropdownVisibleChange"
+            >
+              <el-option label="国际服" :value="'global'" />
+              <el-option label="港澳台服" :value="'tw'" />
+              <el-option label="国服" :value="'cn'" />
+            </el-select>
           </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div class="filter-item">
+            <span class="filter-label">状态</span>
+            <el-select
+              v-model="filterForm.status"
+              placeholder="选择状态"
+              clearable
+              size="small"
+              style="width: 100px"
+              @change="handleStatusChange"
+              @visible-change="handleDropdownVisibleChange"
+            >
+              <el-option label="可用" value="可用" />
+              <el-option label="部分可用" value="部分可用" />
+              <el-option label="已过期" value="已过期" />
+            </el-select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">角色</span>
+            <el-select
+              v-model="filterForm.character"
+              placeholder="选择角色"
+              clearable
+              size="small"
+              style="width: 130px"
+              @change="handleCharacterChange"
+              @visible-change="handleDropdownVisibleChange"
+            >
+              <el-option
+                v-for="user in userStore.users"
+                :key="user.id"
+                :label="user.name"
+                :value="user.id"
+              />
+            </el-select>
+          </div>
+          <div class="filter-item">
+            <span class="filter-label">排序</span>
+            <el-select
+              v-model="filterForm.sortOrder"
+              placeholder="排序"
+              size="small"
+              style="width: 95px"
+              @visible-change="handleDropdownVisibleChange"
+            >
+              <el-option label="最新" value="desc" />
+              <el-option label="最早" value="asc" />
+            </el-select>
+          </div>
+        </div>
+        <div class="filter-actions">
+          <button
+            v-if="selectedCdks.length > 0"
+            class="nikke-btn nikke-btn-primary"
+            @click="handleBatchExchange"
+          >
+            <span class="btn-dot"></span>
+            批量兑换
+            <span class="btn-count">{{ selectedCdks.length }}</span>
+          </button>
+          <button class="nikke-btn nikke-btn-ghost" @click="openSubmitCdk">
+            提交 CDK
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 真正的瀑布流容器 -->
     <MasonryLayout :items="filteredCdks" :column-width="220" :gap="20" :get-item-key="getCdkKey">
@@ -121,15 +112,20 @@
           :selected-user-exchange-history="selectedUserExchangeHistory"
         />
 
-        <!-- 单个CDK卡片 -->
-        <el-card
+        <!-- 单个CDK卡片 — NIKKE 玻璃卡 -->
+        <div
           v-else
-          class="cdk-card"
+          class="single-card-wrapper"
+          @pointerenter="onCardPointerEnter"
+          @pointermove="onCardPointerMove"
+          @pointerleave="onCardPointerLeave"
+        >
+        <div
+          class="nikke-card"
           :class="{
             available: cdk.status === '可用',
             unavailable: cdk.status !== '可用',
           }"
-          body-style="padding: 0; display: flex; flex-direction: column;"
         >
           <!-- 复选框 -->
           <div class="cdk-checkbox-wrapper">
@@ -156,7 +152,6 @@
               <span>暂无图片</span>
             </div>
 
-            <!-- 状态条（已兑换时隐藏可用状态） -->
             <div
               v-if="!(filterForm.character && getCdkExchangeStatus(cdk) === '已兑换')"
               class="cdk-status"
@@ -165,7 +160,6 @@
               {{ cdk.status }}
             </div>
 
-            <!-- 兑换状态条（仅在选中角色时显示） -->
             <div
               v-if="getCdkExchangeStatus(cdk)"
               class="exchange-status"
@@ -189,8 +183,8 @@
               :class="{ copied: copiedCode === cdk.code }"
               @mousedown="copyCdk(cdk.code, $event)"
             >
-              {{ cdk.code }}
-              <el-icon><Document /></el-icon>
+              <span class="code-text" :style="'--char-count:'+cdk.code.length">{{ cdk.code }}</span>
+              <el-icon class="copy-icon"><Document /></el-icon>
             </el-tag>
 
             <div v-if="cdk.reward" class="cdk-reward">
@@ -223,13 +217,12 @@
               </el-tooltip>
             </div>
 
-            <!-- 收录时间 -->
             <div v-if="cdk.created" class="cdk-created">收录时间：{{ cdk.created }}</div>
 
-            <!-- Footer信息合并到content中 -->
             <div v-if="cdk.author" class="cdk-author">提供者：{{ cdk.author }}</div>
           </div>
-        </el-card>
+        </div>
+      </div>
       </template>
     </MasonryLayout>
 
@@ -259,6 +252,7 @@ import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
+import { useCardTilt } from '@/composables/useCardTilt'
 // 导入广告注入器
 import { injectAd, isAdData } from '../utils/adInjector.js'
 
@@ -273,6 +267,7 @@ type FilterForm = {
 const router = useRouter()
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
+const { onPointerEnter: onCardPointerEnter, onPointerMove: onCardPointerMove, onPointerLeave: onCardPointerLeave } = useCardTilt()
 
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
@@ -605,7 +600,7 @@ const handleCopySuccess = (code: string, e: MouseEvent) => {
 
   setTimeout(() => {
     copiedCode.value = null
-  }, 1000)
+  }, 1500)
 }
 
 // 复制CDK
@@ -833,398 +828,272 @@ onBeforeUnmount(() => {
 </script>
 
 <style lang="scss" scoped>
-/* =============== 通用 =============== */
 .cdk-announcement {
   padding: 20px;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
 
-  /* 美观的滚动条样式 */
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 6px;
-  }
-
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 6px; }
   &::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background: var(--scrollbar-thumb-hover);
-    }
-
-    &:active {
-      background: var(--scrollbar-thumb-active);
-    }
-  }
-
-  &::-webkit-scrollbar-corner {
-    background: var(--scrollbar-track);
+    background: var(--scrollbar-thumb); border-radius: 6px;
+    &:hover { background: var(--scrollbar-thumb-hover); }
   }
 
   @media screen and (max-width: 768px) {
     padding: 12px;
-
-    /* 移动端使用更细的滚动条 */
-    &::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      width: 6px;
-    }
+    &::-webkit-scrollbar { width: 4px; height: 4px; }
   }
 }
 
-.filter-card {
-  margin-bottom: 20px;
-  border: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
-
-  @media screen and (max-width: 768px) {
-    margin-bottom: 12px;
-  }
-}
-
-.mb-4 {
+/* =============== NIKKE 情报过滤面板 =============== */
+.filter-panel {
   margin-bottom: 16px;
+  border-radius: var(--cdk-card-radius, 12px);
+  background: var(--cdk-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--cdk-glass-border);
 
-  @media screen and (max-width: 768px) {
-    margin-bottom: 12px;
+  @media screen and (max-width: 768px) { margin-bottom: 12px; }
+}
+
+.filter-panel-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  gap: 12px;
+
+  @media screen and (max-width: 900px) {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 
-/* =============== 卡片 =============== */
-.cdk-card {
-  position: relative;
-  overflow: hidden; /* 确保子元素圆角裁切 */
-  border-radius: 8px; /* 四角弧度完全对称 */
-  border: none;
-  /* 移除固定高度，让卡片自适应内容高度 */
-  animation: fadeInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateZ(0); /* 开启硬件加速 */
-  backface-visibility: hidden; /* 防止背面可见 */
-  background: var(--el-bg-color);
+.filter-fields {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 
-  @media screen and (max-width: 768px) {
-    font-size: 14px;
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  @media screen and (max-width: 900px) {
+    justify-content: flex-end;
   }
+}
+
+/* =============== NIKKE 风格按钮 =============== */
+.nikke-btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-family: inherit;
+
+  &:hover { transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+}
+
+.nikke-btn-primary {
+  background: #00d4ff;
+  color: #05060a;
 
   &:hover {
-    @media screen and (min-width: 769px) {
-      transform: translateY(-4px) translateZ(0) scale(1.015);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
+    background: #33ddff;
+    box-shadow: 0 0 16px rgba(0, 212, 255, 0.3);
   }
+}
+
+.nikke-btn-ghost {
+  background: transparent;
+  color: var(--el-text-color-regular);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  &:hover {
+    border-color: rgba(0, 212, 255, 0.25);
+    color: #00d4ff;
+  }
+}
+
+.btn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.btn-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--cdk-font-mono);
+}
+
+/* =============== NIKKE 玻璃卡片 =============== */
+.single-card-wrapper {
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --img-brightness: 1;
+  --shadow-x: 0px;
+  --shadow-y: 0px;
+  --shadow-blur: 0px;
+  perspective: 800px;
+}
+
+.nikke-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--cdk-card-radius, 12px);
+  border: 1px solid var(--cdk-glass-border);
+  transition:
+    transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    border-color 0.28s ease,
+    background 0.28s ease,
+    box-shadow 0.28s ease;
+  background: var(--cdk-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+  transform:
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translateY(0px)
+    scale(1);
+  box-shadow: 0 18px 28px rgba(5, 8, 15, 0.18);
 
   &.available {
-    border-top: 4px solid var(--el-color-success);
-    border-radius: 8px !important; /* 覆盖原有单侧圆角，确保四角对称 */
+    border-color: var(--cdk-border-available);
   }
 
   &.unavailable {
-    border-top: 4px solid var(--el-color-danger);
-    border-radius: 8px !important; /* 覆盖原有单侧圆角，确保四角对称 */
+    opacity: 0.8; /* 调整过期卡片的不透明度，避免亮色模式下过于暗淡 */
+    border-color: var(--cdk-border-unavailable);
   }
 }
 
-/* =============== 混入 =============== */
-@mixin abs-center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* =============== 图片头部 =============== */
-.cdk-image {
-  width: 100%;
-  height: 120px;
-  position: relative;
-  border-radius: 8px 8px 0 0; /* 图片区域：仅顶部圆角，与卡片整体圆角配合 */
-  background: var(--el-fill-color-light);
-
-  &.has-image {
-    background: none;
+@media (hover: hover) and (pointer: fine) {
+  .single-card-wrapper:hover .nikke-card {
+    transform:
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y))
+      translateY(-8px)
+      scale(1.028);
+    border-color: var(--cdk-border-hover);
+    background: var(--cdk-glass-hover-bg);
+    box-shadow:
+      var(--shadow-x) var(--shadow-y) var(--shadow-blur) rgba(5, 8, 15, 0.32),
+      var(--cdk-state-shadow, 0 0 0 rgba(0,0,0,0));
   }
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-    image-rendering: auto;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: crisp-edges;
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+  .single-card-wrapper:hover .nikke-card.available {
+    border-color: var(--cdk-border-available-hover);
+    --cdk-state-shadow: var(--cdk-glow-cyan);
   }
 
-  .image-placeholder,
-  .image-loading,
-  .image-error {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
-    font-weight: 500;
-
-    .el-icon {
-      font-size: 24px;
-      opacity: 0.8;
-    }
+  .single-card-wrapper:hover .nikke-card.unavailable {
+    border-color: var(--cdk-border-unavailable-hover);
+    --cdk-state-shadow: var(--cdk-glow-red);
   }
 
-  .image-loading {
-    .loading-icon {
-      animation: rotate 1s linear infinite;
-    }
-  }
-
-  .image-error {
-    color: var(--el-color-danger);
-  }
-
-  @media screen and (max-width: 768px) {
-    height: 100px;
-  }
-}
-
-/* =============== 状态条 =============== */
-.cdk-status {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  color: #fff;
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  &.status-available {
-    background: var(--el-color-success);
-  }
-  &.status-unavailable {
-    background: var(--el-color-danger);
-  }
-}
-
-.exchange-status {
-  position: absolute;
-  top: 35px;
-  right: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: bold;
-  color: #fff;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  opacity: 0.9;
-
-  &.exchange-not-redeemed {
-    background: var(--el-color-primary);
-  }
-
-  &.exchange-redeemed {
-    background: var(--el-color-info);
-  }
-  &.exchange-exhausted {
-    background: var(--el-color-warning);
-    filter: grayscale(15%);
+  .single-card-wrapper:hover .cdk-image img {
+    transform: scale(1.045);
+    filter: brightness(var(--img-brightness));
   }
 }
 
 /* =============== 复选框 =============== */
 .cdk-checkbox-wrapper {
-  --color-checkbox-border-light: rgba(0, 0, 0, 0.2);
-  --color-checkbox-border-dark: rgba(255, 255, 255, 0.3);
-  --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.15) 0%, transparent 70%);
-  --checkbox-size: 1.5em; /* 24px 转换为相对单位 */
+  --checkbox-size: 1.4em;
 
   position: absolute;
-  top: 0.5em;
-  left: 0.5em;
+  top: 10px;
+  left: 10px;
   z-index: 20;
   width: var(--checkbox-size);
   height: var(--checkbox-size);
-  border-radius: 0.375em; /* 6px */
-  background: var(--el-bg-color);
-  border: 2px solid var(--color-checkbox-border-light); /* 恢复原本的灰色边框 */
-  box-sizing: border-box; /* 确保边框在外部，不影响内部尺寸 */
-  box-shadow: 0 0.0625em 0.1875em rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  background: rgba(5, 6, 10, 0.7);
+  border: 1.5px solid var(--cdk-border-hover);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
 
-  /* 背景处理策略：提高在动态背景上的可见性 */
-  &::after {
-    content: '';
-    position: absolute;
-    width: 120%;
-    height: 120%;
-    background: var(--checkbox-bg);
-    border-radius: inherit;
-    z-index: -1;
-    transition: opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  /* 悬停效果 */
   &:hover {
-    box-shadow: 0 0.1875em 0.5em rgba(0, 0, 0, 0.2);
-    transform: scale(1.05) translateZ(0);
-    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-
-    &::after {
-      --checkbox-bg: radial-gradient(circle, rgba(0, 0, 0, 0.25) 0%, transparent 70%);
-    }
-  }
-
-  /* 暗色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-
-    &:hover::after {
-      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
-    }
-  }
-
-  /* Element Plus 暗色模式 */
-  html.dark & {
-    border-color: var(--color-checkbox-border-dark);
-    --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
-
-    &:hover::after {
-      --checkbox-bg: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 70%);
-    }
+    border-color: var(--el-color-primary);
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.15);
   }
 }
 
 .cdk-checkbox {
-  --inner-size: 0.875em; /* 14px 转换为相对单位，与外层严格匹配 */
-
   pointer-events: auto;
   margin: 0;
   width: 100%;
   height: 100%;
-  position: relative; /* 为伪元素定位做准备 */
-  border-radius: inherit; /* 继承外层容器的圆角 */
-  transition: all 0.2s ease; /* 平滑状态切换 */
+  position: relative;
+  border-radius: inherit;
 
-  /* 方案A：伪元素填充整个容器范围（100%），添加对勾符号 */
-  &.is-checked {
-    &::after {
-      content: '✓'; /* 添加对勾符号，避免空洞感 */
-      position: absolute;
-      top: 1px; /* 扩展填充范围，覆盖原17px白色层位置 */
-      left: 1px;
-      right: 1px;
-      bottom: 1px;
-      background: var(--el-color-primary); /* 使用主题色变量，支持暗色模式 */
-      border-radius: calc(0.375em - 1px); /* 相应调整内部圆角 */
-      border: none; /* 移除伪元素边框，使用容器原生边框 */
-      z-index: 2; /* 提高层级，确保覆盖白色层 */
-      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更流畅的缓动函数 */
-      will-change: transform; /* 优化动画性能 */
-
-      /* 对勾符号样式 */
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 0.75em; /* 12px */
-      font-weight: bold;
-      line-height: 1;
-
-      /* 初始状态：从中心点开始缩放 */
-      transform: scale(0) translateZ(0);
-      transform-origin: center;
-    }
-  }
-
-  /* 选中状态的缩放动画 */
   &.is-checked::after {
-    transform: scale(1) translateZ(0);
-  }
-
-  /* 悬停状态增强 */
-  &:hover.is-checked::after {
-    background: var(--el-color-primary-light-3); /* 使用主题色变量 */
-    transform: scale(1.05) translateZ(0); /* 减小放大幅度，添加硬件加速 */
-    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  /* 激活状态增强 */
-  &:active.is-checked::after {
-    background: var(--el-color-primary-dark-2); /* 使用主题色变量 */
-    transform: scale(0.95) translateZ(0); /* 减小缩放幅度，保持平滑 */
-    transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* 更快的激活反馈 */
-  }
-
-  /* 聚焦状态：给整个容器添加光晕效果 */
-  &.is-focus.is-checked::after {
-    box-shadow: 0 0 0 0.125em var(--el-color-primary-light-5);
-  }
-
-  /* 禁用状态保持透明度控制 */
-  &.is-disabled.is-checked {
-    opacity: 0.6; /* 整体透明度应用到容器 */
-
-    &::after {
-      background: var(--el-color-primary);
-      transform: scale(1); /* 确保禁用状态也有正确的缩放 */
-    }
-  }
-
-  /* 为未选中状态添加平滑过渡准备 */
-  &:not(.is-checked)::after {
-    content: '';
+    content: '✓';
     position: absolute;
     top: 1px;
     left: 1px;
     right: 1px;
     bottom: 1px;
-    background: transparent; /* 取消选中时背景透明 */
-    border-radius: calc(0.375em - 1px);
-    border: none; /* 无需边框，使用容器原生边框 */
-    z-index: 2; /* 保持一致的层级 */
-    transform: scale(0) translateZ(0);
-    transform-origin: center;
-    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    will-change: transform;
-  }
-
-  /* 未选中状态的交互效果（悬停、激活时也要确保透明） */
-  &:not(.is-checked):hover::after,
-  &:not(.is-checked):active::after {
-    background: transparent !important; /* 确保取消选中时交互状态也是透明 */
+    background: #00d4ff;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #05060a;
+    font-size: 0.7em;
+    font-weight: 800;
+    line-height: 1;
+    z-index: 2;
   }
 
   :deep(.el-checkbox__input) {
@@ -1234,113 +1103,155 @@ onBeforeUnmount(() => {
     align-items: center;
     justify-content: center;
     margin: 0;
-    position: relative;
-    z-index: 1; /* 确保在伪元素之上 */
-    background: transparent !important; /* 移除白色背景层 */
+    z-index: 1;
+    background: transparent !important;
 
     .el-checkbox__inner {
-      /* 完全隐藏内部小框，避免白色描边效果 */
       width: 0 !important;
       height: 0 !important;
       border: none !important;
       background: transparent !important;
       box-shadow: none !important;
       opacity: 0 !important;
-      visibility: hidden !important;
-
-      &::after {
-        /* 移除默认的√符号，现在用大框的伪元素 */
-        content: none !important;
-        display: none !important;
-      }
+      &::after { content: none !important; }
     }
 
-    /* 所有状态下都隐藏内部小框 */
-    &.is-checked .el-checkbox__inner,
-    &.is-disabled .el-checkbox__inner,
-    &.is-focus .el-checkbox__inner,
-    &:hover .el-checkbox__inner {
-      width: 0 !important;
-      height: 0 !important;
-      border: none !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-    }
-
-    /* 确保所有状态下input元素背景都透明 */
-    &.is-checked,
-    &.is-disabled,
-    &.is-focus,
-    &:hover {
-      background: transparent !important;
-    }
-  }
-
-  /* 移除标签相关样式 */
-  :deep(.el-checkbox__label) {
-    display: none;
+    .el-checkbox__label { display: none; }
   }
 }
 
-/* =============== 正文区域 =============== */
+/* =============== 图片 =============== */
+.cdk-image {
+  width: 100%;
+  height: 130px;
+  position: relative;
+  overflow: hidden;
+  background: var(--el-fill-color);
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(transparent, rgba(5, 6, 10, 0.7));
+    pointer-events: none;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scale(1);
+    transform-origin: center center;
+    filter: brightness(1);
+    transition: transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1), filter 0.24s ease;
+    will-change: transform, filter;
+  }
+
+  .image-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 13px;
+    z-index: 1;
+    .el-icon { font-size: 22px; }
+  }
+
+  @media screen and (max-width: 768px) { height: 110px; }
+}
+
+/* =============== 状态徽章 =============== */
+.cdk-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--cdk-font-mono);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #fff;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+
+  &.status-available { background: rgba(0, 212, 255, 0.85); }
+  &.status-unavailable { background: rgba(255, 51, 85, 0.85); }
+}
+
+.exchange-status {
+  position: absolute;
+  top: 34px;
+  right: 10px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--cdk-font-mono);
+  color: #fff;
+  z-index: 2;
+  backdrop-filter: blur(4px);
+
+  &.exchange-not-redeemed { background: rgba(0, 212, 255, 0.7); }
+  &.exchange-redeemed { background: rgba(108, 110, 114, 0.7); }
+  &.exchange-exhausted { background: rgba(240, 160, 48, 0.5); }
+}
+
+/* =============== 内容区 =============== */
 .cdk-content {
   flex: 1;
-  padding: 16px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  transition: background-color 0.3s ease; /* 添加主题切换动画 */
-
-  @media screen and (max-width: 768px) {
-    padding: 12px;
-    gap: 8px;
-  }
+  gap: 10px;
 
   h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 15px;
     font-weight: 600;
-
-    @media screen and (max-width: 768px) {
-      font-size: 16px;
-    }
+    color: var(--el-text-color-primary);
   }
 }
+
 .cdk-reward {
   h4 {
     margin: 0;
-    color: #606266;
-    font-size: 14px;
-
-    @media screen and (max-width: 768px) {
-      font-size: 13px;
-    }
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--el-text-color-secondary);
   }
   p {
     margin: 4px 0 0;
-    color: #606266;
-    font-size: 14px;
-
-    @media screen and (max-width: 768px) {
-      font-size: 13px;
-    }
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    line-height: 1.4;
   }
 }
+
 .cdk-servers,
 .cdk-note {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 4px;
 }
+
 .cdk-note {
-  font-size: 12px;
-  color: #909399;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
   align-items: center;
 }
 
-/* =============== 复制按钮动画 =============== */
+/* =============== 复制标签 =============== */
 .code-tag {
   position: relative;
   overflow: hidden;
@@ -1348,276 +1259,92 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  font-family: monospace;
-  font-size: 16px;
+  gap: 6px;
+  font-family: var(--cdk-font-mono);
+  font-size: 14px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateZ(0); /* 硬件加速 */
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  .code-text {
+    position: relative;
+    z-index: 1;
+    transition: color 0.35s, clip-path 0.35s;
+  }
+
+  .copy-icon {
+    position: relative;
+    z-index: 1;
+  }
+
   &::before {
     content: '';
     position: absolute;
-    left: var(--x, 50%);
-    top: var(--y, 50%);
-    width: 20px;
-    height: 20px;
-    background: var(--el-color-success);
-    border-radius: 50%;
-    transform: translate(-50%, -50%) scale(0);
-    pointer-events: none;
-    z-index: 1;
-    opacity: 0; /* 初始状态完全透明 */
-    visibility: hidden; /* 完全隐藏 */
-  }
-  &::after {
-    content: '';
-    position: absolute;
     inset: 0;
-    background: var(--el-fill-color-light);
-    transform: translateY(-100%);
+    background: #00d4ff;
+    transform: scaleX(0);
+    transform-origin: left;
     pointer-events: none;
-    z-index: 2;
+    z-index: 0;
+    transition: transform 0.35s ease-out;
   }
+
   &.copied {
-    color: #fff;
-    background: var(--el-color-success);
-    border-color: var(--el-color-success);
+    border-color: #00d4ff;
+
     &::before {
-      opacity: 1; /* 显示涟漪效果 */
-      visibility: visible; /* 显示 */
-      animation: rippleFill 0.4s ease-out forwards;
+      transform: scaleX(1);
     }
-    &::after {
-      animation: curtainReset 0.5s ease-out 0.5s forwards;
-    }
-  }
 
-  @media screen and (max-width: 768px) {
-    font-size: 14px;
-    padding: 4px 8px;
-  }
-}
-@keyframes rippleFill {
-  to {
-    transform: translate(-50%, -50%) scale(22);
-  }
-}
-@keyframes curtainReset {
-  to {
-    transform: translateY(0);
+    .code-text {
+      color: #05060a;
+      animation: typeReveal 0.35s steps(var(--char-count, 6)) 0.35s both;
+      transition: none;
+    }
   }
 }
 
-/* =============== Author =============== */
+@keyframes typeReveal { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+/* =============== 元信息 =============== */
 .cdk-author {
-  margin-top: 12px;
-  padding-top: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
   color: var(--el-text-color-secondary);
-  font-size: 12px;
+  font-size: 11px;
   text-align: right;
-  border-top: 1px solid var(--el-border-color-lighter);
-  transition:
-    color 0.3s ease,
-    border-color 0.3s ease; /* 添加主题切换动画 */
-
-  @media screen and (max-width: 768px) {
-    margin-top: 8px;
-    padding-top: 6px;
-  }
-}
-
-/* =============== 动画 & 暗黑适配 =============== */
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px) translateZ(0) scale(0.95);
-  }
-  60% {
-    opacity: 0.8;
-    transform: translateY(-2px) translateZ(0) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) translateZ(0) scale(1);
-  }
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.filter-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 20px;
-  min-height: 60px;
-
-  @media screen and (max-width: 768px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-    padding: 12px 16px;
-    min-height: auto;
-  }
-}
-
-.filter-left {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.filter-form {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin: 0;
-
-  @media screen and (max-width: 768px) {
-    gap: 12px;
-    width: 100%;
-  }
-
-  .el-form-item {
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-
-    .el-form-item__label {
-      font-size: 14px;
-      color: var(--el-text-color-regular);
-      font-weight: 500;
-      margin: 0;
-      padding: 0;
-      line-height: 32px;
-      white-space: nowrap;
-    }
-
-    .el-form-item__content {
-      margin: 0;
-    }
-  }
-}
-
-.filter-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-
-  @media screen and (max-width: 768px) {
-    justify-content: flex-end;
-    width: 100%;
-  }
-}
-
-.action-btn {
-  height: 32px;
-  padding: 0 16px;
-  font-size: 14px;
-  border-radius: 6px;
-  transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  transform: translateZ(0);
-
-  &:hover {
-    transform: translateY(-2px) translateZ(0) scale(1.02);
-  }
-
-  &:active {
-    transform: translateY(0) translateZ(0) scale(0.98);
-    transition: all 0.1s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  @media screen and (max-width: 768px) {
-    padding: 0 12px;
-    font-size: 13px;
-  }
+  border-top: 1px solid var(--cdk-glass-border);
 }
 
 .cdk-created {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
+  font-size: 11px;
+  color: var(--el-text-color-secondary);
 }
 
 /* =============== Note 样式 =============== */
 :deep(.cdk-note-tooltip) {
-  z-index: 9999 !important; /* 提高z-index确保在最上层 */
+  z-index: 9999 !important;
   max-width: 400px !important;
-  background: var(--el-bg-color-overlay, #ffffff) !important;
-  border: 1px solid var(--el-border-color, #dcdfe6) !important;
+  background: #111318 !important;
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 12px !important;
-  /* 智能宽度调整 */
-  min-width: 150px !important;
-  word-wrap: break-word !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  padding: 10px !important;
 
   .note-content {
-    line-height: 1.6 !important;
-    font-size: 14px !important;
-    color: var(--el-text-color-primary, #303133) !important;
-    word-break: break-word !important;
-
-    a {
-      color: var(--el-color-primary, #409eff) !important;
-      text-decoration: underline !important;
-      transition: color 0.3s ease !important;
-
-      &:hover {
-        color: var(--el-color-primary-light-3, #79bbff) !important;
-        text-decoration: none !important;
-      }
-    }
-
-    /* 避免链接在tooltip中被截断 */
-    a[href] {
-      word-break: break-all !important;
-    }
-  }
-
-  /* 暗色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    background: var(--el-bg-color-overlay, #1a1a1a) !important;
-    border: 1px solid var(--el-border-color, #4c4d4f) !important;
-
-    .note-content {
-      color: var(--el-text-color-primary, #e5eaf3) !important;
-    }
-  }
-
-  /* Element Plus 暗色模式 */
-  html.dark & {
-    background: var(--el-bg-color-overlay, #1a1a1a) !important;
-    border: 1px solid var(--el-border-color, #4c4d4f) !important;
-
-    .note-content {
-      color: var(--el-text-color-primary, #e5eaf3) !important;
-    }
+    line-height: 1.5 !important;
+    font-size: 13px !important;
+    color: #cfd3dc !important;
+    a { color: #00d4ff !important; }
   }
 }
 
 .note-trigger {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   cursor: pointer;
   transition: color 0.3s ease;
-
-  &:hover {
-    color: var(--el-color-primary);
-  }
+  color: var(--el-text-color-secondary);
+  &:hover { color: #00d4ff; }
 }
-
-/* =============== 广告样式 =============== */
-/* 广告样式由 `src/components/AdCard.vue` 内部维护，避免重复定义 */
 </style>
