@@ -23,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useDoroStore } from '../stores/doro'
 
 const doroStore = useDoroStore()
@@ -37,6 +37,9 @@ let animationFrameId = null
 let nodesToClear = []
 let invertTimer = null
 let cleanupTimer = null
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const MAX_PARTICLES = 300
 
 watch(
   () => doroStore.isTransitioning,
@@ -53,6 +56,17 @@ watch(
 
 function startBlackHole() {
   isActive.value = true
+  if (prefersReducedMotion) {
+    collectAndSuckTexts()
+    setTimeout(() => {
+      nodesToClear.forEach(({ node, originalText }) => {
+        if (node && node.parentNode) node.textContent = originalText
+      })
+      nodesToClear = []
+      isActive.value = false
+    }, 300)
+    return
+  }
   collectAndSuckTexts()
 }
 
@@ -69,7 +83,7 @@ function cleanupEffect() {
   nodesToClear = []
 
   // 等待短暂过渡后清理所有粒子
-  setTimeout(() => {
+  cleanupTimer = setTimeout(() => {
     if (animationFrameId) cancelAnimationFrame(animationFrameId)
     particles.value = []
     isActive.value = false
@@ -78,6 +92,18 @@ function cleanupEffect() {
 
   if (invertTimer) clearTimeout(invertTimer)
 }
+
+onBeforeUnmount(() => {
+  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+  clearTimeout(invertTimer)
+  clearTimeout(cleanupTimer)
+  nodesToClear.forEach(({ node, originalText }) => {
+    if (node && node.parentNode) node.textContent = originalText
+  })
+  nodesToClear = []
+  isActive.value = false
+  isCleaningUp.value = false
+})
 
 function collectAndSuckTexts() {
   const centerX = window.innerWidth / 2
@@ -98,7 +124,7 @@ function collectAndSuckTexts() {
           nodesToClear.push({ node: element, originalText: element.textContent })
           const chars = Array.from(text)
           chars.forEach((char, index) => {
-            if (char.trim()) {
+            if (char.trim() && collected.length < MAX_PARTICLES) {
               const charWidth = rect.width / chars.length
               const startX = rect.left + charWidth * index + charWidth / 2
               const startY = rect.top + rect.height / 2
@@ -348,5 +374,17 @@ function collectAndSuckTexts() {
   white-space: nowrap;
   font-family: inherit;
   will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invert-overlay {
+    display: none;
+  }
+  .blackhole-core {
+    display: none;
+  }
+  .sucked-particle {
+    display: none;
+  }
 }
 </style>

@@ -68,7 +68,7 @@
         <div class="footer-content">
           <div class="footer-section">
             <h4>NIKKE CDK Tools</h4>
-            <p class="copyright">© 2025 | 本工具仅供学习交流使用</p>
+            <p class="copyright">© 2026 | 本工具仅供学习交流使用</p>
             <div class="footer-links">
               <a
                 href="https://github.com/Small-tailqwq/Nikke-CDK-Tool"

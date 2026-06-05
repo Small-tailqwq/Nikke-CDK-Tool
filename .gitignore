@@ -4,6 +4,7 @@ jietu
 .cursorrules
 .CLAUDE
 .codex
+.od-skills
 CLAUDE.md
 .env.local
 /public/cdk-list.json

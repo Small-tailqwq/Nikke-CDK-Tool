@@ -1238,18 +1238,18 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 :global(.cdk-note-tooltip) {
   z-index: 9999 !important;
   max-width: 400px !important;
-  background: #111318 !important;
-  border: 1px solid rgba(0, 212, 255, 0.15) !important;
+  background: var(--cdk-overlay-bg) !important;
+  border: 1px solid var(--cdk-glass-border) !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: var(--el-box-shadow-dark) !important;
   padding: 10px !important;
 
   .note-content {
     line-height: 1.5 !important;
     font-size: 13px !important;
-    color: #cfd3dc !important;
+    color: var(--el-text-color-regular) !important;
 
-    a { color: #00d4ff !important; text-decoration: underline !important; }
+    a { color: var(--el-color-primary) !important; text-decoration: underline !important; }
   }
 }
 

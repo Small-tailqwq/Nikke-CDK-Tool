@@ -53,13 +53,18 @@ export function useCardTilt() {
     updateHover(e.clientX, e.clientY)
   }
 
+  let rafId = 0
+
   const onPointerMove = (e: PointerEvent) => {
     if (!hoverActive) return
-    updateHover(e.clientX, e.clientY)
+    cancelAnimationFrame(rafId)
+    rafId = requestAnimationFrame(() => updateHover(e.clientX, e.clientY))
   }
 
-  const onPointerLeave = () => {
+  const onPointerLeave = (e: PointerEvent) => {
     hoverActive = false
+    cancelAnimationFrame(rafId)
+    wrapperRef.value = e.currentTarget as HTMLElement
     resetHover()
   }
 

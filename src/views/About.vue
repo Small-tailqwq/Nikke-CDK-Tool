@@ -200,6 +200,8 @@ let matrixAnimId = null
 let matrixRunning = false
 
 function startMatrixEffect() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
   const pre = document.getElementById('tiresult')
   if (!pre) return
 
@@ -328,16 +330,18 @@ function startMatrixEffect() {
 
   let frameCount = 0
   let phase = 0
-  let tickSkip = 0
+  let lastFrameTime = 0
 
-  function tick() {
+  function tick(timestamp) {
     if (!matrixRunning) return
     frameCount++
-    tickSkip++
-    if (tickSkip % 2 !== 0) {
+
+    const delta = timestamp - lastFrameTime
+    if (delta < 33) {
       matrixAnimId = requestAnimationFrame(tick)
       return
     }
+    lastFrameTime = timestamp
 
     if (frameCount % 300 === 0) {
       phase = (phase + 1) % 4
@@ -368,7 +372,7 @@ function startMatrixEffect() {
   }
 
   matrixRunning = true
-  tick()
+  requestAnimationFrame(tick)
 }
 
 function stopMatrixEffect() {

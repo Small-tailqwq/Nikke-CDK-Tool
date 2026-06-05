@@ -64,6 +64,15 @@ watch(
   () => props.visible,
   (val) => {
     if (val) {
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+      if (reducedMotion) {
+        emit('switch-theme')
+        emit('complete')
+        active.value = false
+        return
+      }
+
       active.value = true
 
       switchTimer = setTimeout(() => {
