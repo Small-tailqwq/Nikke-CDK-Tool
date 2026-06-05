@@ -16,7 +16,7 @@
         <h4 class="notice-title">神秘小卡片被广告拦截器拦截了</h4>
         <p class="notice-message">
           但是我做了一个备用的~⭐<br />
-          点击跳转可以到达全网最好的PC端收菜助手：DoroHelper 💖
+          点击跳转可以到达全网最好的PC端收菜助手：Maa Doro Assistant (MDA) 💖
         </p>
 
         <!-- 可选的操作按钮 -->
@@ -94,7 +94,7 @@ const showWhitelistGuide = async () => {
 
 // 访问 GitHub 项目
 const visitGitHub = () => {
-  window.open('https://github.com/1204244136/DoroHelper', '_blank', 'noopener,noreferrer')
+  window.open('https://github.com/1204244136/MDA', '_blank', 'noopener,noreferrer')
   ElMessage.success('感谢你的支持！⭐')
 }
 </script>

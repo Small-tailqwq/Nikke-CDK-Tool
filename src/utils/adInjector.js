@@ -1,7 +1,7 @@
 /**
  * CDK广告注入器
  * 单文件实现，避免污染主要代码
- * 
+ *
  * 功能特性：
  * - 用户无筛选时显示广告，有筛选时隐藏广告（减少侵入性）
  * - 可手动关闭广告，关闭状态持久化
@@ -12,13 +12,13 @@
 const AD_CONFIG = {
   // 广告基本信息
   id: 'github_sponsor_ad',
-  name: 'DoroHelper',
+  name: 'Maa Doro Assistant',
   description: '全网最好的pc端收菜助手',
-  image: 'announcement-images/thumbs/DoroHelper_thumb.webp',
+  image: 'announcement-images/thumbs/MDA_thumb.webp',
   status: '广告',
 
   // 跳转链接
-  githubUrl: 'https://github.com/1204244136/DoroHelper',
+  githubUrl: 'https://github.com/1204244136/MDA',
 
   // 广告标识（用于广告屏蔽插件识别）
   adBlockerClass: 'ad-banner advertisement google-ad adsense-ad',
@@ -28,7 +28,7 @@ const AD_CONFIG = {
 
   // 广告显示控制
   showAd: true,
-  closeable: false
+  closeable: false,
 }
 
 /**
@@ -94,8 +94,8 @@ function createAdData() {
     // 添加一些元数据
     meta: {
       created: new Date().toISOString(),
-      type: 'sponsor'
-    }
+      type: 'sponsor',
+    },
   }
 }
 
@@ -173,15 +173,15 @@ function createPlaceholderData() {
     type: 'placeholder',
     groupId: 'placeholder_card',
     groupName: '推荐工具',
-    note: 'DoroHelper - 全网最好的PC端收菜助手<br/>让你的游戏体验更轻松愉快',
-    image: 'announcement-images/thumbs/DoroHelper_thumb.webp',
+    note: 'Maa Doro Assistant (MDA) - 全网最好的PC端收菜助手<br/>让你的游戏体验更轻松愉快',
+    image: 'announcement-images/thumbs/MDA_thumb.webp',
     status: '推荐',
     isPlaceholder: true,
     cdks: [],
     meta: {
       created: new Date().toISOString(),
-      type: 'placeholder'
-    }
+      type: 'placeholder',
+    },
   }
 }
 
@@ -232,7 +232,7 @@ export {
   isAdClosed,
   closeAd,
   initAdInjector,
-  AD_CONFIG
+  AD_CONFIG,
 }
 
 // 自动初始化

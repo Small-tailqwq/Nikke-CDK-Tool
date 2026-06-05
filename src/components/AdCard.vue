@@ -182,7 +182,10 @@ const emit = defineEmits<{
     }
   }
 
-  &:hover {
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cdk-group-card-wrapper.ad-card-wrapper:hover {
     transform: translateY(-4px);
 
     .card-stack-bg {
@@ -210,16 +213,23 @@ const emit = defineEmits<{
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   min-height: 280px;
 
-  &:hover {
-    box-shadow: 0 12px 32px rgba(240, 147, 251, 0.3);
-    transform: scale(1.02);
-  }
-
   &.ad-available {
     border-color: #f093fb;
     background:
       linear-gradient(var(--el-bg-color, white), var(--el-bg-color, white)) padding-box,
       linear-gradient(135deg, #f093fb 0%, #f5576c 100%) border-box;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .cdk-group-card.ad-card:hover {
+    animation: adCardHoverEnter 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
+    box-shadow: 0 18px 36px rgba(240, 147, 251, 0.28);
+    transform: translateY(-6px) scale(1.02);
+  }
+
+  .cdk-group-card.ad-card:hover .cdk-image img {
+    transform: scale(1.04);
   }
 }
 
@@ -274,6 +284,7 @@ const emit = defineEmits<{
     backface-visibility: hidden;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
+    transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
   .image-placeholder {
@@ -287,6 +298,20 @@ const emit = defineEmits<{
     .el-icon {
       font-size: 32px;
     }
+  }
+}
+
+@keyframes adCardHoverEnter {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  55% {
+    transform: translateY(-7px) scale(1.022);
+  }
+
+  100% {
+    transform: translateY(-6px) scale(1.02);
   }
 }
 
