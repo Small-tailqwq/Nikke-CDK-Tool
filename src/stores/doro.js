@@ -45,7 +45,9 @@ export const useDoroStore = defineStore('doro', () => {
   // ** 核心状态 **
   const initialState = DoroStorage.getState()
   const isVisible = ref(initialState.isVisible) // Doro悬浮球是否可见
-  const position = ref(initialState.position || { x: window.innerWidth - 100, y: window.innerHeight - 150 }) // Doro的位置
+  const position = ref(
+    initialState.position || { x: window.innerWidth - 100, y: window.innerHeight - 150 }
+  ) // Doro的位置
 
   // 如果Doro已经存在，重置按钮状态避免重复触发
   if (initialState.isVisible) {
@@ -114,9 +116,7 @@ export const useDoroStore = defineStore('doro', () => {
     // 随机尝试最多10次，避开与最近落点太近的情况
     for (let i = 0; i < 10; i++) {
       const p = pool[Math.floor(Math.random() * pool.length)]
-      const tooClose = recentTeleports.value.some(
-        t => Math.hypot(t.x - p.x, t.y - p.y) < 120
-      )
+      const tooClose = recentTeleports.value.some((t) => Math.hypot(t.x - p.x, t.y - p.y) < 120)
       if (!tooClose) return p
     }
 
@@ -135,7 +135,7 @@ export const useDoroStore = defineStore('doro', () => {
   const currentMoveSpeed = computed(() => {
     // 基础速度：根据屏幕大小调整，提升基础值
     const screenArea = window.innerWidth * window.innerHeight
-    const baseSpeed = Math.max(5, Math.min(12, 2200000 / screenArea * 9))
+    const baseSpeed = Math.max(5, Math.min(12, (2200000 / screenArea) * 9))
 
     // 0~10 血量 => 0~1 的缺失比例
     const missingRatio = (10 - doroHealth.value) / 10
@@ -233,12 +233,12 @@ export const useDoroStore = defineStore('doro', () => {
 
   // ** 2. 处理Doro悬浮球的点击 (重写彩蛋逻辑) **
   function handleInteractionClick() {
-    if (isDragging.value) return;
+    if (isDragging.value) return
 
     // 路由判断，确保首次点击跳转到/about
     if (router.currentRoute.value.path !== '/about') {
-      router.push('/about');
-      return;
+      router.push('/about')
+      return
     }
 
     // 蛋中蛋逻辑
@@ -441,7 +441,8 @@ export const useDoroStore = defineStore('doro', () => {
       // 动态方向刷新冷却时间：250ms -> 130ms
       const changeCooldown = 250 - missingRatio * 120
       if (!isAvoiding && currentTime - lastDirectionChange > changeCooldown) {
-        if (Math.random() < 0.35) { // 从25%提升到35%概率改变方向
+        if (Math.random() < 0.35) {
+          // 从25%提升到35%概率改变方向
           directionX = (Math.random() - 0.5) * 2
           directionY = (Math.random() - 0.5) * 2
           lastDirectionChange = currentTime
@@ -461,12 +462,18 @@ export const useDoroStore = defineStore('doro', () => {
 
       // 智能边界处理：提前转向避免被困
       const edgeDistance = 100 // 增加到100px提前转向
-      if (newX <= margin + edgeDistance || newX >= window.innerWidth - doroSize - margin - edgeDistance) {
+      if (
+        newX <= margin + edgeDistance ||
+        newX >= window.innerWidth - doroSize - margin - edgeDistance
+      ) {
         directionX = -directionX * (0.8 + Math.random() * 0.4) // 加入随机性
         // 如果靠近边界，额外添加随机垂直分量
         directionY += (Math.random() - 0.5) * 0.5
       }
-      if (newY <= margin + edgeDistance || newY >= window.innerHeight - doroSize - margin - edgeDistance) {
+      if (
+        newY <= margin + edgeDistance ||
+        newY >= window.innerHeight - doroSize - margin - edgeDistance
+      ) {
         directionY = -directionY * (0.8 + Math.random() * 0.4)
         // 如果靠近边界，额外添加随机水平分量
         directionX += (Math.random() - 0.5) * 0.5
@@ -506,19 +513,18 @@ export const useDoroStore = defineStore('doro', () => {
     isFinalExploding.value = true
 
     // 移动到屏幕中心
-    const halfSize = currentDoroSize.value / 2 // 动态计算一半大小
+    const halfSize = currentDoroSize.value / 2
     position.value.x = window.innerWidth / 2 - halfSize
     position.value.y = window.innerHeight / 2 - halfSize
 
-    // 开始变大和抖动动画
+    // 变大和抖动，并在最后触发反色
     let scaleIncrement = 0
     const growInterval = setInterval(() => {
-      scaleIncrement += 0.1
+      scaleIncrement += 0.05
       doroScale.value = 1 + scaleIncrement
 
       if (scaleIncrement >= 2) {
         clearInterval(growInterval)
-        // 触发爆炸并重生
         explodeAndRespawn()
       }
     }, 100)
@@ -526,6 +532,12 @@ export const useDoroStore = defineStore('doro', () => {
 
   function explodeAndRespawn() {
     isExploding.value = true
+    isTransitioning.value = false // 停止文字动画
+
+    // 发送成就提示
+    import('../utils/customMessage').then(({ showCustomMessage }) => {
+      showCustomMessage('🏆 成就解锁：你才是挑战者', 'success')
+    })
 
     // 记录爆炸位置（Doro中心点）
     const halfSize = currentDoroSize.value / 2
@@ -563,14 +575,20 @@ export const useDoroStore = defineStore('doro', () => {
     }, 3000)
 
     // 记录初始拖动位置
-    const startX = event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : 0)
-    const startY = event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : 0)
+    const startX =
+      event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : 0)
+    const startY =
+      event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : 0)
     const startPos = { ...position.value }
     let hasMovedSignificantly = false
 
     function onDrag(moveEvent) {
-      const currentX = moveEvent.clientX || (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientX : 0)
-      const currentY = moveEvent.clientY || (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientY : 0)
+      const currentX =
+        moveEvent.clientX ||
+        (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientX : 0)
+      const currentY =
+        moveEvent.clientY ||
+        (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientY : 0)
       const deltaX = Math.abs(currentX - startX)
       const deltaY = Math.abs(currentY - startY)
 
@@ -657,12 +675,14 @@ export const useDoroStore = defineStore('doro', () => {
   }
 
   // ** 监听状态并持久化 **
-  watch([isVisible, position], () => {
-    DoroStorage.setState({
-      isVisible: isVisible.value,
-      position: position.value,
-    })
-  },
+  watch(
+    [isVisible, position],
+    () => {
+      DoroStorage.setState({
+        isVisible: isVisible.value,
+        position: position.value,
+      })
+    },
     { deep: true }
   )
 
@@ -706,4 +726,4 @@ export const useDoroStore = defineStore('doro', () => {
     selfDestruct,
     updateMousePosition,
   }
-}) 
+})

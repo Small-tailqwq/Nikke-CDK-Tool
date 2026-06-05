@@ -1,12 +1,23 @@
 <template>
-  <div v-if="isActive" class="text-destruction-container">
+  <div v-if="isActive" class="blackhole-container">
+    <!-- 反色遮罩层 -->
+    <div class="invert-overlay" :class="{ active: invertActive }"></div>
+
+    <!-- 黑洞视觉中心 -->
+    <div class="blackhole-core" :class="{ collapsing: isCleaningUp }" :style="coreStyle">
+      <div class="blackhole-event-horizon"></div>
+      <div class="blackhole-accretion"></div>
+      <div class="blackhole-glow"></div>
+    </div>
+
+    <!-- 吸入的文字粒子 -->
     <div
-      v-for="text in fallingTexts"
-      :key="text.id"
-      class="falling-text"
-      :style="text.style"
+      v-for="particle in particles"
+      :key="particle.id"
+      class="sucked-particle"
+      :style="particle.style"
     >
-      {{ text.content }}
+      {{ particle.content }}
     </div>
   </div>
 </template>
@@ -17,65 +28,104 @@ import { useDoroStore } from '../stores/doro'
 
 const doroStore = useDoroStore()
 const isActive = ref(false)
-const fallingTexts = ref([])
+const isCleaningUp = ref(false)
+const invertActive = ref(false)
+const particles = ref([])
+const coreStyle = ref({})
 
-// 监听过场动画开始
+let animationFrameId = null
+let nodesToClear = []
+let invertTimer = null
+let cleanupTimer = null
+
 watch(
   () => doroStore.isTransitioning,
   (transitioning) => {
     if (transitioning) {
-      startTextDestruction()
+      isCleaningUp.value = false
+      invertActive.value = false
+      startBlackHole()
+    } else if (isActive.value && !isCleaningUp.value) {
+      cleanupEffect()
     }
   }
 )
 
-function startTextDestruction() {
+function startBlackHole() {
   isActive.value = true
-  collectAndDestroyTexts()
+  collectAndSuckTexts()
 }
 
-function collectAndDestroyTexts() {
-  const texts = []
-  const nodesToRemove = [] // 收集需要移除的文本节点
+function cleanupEffect() {
+  isCleaningUp.value = true
+
+  // 反色叠加层先淡出
+  invertActive.value = false
+
+  // 恢复文本
+  nodesToClear.forEach(({ node, originalText }) => {
+    if (node && node.parentNode) node.textContent = originalText
+  })
+  nodesToClear = []
+
+  // 等待短暂过渡后清理所有粒子
+  setTimeout(() => {
+    if (animationFrameId) cancelAnimationFrame(animationFrameId)
+    particles.value = []
+    isActive.value = false
+    isCleaningUp.value = false
+  }, 600)
+
+  if (invertTimer) clearTimeout(invertTimer)
+}
+
+function collectAndSuckTexts() {
+  const centerX = window.innerWidth / 2
+  const centerY = window.innerHeight / 2
+  const collected = []
+  nodesToClear = []
   let id = 0
 
-  // 递归扫描所有文本节点
   function scanTextNodes(element) {
     if (element.nodeType === Node.TEXT_NODE) {
       const text = element.textContent.trim()
       if (text && text.length > 0) {
-        // 获取文本的位置
         const range = document.createRange()
         range.selectNodeContents(element)
         const rect = range.getBoundingClientRect()
 
         if (rect.width > 0 && rect.height > 0) {
-          // 记录需要移除的文本节点和其原始内容
-          nodesToRemove.push({
-            node: element,
-            originalText: element.textContent,
-            parent: element.parentNode,
-          })
-
-          // 按字符分割文本（支持中英文）
+          nodesToClear.push({ node: element, originalText: element.textContent })
           const chars = Array.from(text)
           chars.forEach((char, index) => {
             if (char.trim()) {
-              texts.push({
+              const charWidth = rect.width / chars.length
+              const startX = rect.left + charWidth * index + charWidth / 2
+              const startY = rect.top + rect.height / 2
+              const dx = centerX - startX
+              const dy = centerY - startY
+              const dist = Math.sqrt(dx * dx + dy * dy)
+              const angle = Math.atan2(dy, dx)
+              const spiralOffset = (Math.random() - 0.5) * Math.PI * 0.6
+
+              collected.push({
                 id: id++,
                 content: char,
-                startX: rect.left + (rect.width / chars.length) * index,
-                startY: rect.top,
-                delay: Math.random() * 2000, // 0-2秒的随机延迟
-                duration: 1000 + Math.random() * 1000, // 1-2秒的掉落时间
-                rotation: (Math.random() - 0.5) * 720, // 随机旋转
+                startX,
+                startY,
+                centerX,
+                centerY,
+                dist: Math.max(dist, 20),
+                angle: angle + spiralOffset,
+                delay: Math.random() * 1800,
+                duration: 600 + Math.random() * 1200,
+                rotation: (Math.random() - 0.5) * 720,
               })
             }
           })
         }
       }
     } else if (element.nodeType === Node.ELEMENT_NODE) {
-      // 跳过script、style等标签
       if (!['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName)) {
         for (let child of element.childNodes) {
           scanTextNodes(child)
@@ -84,12 +134,10 @@ function collectAndDestroyTexts() {
     }
   }
 
-  // 扫描body下的所有文本，但排除我们自己的组件
   const bodyChildren = document.body.children
   for (let element of bodyChildren) {
-    // 跳过我们自己的组件和Doro相关元素
     if (
-      !element.classList.contains('text-destruction-container') &&
+      !element.classList.contains('blackhole-container') &&
       !element.classList.contains('floating-doro') &&
       !element.classList.contains('fragments-container')
     ) {
@@ -97,80 +145,208 @@ function collectAndDestroyTexts() {
     }
   }
 
-  // 创建掉落动画
-  fallingTexts.value = texts.map((text) => ({
-    ...text,
+  nodesToClear.forEach(({ node }) => {
+    if (node.parentNode) node.textContent = ''
+  })
+
+  const startTime = Date.now()
+
+  particles.value = collected.map((p) => ({
+    ...p,
     style: {
       position: 'fixed',
-      left: `${text.startX}px`,
-      top: `${text.startY}px`,
-      zIndex: 9999,
+      left: `${p.startX}px`,
+      top: `${p.startY}px`,
+      zIndex: 10000,
       pointerEvents: 'none',
       userSelect: 'none',
       fontSize: '16px',
       fontWeight: 'normal',
       color: '#333',
-      transform: 'translateY(0) rotate(0deg)',
+      transform: 'translate(-50%, -50%) rotate(0deg) scale(1)',
       opacity: 1,
-      transition: `transform ${
-        text.duration
-      }ms cubic-bezier(0.55, 0.085, 0.68, 0.53) ${text.delay}ms, 
-                   opacity ${text.duration * 0.8}ms ease-out ${
-        text.delay + text.duration * 0.2
-      }ms`,
     },
   }))
 
-  // 统一移除原始文本节点以避免双重显示
-  nodesToRemove.forEach(({ node }) => {
-    if (node.parentNode) {
-      node.textContent = '' // 清空文本内容而不是完全移除节点
-    }
-  })
+  coreStyle.value = {
+    position: 'fixed',
+    left: `${centerX}px`,
+    top: `${centerY}px`,
+    transform: 'translate(-50%, -50%) scale(0)',
+    zIndex: 9997,
+    transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s',
+  }
 
-  // 触发掉落动画
   nextTick(() => {
-    setTimeout(() => {
-      fallingTexts.value.forEach((text) => {
-        text.style.transform = `translateY(${
-          window.innerHeight + 100
-        }px) rotate(${text.rotation}deg)`
-        text.style.opacity = 0
-      })
-    }, 50)
+    coreStyle.value.transform = 'translate(-50%, -50%) scale(1)'
 
-    // 清理并恢复原始文本
-    setTimeout(() => {
-      // 恢复原始文本节点
-      nodesToRemove.forEach(({ node, originalText }) => {
-        if (node.parentNode) {
-          node.textContent = originalText
+    // 延迟触发反色
+    invertTimer = setTimeout(() => {
+      invertActive.value = true
+    }, 2000)
+
+    const animate = () => {
+      if (isCleaningUp.value) return
+
+      const elapsed = Date.now() - startTime
+
+      particles.value.forEach((p) => {
+        if (elapsed < p.delay) return
+        const progress = Math.min(1, (elapsed - p.delay) / p.duration)
+        const easedProgress = Math.pow(progress, 2.5)
+
+        const spiralRadius = (1 - easedProgress) * p.dist
+        const spiralAngle = p.angle + easedProgress * Math.PI * 5
+        const currentX = p.centerX + Math.cos(spiralAngle) * spiralRadius
+        const currentY = p.centerY + Math.sin(spiralAngle) * spiralRadius
+        const scale = 1 - easedProgress * 0.9
+        const rot = easedProgress * p.rotation
+        const opacity = Math.max(0, 1 - easedProgress * 1.3)
+
+        if (isCleaningUp.value) {
+          p.style.opacity = 0
+          p.style.transition = 'opacity 0.3s ease-out'
+        } else {
+          p.style.transform = `translate(-50%, -50%) translate(${currentX - p.startX}px, ${currentY - p.startY}px) rotate(${rot}deg) scale(${scale})`
+          p.style.opacity = opacity
         }
       })
 
-      isActive.value = false
-      fallingTexts.value = []
-    }, 4000)
+      if (!isCleaningUp.value) {
+        animationFrameId = requestAnimationFrame(animate)
+      }
+    }
+
+    animationFrameId = requestAnimationFrame(animate)
   })
 }
 </script>
 
 <style scoped>
-.text-destruction-container {
+.blackhole-container {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 9998;
 }
 
-.falling-text {
+.invert-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9995;
+  backdrop-filter: invert(0);
+  transition: backdrop-filter 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.invert-overlay.active {
+  backdrop-filter: invert(1) hue-rotate(180deg);
+}
+
+.blackhole-core {
+  position: fixed;
+  z-index: 9997;
+  width: 300px;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.5s ease-out;
+}
+
+.blackhole-core.collapsing {
+  transform: translate(-50%, -50%) scale(0) !important;
+  opacity: 0;
+  transition:
+    transform 0.4s ease-in,
+    opacity 0.4s ease-out;
+}
+
+.blackhole-event-horizon {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #000 30%,
+    #1a0a2e 50%,
+    rgba(10, 0, 30, 0.8) 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 60px rgba(0, 0, 0, 0.9),
+    0 0 120px rgba(80, 0, 150, 0.5),
+    inset 0 0 30px rgba(0, 0, 0, 0.8);
+  animation: blackholePulse 0.6s ease-in-out infinite alternate;
+}
+
+.blackhole-accretion {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: rgba(180, 60, 255, 0.7);
+  border-right-color: rgba(0, 200, 255, 0.5);
+  border-bottom-color: rgba(120, 40, 200, 0.3);
+  animation: accretionSpin 1.2s linear infinite;
+  filter: blur(2px);
+}
+
+.blackhole-accretion::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-left-color: rgba(255, 100, 200, 0.4);
+  border-bottom-color: rgba(100, 160, 255, 0.3);
+  animation: accretionSpin 2s linear infinite reverse;
+}
+
+.blackhole-glow {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 40%,
+    rgba(100, 0, 200, 0.2) 60%,
+    transparent 100%
+  );
+  animation: blackholePulse 0.8s ease-in-out 0.2s infinite alternate;
+}
+
+@keyframes accretionSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blackholePulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+.sucked-particle {
   position: fixed;
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
   font-family: inherit;
+  will-change: transform, opacity;
 }
 </style>

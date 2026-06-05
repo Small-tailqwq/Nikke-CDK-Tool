@@ -484,18 +484,23 @@ function generateFragments() {
 @keyframes final-explosion-shake {
   0% {
     transform: translate(0, 0) rotate(0deg);
+    filter: invert(0);
   }
   25% {
     transform: translate(-3px, -3px) rotate(-2deg);
+    filter: invert(0.2);
   }
   50% {
     transform: translate(3px, 3px) rotate(2deg);
+    filter: invert(0.5);
   }
   75% {
     transform: translate(-2px, 3px) rotate(-1deg);
+    filter: invert(0.8);
   }
   100% {
     transform: translate(2px, -2px) rotate(1deg);
+    filter: invert(1);
   }
 }
 
