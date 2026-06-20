@@ -10,7 +10,8 @@ CLAUDE.md
 /public/cdk-list.json
 /public/announcement-images/*.webp
 /public/announcement-images/*/*.webp
-docs
+/docs/*
+!/docs/agent/
 
 # Reverse engineering artifacts — captured probe output may contain real session data
 /_research/artifacts/

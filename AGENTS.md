@@ -1,82 +1,45 @@
 # AGENTS.md - Nikke-CDK-Tool
 
-This file is project-specific only. Keep general workflow, safety, git, and communication rules in the global `AGENTS.md`.
+项目专属规则。通用工作流、安全、git 规则见全局 `AGENTS.md`。
 
-Read `docs/agent/project-instructions.md` for the repo details that do not belong in this short index.
+详细实现参考见 `docs/agent/project-instructions.md`。
 
-## Fast Commands
+## 快速命令
 
 ```bash
 npm install
-npm run dev        # Vite dev server: http://localhost:5173
-npm run lint       # ESLint for src/**/*.js,ts,vue
-npm run validate   # Validate public/cdk-list.source.json
-npm run build      # prebuild -> vite build
-npm run thumbnails # Regenerate announcement thumbnails
+npm run dev        # Vite: http://localhost:5173
+npm run lint       # ESLint (src/**/*.js,ts,vue)
+npm run validate   # 校验 public/cdk-list.source.json
+npm run build      # prebuild → vite build
+npm run thumbnails # 重新生成公告缩略图
 npm run update-images
 ```
 
-## Verify
+## 验证
 
-- Default focused verification: `npm run lint`
-- If `public/cdk-list.source.json` changes, also run: `npm run validate`
-- Before handing off UI, routing, asset pipeline, or deployment-sensitive changes, run: `npm run lint` then `npm run build`
-- There is no dedicated test runner and no `vue-tsc` command in this repo
+- 代码改动: `npm run lint`
+- CDK 数据改动: `npm run lint && npm run validate`
+- UI/路由/部署敏感改动: `npm run lint && npm run build`
+- 无测试运行器，无 `vue-tsc`
 
-## Repo Map
+## 关键约束
 
-- `src/`: Vue 3 SPA, views/components/stores/utils
-- `public/cdk-list.source.json`: source of truth for CDK data
-- `public/cdk-list.json`: generated output from prebuild; do not edit manually
-- `public/announcement-images/`: raw announcement images plus generated WebP and thumbnail assets
-- `cloudflare-worker/`: manually deployed worker code and operational notes
-- `scripts/`: build-time scripts (`prebuild.mjs`, `validate-cdk.mjs`) only; **no reverse-engineering scripts**
-- `tools/`: standalone browser tools such as `tools/cdk-manager.html`; **no probe/debug tools**
-- `_research/`: reverse-engineering and login analysis artifacts (see Constitutional Rules below)
+- 只编辑 `public/cdk-list.source.json`，不手动编辑 `public/cdk-list.json`
+- 公告图片文件名需匹配 `cdk.code` 或 `groupId`
+- 生产分支为 `masrer`，不要改名或"修正"
+- `vite.config.js` base: `/Nikke-CDK-Tool/`，路由使用 hash history
 
-## Constitutional Rules: Test & Research Artifacts
+## 研究产物规则
 
-All reverse engineering, login-flow analysis, probe scripts, and captured session artifacts must reside **exclusively** under `_research/`. This directory is:
+所有逆向工程、登录分析、探针脚本和抓取产物 **只能** 放在 `_research/` 下。禁止放入 `scripts/`、`tools/`、`public/`、`src/` 或仓库根目录。禁止提交真实凭据。详细安全规则见 `docs/agent/project-instructions.md`。
 
-- **Outside the Vite build tree**: `_research/` is not under `public/` or `src/`, so it is **never bundled or published** to GitHub Pages. No deploy workflow changes are needed to enforce this — the Vite build system naturally excludes it.
-- **Forbidden locations** (never put RE/test artifacts here):
-  - `scripts/` — reserved for build-time scripts (`prebuild.mjs`, `validate-cdk.mjs`) only
-  - `tools/` — reserved for standalone dev utilities (`cdk-manager.html`) only
-  - `public/` — anything here gets deployed to production
-  - `src/` — app source only
-  - repo root — no loose test files
+## Git 约定
 
-### Directory layout
+- 提交信息统一使用中文
+- 使用 conventional commit 前缀: `feat:` `fix:` `chore:` `refactor:` `ci:` `docs:` 等
 
-```
-_research/
-  scripts/     # analysis scripts (.mjs, .py, etc.)
-  artifacts/   # captured probe output data (JSON, logs, etc.)
-  tools/       # browser debug/probe tools (Tampermonkey scripts, captcha debug pages)
-```
+## 任务路由
 
-### Safety rules
-
-1. **No real credentials in source**: Never commit real emails, passwords, tokens, cookies, or session data into scripts or source files. If test data is needed, use clearly fake placeholders (e.g. `user@example.com`, `PASSWORD_PLACEHOLDER`).
-2. **No secrets in logs**: `console.log` / `print()` statements that could emit auth materials must be removed or guarded by `--dry-run` / debug-only flags before committing.
-3. **Artifacts with captured real data** (e.g. probe JSON output) must go into `_research/artifacts/` with a `.gitignore` entry or be cleaned up promptly. Prefer not to commit them at all.
-4. **`_research/` contents are not part of the application**: Do not import from `_research/` in any `src/` or `public/` code; do not reference it in build scripts or deploy workflows.
-
-## Git Conventions
-
-- Commit messages must be written in **Chinese** only (统一使用中文编写提交信息)
-- Use conventional commit prefixes: `feat:`, `fix:`, `chore:`, `refactor:`, `ci:`, `docs:` 等
-- 简短标题 + 可选详细说明，中英文混夹是不允许的
-
-## High-Value Constraints
-
-- Edit `public/cdk-list.source.json`; do not hand-edit `public/cdk-list.json`
-- When adding announcement art, keep the filename aligned with the matching `cdk.code` or `groupId`
-- Prefer committing raw `png`/`jpg`/`jpeg` assets; `npm run build` generates WebP and thumbnails
-- The production branch name is `masrer`; do not rename or "fix" it unless explicitly asked
-- `vite.config.js` uses `base: '/Nikke-CDK-Tool/'`; Vue Router uses hash history to match static hosting
-
-## Task Routing
-
-- For repo-specific implementation details, conventions, and deployment quirks, follow `docs/agent/project-instructions.md`
-- For worker behavior details, check `cloudflare-worker/README.md` when the task touches login, proxying, or API routes
+- 实现细节、目录结构、技术栈 → `docs/agent/project-instructions.md`
+- Worker 行为、登录、代理、API 路由 → `cloudflare-worker/README.md`
