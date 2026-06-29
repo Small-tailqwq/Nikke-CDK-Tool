@@ -290,6 +290,7 @@ import {
   getGroupCodes,
   getGroupStatus,
   getGroupServers,
+  cdkEquals,
 } from '../utils/fetchCdk'
 import { showCustomMessage } from '../utils/customMessage'
 import { formatNoteContent } from '../utils/noteUtils'
@@ -509,7 +510,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   let isExchanged = false
   let isExhausted = false
   props.selectedUserExchangeHistory.forEach((record: any) => {
-    if (record.cdk !== cdkCode) return
+    if (!cdkEquals(record.cdk, cdkCode)) return
     if (
       record.success === true ||
       record.source === '云端' ||

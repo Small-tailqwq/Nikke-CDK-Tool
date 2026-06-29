@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { syncUserExchangeHistory } from '../utils/api'
 import { useUserStore } from './user'
+import { cdkEquals } from '../utils/fetchCdk'
 
 export const useExchangeStore = defineStore('exchange', () => {
   const history = ref([])
@@ -105,8 +106,8 @@ export const useExchangeStore = defineStore('exchange', () => {
       // 查找可能的重复记录
       const similarRecords = existingRecords.filter(
         (record) =>
-          // 相同CDK码
-          record.cdk === newRecord.cdk &&
+          // 相同CDK码（大小写不敏感，上游服务器对大小写不敏感）
+          cdkEquals(record.cdk, newRecord.cdk) &&
           // 相同用户
           record.userId === newRecord.userId &&
           // 时间接近（30秒内）

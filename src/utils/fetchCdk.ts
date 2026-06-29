@@ -94,6 +94,16 @@ export function getGroupCodes(group: CDKGroup): string[] {
   return group.cdks.map(cdk => cdk.code);
 }
 
+// 大小写不敏感地比较两个 CDK 码（上游服务器对大小写不敏感）
+export function cdkEquals(a: string, b: string): boolean {
+  return a.toLowerCase() === b.toLowerCase();
+}
+
+// 大小写不敏感地检查 CDK 码是否在数组中
+export function cdkIncludes(arr: string[], value: string): boolean {
+  return arr.some(code => cdkEquals(code, value));
+}
+
 // 计算CDK组合的状态
 export function getGroupStatus(group: CDKGroup): '可用' | '已过期' | '部分可用' {
   if (group.cdks.length === 0) return '已过期';
