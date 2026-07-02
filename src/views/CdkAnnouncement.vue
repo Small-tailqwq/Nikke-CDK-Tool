@@ -139,7 +139,12 @@
           </div>
 
           <!-- Header / 图片 -->
-          <div class="cdk-image" :class="{ 'has-image': !!cdk.image }">
+          <div
+            class="cdk-image"
+            :class="{ 'has-image': !!cdk.image }"
+            :style="cdk.image ? { cursor: 'zoom-in' } : null"
+            @click="cdk.image && openViewer(cdk.image)"
+          >
             <img
               v-if="cdk.image"
               :src="getImageUrl(cdk.image)"
@@ -227,13 +232,15 @@
     </MasonryLayout>
 
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
+
+    <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Document, InfoFilled, Picture } from '@element-plus/icons-vue'
-import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
+import { getImageUrl, getImageSrcset, getOriginalImageUrl } from '@/utils/imageUtils'
 import {
   fetchCdkList,
   isCDKGroup,
@@ -249,6 +256,7 @@ import { useRouter } from 'vue-router'
 import CDKGroupCard from '../components/CDKGroupCard.vue'
 import MasonryLayout from '../components/MasonryLayout.vue'
 import AdCard from '../components/AdCard.vue'
+import ImageViewer from '../components/ImageViewer.vue'
 import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
@@ -286,6 +294,15 @@ const selectedCdks = ref<string[]>([])
 
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
+
+// 大图预览
+const viewerVisible = ref(false)
+const viewerUrl = ref('')
+function openViewer(image: string) {
+  if (!image) return
+  viewerUrl.value = getOriginalImageUrl(image)
+  viewerVisible.value = true
+}
 
 // 选中角色的兑换记录
 const selectedUserExchangeHistory = computed(() => {

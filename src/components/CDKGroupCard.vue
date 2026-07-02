@@ -32,7 +32,12 @@
       </div>
 
       <!-- Header / 图片 -->
-      <div class="cdk-image" :class="{ 'has-image': !!group.image }">
+      <div
+        class="cdk-image"
+        :class="{ 'has-image': !!group.image }"
+        :style="group.image ? { cursor: 'zoom-in' } : null"
+        @click="group.image && openViewer(group.image)"
+      >
         <img
           v-if="group.image"
           :src="getImageUrl(group.image)"
@@ -277,13 +282,15 @@
         </div>
       </transition>
     </teleport>
+
+    <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
-import { getImageUrl, getImageSrcset } from '@/utils/imageUtils'
+import { getImageUrl, getImageSrcset, getOriginalImageUrl } from '@/utils/imageUtils'
 import type { CDKGroup } from '../utils/fetchCdk'
 import {
   getGroupTotalReward,
@@ -296,6 +303,7 @@ import { showCustomMessage } from '../utils/customMessage'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
 import { useCardTilt } from '@/composables/useCardTilt'
+import ImageViewer from './ImageViewer.vue'
 
 interface Props {
   group: CDKGroup
@@ -318,6 +326,15 @@ const isExpanded = ref(false)
 
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
+
+// 大图预览
+const viewerVisible = ref(false)
+const viewerUrl = ref('')
+function openViewer(image: string) {
+  if (!image) return
+  viewerUrl.value = getOriginalImageUrl(image)
+  viewerVisible.value = true
+}
 
 // 是否选中整个组合（智能判断）
 const isGroupSelected = computed({

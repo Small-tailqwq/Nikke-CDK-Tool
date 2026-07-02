@@ -51,6 +51,7 @@ declare module 'vue' {
     ElText: typeof import('element-plus/es')['ElText']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     FloatingDoro: typeof import('./components/FloatingDoro.vue')['default']
+    ImageViewer: typeof import('./components/ImageViewer.vue')['default']
     MasonryLayout: typeof import('./components/MasonryLayout.vue')['default']
     PlaceholderCard: typeof import('./components/PlaceholderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

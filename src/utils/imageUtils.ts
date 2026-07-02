@@ -61,6 +61,34 @@ export function getImageSrcset(localPath: string): string {
 }
 
 /**
+ * 将缩略图路径反推为原始图片路径
+ */
+function getOriginalPath(localPath: string): string {
+  if (!localPath) return ''
+
+  // 如果是 thumbs 路径，反推原图
+  if (localPath.includes('thumbs/')) {
+    const filename = localPath.split('thumbs/').pop() || ''
+    const nameWithoutExt = filename.replace(/\.[^/.]+$/, '').replace(/_thumb(@2x)?$/, '')
+    return `announcement-images/${nameWithoutExt}.webp`
+  }
+
+  return localPath
+}
+
+/**
+ * 获取原始（全尺寸）图片 URL，用于大图预览
+ */
+export function getOriginalImageUrl(localPath: string): string {
+  if (!localPath) return ''
+
+  const originalPath = getOriginalPath(localPath)
+  return `${import.meta.env.BASE_URL}${
+    originalPath.startsWith('/') ? originalPath.substring(1) : originalPath
+  }`
+}
+
+/**
  * 组合图片属性，用于统一的图片显示
  */
 export function getImageProps(imagePath: string, altText: string = '图片') {
