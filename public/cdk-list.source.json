@@ -857,14 +857,14 @@
     },
     {
       "code": "UNBREAKABLEMEMORIES",
-      "name": "",
+      "name": "UNBREAKABLE MEMORIES",
       "reward": "珠宝×300,【UNBREAKABLE MEMORIES】特别称号×1",
       "servers": [
         "global",
         "tw"
       ],
       "status": "可用",
-      "note": "不可磨灭的记忆（UNBREAKABLE MEMORIES），尼姬管弦乐管弦乐团音乐纪念CDK",
+      "note": "不可磨灭的记忆（UNBREAKABLE MEMORIES），26年管弦乐团音乐会纪念CDK",
       "author": "",
       "created": "2026-07-02"
     }
