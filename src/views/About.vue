@@ -36,7 +36,9 @@
         <b>Cursor</b>
         和
         <b>Github Copilot</b>
-        开发，主要为了解决 CDK 获取途径复杂，CDK 兑换流程缓慢繁琐，CDK
+        还有
+        <b>OpenCode</b>
+        等多种 AI 工具辅助开发，主要为了解决 CDK 获取途径复杂，CDK 兑换流程缓慢繁琐，CDK
         兑换每次都要登录等诸多问题产生的一个不成熟的解决方案。<br />
         本项目仅供学习交流使用，禁止用于任何商业用途。
       </p>
@@ -50,6 +52,32 @@
       </blockquote>
       <el-divider>更新日志</el-divider>
       <ul class="changelog">
+        <li>
+          2026-07-03：<br />
+          添加 CDK 卡片图片大图预览功能。<br />
+        </li>
+        <li>
+          2026-06-29：<br />
+          添加大小写不敏感的 CDK 比较与检查功能；<br />
+          更新 CDK 列表。<br />
+        </li>
+        <li>
+          2026-06-20：<br />
+          优化项目 agent 指令结构，迁移 ESLint v9 flat config。<br />
+        </li>
+        <li>
+          2026-06-05：<br />
+          亮暗主题重构；<br />
+          卡片添加仿 Steam 的倾斜交互效果；<br />
+          DoroHelper 更名为 Maa Doro Assistant (MDA)；<br />
+          多项代码审查修复（useCardTilt 竞态、TextDestruction 泄漏、主题色 success 区分、tooltip 暗色硬编码、prefers-reduced-motion 等）。<br />
+        </li>
+        <li>
+          2026-06-03：<br />
+          修复通知重叠问题并添加动画；<br />
+          支持通过账号密码登录账号并存储 Cookie；<br />
+          移除 worker 多余的参数。<br />
+        </li>
         <li>
           2025-08-21：<br />
           使用 ClaudeCode 修复了部分功能。<br />
