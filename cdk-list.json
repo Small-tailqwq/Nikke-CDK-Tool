@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-06-29T07:06:09.242Z",
+  "lastUpdate": "2026-07-02T13:33:23.195Z",
   "cdks": [
     {
       "type": "group",
@@ -880,6 +880,20 @@
       "author": "巴麻美",
       "created": "2026-06-28",
       "image": "announcement-images/WAVETOYOU2026.png"
+    },
+    {
+      "code": "UNBREAKABLEMEMORIES",
+      "name": "UNBREAKABLE MEMORIES",
+      "reward": "珠宝×300,【UNBREAKABLE MEMORIES】特别称号×1",
+      "servers": [
+        "global",
+        "tw"
+      ],
+      "status": "可用",
+      "note": "不可磨灭的记忆（UNBREAKABLE MEMORIES），26年管弦乐团音乐会纪念CDK",
+      "author": "",
+      "created": "2026-07-02",
+      "image": "announcement-images/UNBREAKABLEMEMORIES.png"
     }
   ]
 }
