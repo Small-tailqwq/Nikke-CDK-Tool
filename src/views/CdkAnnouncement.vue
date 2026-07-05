@@ -1,5 +1,5 @@
 <template>
-  <div class="cdk-announcement">
+  <div class="cdk-announcement page-scrollbar" ref="scrollContainer">
     <!-- NIKKE 情报过滤面板 -->
     <div class="filter-panel">
       <div class="filter-panel-inner">
@@ -234,6 +234,7 @@
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
 
     <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
+    <ScrollWave :container="scrollContainer" />
   </div>
 </template>
 
@@ -257,6 +258,7 @@ import CDKGroupCard from '../components/CDKGroupCard.vue'
 import MasonryLayout from '../components/MasonryLayout.vue'
 import AdCard from '../components/AdCard.vue'
 import ImageViewer from '../components/ImageViewer.vue'
+import ScrollWave from '../components/ScrollWave.vue'
 import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'
@@ -281,6 +283,7 @@ const { onPointerEnter: onCardPointerEnter, onPointerMove: onCardPointerMove, on
 
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
+const scrollContainer = ref<HTMLElement | null>(null)
 const filterForm = ref<FilterForm>({
   // 使用空字符串表示未选择，避免与类型不符的 null 引起 TS 报错
   server: '',
@@ -851,21 +854,9 @@ onBeforeUnmount(() => {
   padding: 20px;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
-
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-  &::-webkit-scrollbar { width: 6px; height: 6px; }
-  &::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 6px; }
-  &::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb); border-radius: 6px;
-    &:hover { background: var(--scrollbar-thumb-hover); }
-  }
 
   @media screen and (max-width: 768px) {
     padding: 12px;
-    &::-webkit-scrollbar { width: 4px; height: 4px; }
   }
 }
 
