@@ -469,6 +469,10 @@ img, .image-optimize {
     &:hover {
       background: var(--scrollbar-thumb-hover);
     }
+
+    &:active {
+      background: var(--scrollbar-thumb-active);
+    }
   }
 
   &::-webkit-scrollbar-corner {
