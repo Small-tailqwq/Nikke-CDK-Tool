@@ -250,7 +250,7 @@
             </el-icon>
           </button>
           <div v-if="logExpanded" class="summary-body">
-            <div v-if="recentMessages.length" class="log-scroll">
+            <div v-if="recentMessages.length" class="log-scroll beautiful-scrollbar">
               <div class="log-list">
                 <div v-for="(message, index) in recentMessages" :key="index" class="log-line">
                   {{ message }}
@@ -1007,19 +1007,6 @@ watch(
   border-radius: 8px;
   background: var(--el-fill-color-extra-light);
   color: var(--el-text-color-regular);
-}
-
-.log-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.log-scroll::-webkit-scrollbar-thumb {
-  background: var(--el-border-color);
-  border-radius: 999px;
-}
-
-.log-scroll::-webkit-scrollbar-track {
-  background: transparent;
 }
 
 .empty-text {
