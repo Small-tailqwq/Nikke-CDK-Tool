@@ -482,44 +482,6 @@ onBeforeUnmount(() => {
       }
     }
 
-    /* 为表格添加美观滚动条 */
-    :deep(.el-table) {
-      .el-table__body-wrapper,
-      .el-table__header-wrapper,
-      .el-table__fixed-body-wrapper {
-        scrollbar-width: thin;
-        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-        &::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-
-        &::-webkit-scrollbar-track {
-          background: var(--scrollbar-track);
-          border-radius: 6px;
-        }
-
-        &::-webkit-scrollbar-thumb {
-          background: var(--scrollbar-thumb);
-          border-radius: 6px;
-          transition: background-color 0.2s ease;
-
-          &:hover {
-            background: var(--scrollbar-thumb-hover);
-          }
-
-          &:active {
-            background: var(--scrollbar-thumb-active);
-          }
-        }
-
-        &::-webkit-scrollbar-corner {
-          background: var(--scrollbar-track);
-        }
-      }
-    }
-
     // 移动端表格样式优化
     @media screen and (max-width: 768px) {
       :deep(.el-table) {
@@ -643,48 +605,4 @@ onBeforeUnmount(() => {
   }
 }
 
-/* 分页组件滚动优化 */
-:deep(.el-pagination) {
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-  &::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: var(--scrollbar-track);
-    border-radius: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb);
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background: var(--scrollbar-thumb-hover);
-    }
-
-    &:active {
-      background: var(--scrollbar-thumb-active);
-    }
-  }
-
-  &::-webkit-scrollbar-corner {
-    background: var(--scrollbar-track);
-  }
-
-  @media screen and (max-width: 768px) {
-    &::-webkit-scrollbar {
-      width: 4px;
-      height: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb:hover {
-      width: 6px;
-    }
-  }
-}
 </style>
