@@ -1426,12 +1426,23 @@ onMounted(() => {
           line-height: 1.5;
           padding: 12px;
           font-size: 14px;
+          scrollbar-width: thin;
+          scrollbar-color: var(--scrollbar-thumb) transparent;
+
+          &::-webkit-scrollbar {
+            width: 4px;
+          }
+          &::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          &::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 2px;
+          }
 
           &:focus {
             box-shadow: 0 0 0 1px var(--el-color-primary) inset;
           }
-
-
         }
       }
 

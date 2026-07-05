@@ -27,7 +27,7 @@ const isScrolling = ref(false)
 const canvasWidth = ref(0)
 const canvasHeight = ref(0)
 const containerRect = ref<{ top: number; right: number; height: number }>({ top: 0, right: 0, height: 0 })
-const hasOverflow = ref(false)
+const cachedThumbColor = ref('rgba(0,0,0,0.12)')
 
 let rafId = 0
 let fadeTimer: ReturnType<typeof setTimeout> | null = null
@@ -46,14 +46,6 @@ function getScrollElement(): HTMLElement | Window {
   return props.container || window
 }
 
-function checkOverflow(): boolean {
-  const el = props.container
-  if (el) {
-    return el.scrollHeight > el.clientHeight
-  }
-  return document.documentElement.scrollHeight > window.innerHeight
-}
-
 function updateLayout() {
   const el = props.container
   if (el) {
@@ -65,11 +57,15 @@ function updateLayout() {
     canvasHeight.value = window.innerHeight
   }
   canvasWidth.value = 6
-  hasOverflow.value = checkOverflow()
+  updateColorCache()
 }
 
 function getThumbColor(): string {
-  return getComputedStyle(document.documentElement).getPropertyValue('--scrollbar-thumb').trim() || 'rgba(0,0,0,0.12)'
+  return cachedThumbColor.value
+}
+
+function updateColorCache() {
+  cachedThumbColor.value = getComputedStyle(document.documentElement).getPropertyValue('--scrollbar-thumb').trim() || 'rgba(0,0,0,0.12)'
 }
 
 function draw() {
@@ -78,7 +74,7 @@ function draw() {
   const ctx = canvas.getContext('2d')
   if (!ctx) return
 
-  const w = 6
+  const w = canvasWidth.value
   const h = canvasHeight.value
   const maxScroll = Math.max(1, getScrollHeight() - getClientHeight())
   const ratio = Math.min(1, Math.max(0, lastScrollTop / maxScroll))
@@ -186,6 +182,7 @@ onMounted(() => {
   }
 
   updateLayout()
+  updateColorCache()
 })
 
 onBeforeUnmount(() => {

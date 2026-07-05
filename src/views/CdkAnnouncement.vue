@@ -854,6 +854,7 @@ onBeforeUnmount(() => {
   padding: 20px;
   max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 
   @media screen and (max-width: 768px) {
     padding: 12px;

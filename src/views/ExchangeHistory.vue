@@ -501,19 +501,6 @@ onBeforeUnmount(() => {
           font-size: 12px;
           padding: 0 4px;
         }
-
-        /* 移动端使用更细的滚动条 */
-        .el-table__body-wrapper,
-        .el-table__header-wrapper {
-          &::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-          }
-
-          &::-webkit-scrollbar-thumb:hover {
-            width: 6px;
-          }
-        }
       }
     }
 
