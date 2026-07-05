@@ -1431,22 +1431,7 @@ onMounted(() => {
             box-shadow: 0 0 0 1px var(--el-color-primary) inset;
           }
 
-          /* 美观的滚动条样式 */
-          scrollbar-width: thin;
-          scrollbar-color: var(--scrollbar-thumb) transparent;
 
-          &::-webkit-scrollbar {
-            width: 4px;
-          }
-
-          &::-webkit-scrollbar-track {
-            background: transparent;
-          }
-
-          &::-webkit-scrollbar-thumb {
-            background: var(--scrollbar-thumb);
-            border-radius: 2px;
-          }
         }
       }
 
