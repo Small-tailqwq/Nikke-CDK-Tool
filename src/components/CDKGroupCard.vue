@@ -171,7 +171,7 @@
               </el-button>
             </div>
 
-            <div class="sub-cards-container">
+            <div class="sub-cards-container beautiful-scrollbar">
               <div
                 v-for="(subCdk, index) in group.cdks"
                 :key="subCdk.code"
@@ -1052,16 +1052,6 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   gap: 16px;
   overflow-y: auto;
   flex: 1;
-
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
-
-  &::-webkit-scrollbar { width: 6px; }
-  &::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 6px; }
-  &::-webkit-scrollbar-thumb {
-    background: var(--scrollbar-thumb); border-radius: 6px;
-    &:hover { background: var(--scrollbar-thumb-hover); }
-  }
 }
 
 .sub-cdk-card {
