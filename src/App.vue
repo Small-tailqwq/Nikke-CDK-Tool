@@ -1103,13 +1103,32 @@ body {
     display: flex;
     flex-direction: column;
     background-color: var(--el-bg-color-page);
-    overflow: hidden; // 防止滑动动画时出现滚动条
+    overflow: hidden;
 
     > div {
       max-width: var(--app-max-width);
       margin: 0 auto;
       width: 100%;
       flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+
+      &::-webkit-scrollbar { width: 5px; height: 5px; }
+      &::-webkit-scrollbar-track { background: transparent; }
+      &::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 5px;
+        transition: background-color 0.2s ease;
+        &:hover { background: var(--scrollbar-thumb-hover); }
+        &:active { background: var(--scrollbar-thumb-active); }
+      }
+      &::-webkit-scrollbar-corner { background: transparent; }
+
+      @media screen and (max-width: 768px) {
+        &::-webkit-scrollbar { width: 4px; height: 4px; }
+      }
     }
   }
 

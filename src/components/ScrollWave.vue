@@ -14,7 +14,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
 interface Props {
-  /** 要监听的滚动容器 DOM 元素；不传则监听 window */
+  /** 要监听的滚动容器 DOM 元素；不传则自动查找最近可滚动祖先 */
   container?: HTMLElement | null
 }
 
@@ -42,20 +42,34 @@ const canvasStyle = computed(() => ({
   height: `${containerRect.value.height}px`,
 }))
 
+function findScrollableAncestor(el: HTMLElement): HTMLElement | Window {
+  let current: HTMLElement | null = el.parentElement
+  while (current) {
+    const style = getComputedStyle(current)
+    const overflowY = style.overflowY
+    if (overflowY === 'auto' || overflowY === 'scroll') {
+      if (current.scrollHeight > current.clientHeight) {
+        return current
+      }
+    }
+    current = current.parentElement
+  }
+  return window
+}
+
+let scrollElement: HTMLElement | Window = window
+
 function getScrollElement(): HTMLElement | Window {
-  return props.container || window
+  return scrollElement
 }
 
 function updateLayout() {
-  const el = props.container
-  if (el) {
-    const rect = el.getBoundingClientRect()
-    containerRect.value = { top: rect.top, right: rect.right, height: rect.height }
-    canvasHeight.value = rect.height
-  } else {
-    containerRect.value = { top: 0, right: window.innerWidth, height: window.innerHeight }
-    canvasHeight.value = window.innerHeight
-  }
+  const el = scrollElement instanceof Window ? document.documentElement : scrollElement
+  const rect = scrollElement instanceof Window
+    ? { top: 0, right: window.innerWidth, height: window.innerHeight }
+    : scrollElement.getBoundingClientRect()
+  containerRect.value = { top: rect.top, right: rect.right, height: rect.height }
+  canvasHeight.value = rect.height
   canvasWidth.value = 6
   updateColorCache()
 }
@@ -172,13 +186,19 @@ watch(isScrolling, (val) => {
 })
 
 onMounted(() => {
-  const el = getScrollElement()
+  if (props.container) {
+    scrollElement = props.container
+  } else if (canvasRef.value) {
+    scrollElement = findScrollableAncestor(canvasRef.value)
+  }
+
+  const el = scrollElement instanceof Window ? window : scrollElement
   el.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('resize', updateLayout)
 
-  if (props.container) {
+  if (scrollElement instanceof HTMLElement) {
     resizeObserver = new ResizeObserver(updateLayout)
-    resizeObserver.observe(props.container)
+    resizeObserver.observe(scrollElement)
   }
 
   updateLayout()
@@ -186,7 +206,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  const el = getScrollElement()
+  const el = scrollElement instanceof Window ? window : scrollElement
   el.removeEventListener('scroll', onScroll)
   window.removeEventListener('resize', updateLayout)
 

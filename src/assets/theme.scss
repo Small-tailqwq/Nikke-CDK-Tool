@@ -445,10 +445,12 @@ img, .image-optimize {
 
 /* ========== 全局滚动条布局稳定 ========== */
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* 页面主滚动容器统一规则 */
 .page-scrollbar {
-  scrollbar-gutter: stable;
-  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb) transparent;
 

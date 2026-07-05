@@ -1,5 +1,5 @@
 <template>
-  <div class="cdk-announcement page-scrollbar" ref="scrollContainer">
+  <div class="cdk-announcement page-scrollbar">
     <!-- NIKKE 情报过滤面板 -->
     <div class="filter-panel">
       <div class="filter-panel-inner">
@@ -234,7 +234,7 @@
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
 
     <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
-    <ScrollWave :container="scrollContainer" />
+    <ScrollWave />
   </div>
 </template>
 
@@ -283,7 +283,7 @@ const { onPointerEnter: onCardPointerEnter, onPointerMove: onCardPointerMove, on
 
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
-const scrollContainer = ref<HTMLElement | null>(null)
+
 const filterForm = ref<FilterForm>({
   // 使用空字符串表示未选择，避免与类型不符的 null 引起 TS 报错
   server: '',
