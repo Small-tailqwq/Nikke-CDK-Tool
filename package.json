@@ -16,14 +16,14 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
     "crypto-js": "^4.1.1",
-    "element-plus": "^2.10.1",
+    "element-plus": "^2.14.2",
     "pinia": "^2.3.1",
     "vue": "^3.3.4",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.6.2",
     "@eslint/eslintrc": "^3.3.5",
+    "@vitejs/plugin-vue": "^4.6.2",
     "@vue/eslint-config-prettier": "^9.0.0",
     "axios": "^1.9.0",
     "eslint": "^9.9.0",
