@@ -56,9 +56,14 @@
       <!-- Cookie警告提示 -->
       <CookieWarningAlert />
 
-      <el-main>
+      <el-main :class="{ 'announcement-main': renderedMainPath === '/announcement' }">
         <router-view v-slot="{ Component, route: currentRoute }">
-          <transition :name="slideDirection" :duration="slideDuration" mode="out-in">
+          <transition
+            :name="slideDirection"
+            :duration="slideDuration"
+            mode="out-in"
+            @before-enter="syncMainScrollMode"
+          >
             <component :is="Component" :key="currentRoute.path" />
           </transition>
         </router-view>
@@ -314,6 +319,7 @@ const menuItems = computed(() => {
 // 页面切换动画相关
 const slideDirection = ref('slide-left')
 const slideDuration = ref(300)
+const renderedMainPath = ref(route.path)
 const prevPageIndex = ref(0)
 const currentPageIndex = ref(0)
 
@@ -321,6 +327,10 @@ const currentPageIndex = ref(0)
 const getPageIndex = (path) => {
   const index = menuItems.value.findIndex((item) => item.path === path)
   return index === -1 ? 0 : index
+}
+
+const syncMainScrollMode = () => {
+  renderedMainPath.value = route.path
 }
 
 // 打开文档
@@ -1115,19 +1125,75 @@ body {
       scrollbar-width: thin;
       scrollbar-color: var(--scrollbar-thumb) transparent;
 
-      &::-webkit-scrollbar { width: 5px; height: 5px; }
-      &::-webkit-scrollbar-track { background: transparent; }
+      &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
       &::-webkit-scrollbar-thumb {
         background: var(--scrollbar-thumb);
         border-radius: 5px;
         transition: background-color 0.2s ease;
-        &:hover { background: var(--scrollbar-thumb-hover); }
-        &:active { background: var(--scrollbar-thumb-active); }
+        &:hover {
+          background: var(--scrollbar-thumb-hover);
+        }
+        &:active {
+          background: var(--scrollbar-thumb-active);
+        }
       }
-      &::-webkit-scrollbar-corner { background: transparent; }
+      &::-webkit-scrollbar-corner {
+        background: transparent;
+      }
 
       @media screen and (max-width: 768px) {
-        &::-webkit-scrollbar { width: 4px; height: 4px; }
+        &::-webkit-scrollbar {
+          width: 4px;
+          height: 4px;
+        }
+      }
+    }
+
+    &.announcement-main {
+      overflow-x: hidden;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--scrollbar-thumb) transparent;
+
+      > div {
+        flex: 0 0 auto;
+        min-height: auto;
+        overflow: visible;
+      }
+
+      &::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      &::-webkit-scrollbar-thumb {
+        background: var(--scrollbar-thumb);
+        border-radius: 5px;
+        transition: background-color 0.2s ease;
+        &:hover {
+          background: var(--scrollbar-thumb-hover);
+        }
+        &:active {
+          background: var(--scrollbar-thumb-active);
+        }
+      }
+      &::-webkit-scrollbar-corner {
+        background: transparent;
+      }
+
+      @media screen and (max-width: 768px) {
+        &::-webkit-scrollbar {
+          width: 4px;
+          height: 4px;
+        }
       }
     }
   }

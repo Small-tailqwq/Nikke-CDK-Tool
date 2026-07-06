@@ -18,12 +18,14 @@ interface Props {
   items: any[]
   columnWidth?: number
   gap?: number
+  edgePadding?: number
   getItemKey?: (item: any, index: number) => string | number
 }
 
 const props = withDefaults(defineProps<Props>(), {
   columnWidth: 280,
   gap: 20,
+  edgePadding: 0,
   getItemKey: (item: any, index: number) => index,
 })
 
@@ -39,6 +41,27 @@ let recalculateTimer: number | null = null
 let itemResizeObservers: ResizeObserver[] = []
 let imageUnloaders: Array<() => void> = []
 
+const getResponsiveColumnConfig = (viewportWidth: number) => {
+  let minColumnWidth = props.columnWidth
+  let maxColumns = 4
+
+  if (viewportWidth <= 480) {
+    // 超小屏幕：强制单列或双列
+    minColumnWidth = Math.max(props.columnWidth * 0.8, 200) // 最小200px
+    maxColumns = viewportWidth < 360 ? 1 : 2
+  } else if (viewportWidth <= 768) {
+    // 小屏幕：适度减小列宽，限制最大列数
+    minColumnWidth = props.columnWidth * 0.85
+    maxColumns = 3
+  } else if (viewportWidth <= 1024) {
+    // 中等屏幕：轻微调整
+    minColumnWidth = props.columnWidth * 0.9
+    maxColumns = 4
+  }
+
+  return { minColumnWidth, maxColumns }
+}
+
 // 防抖函数
 const debounceCalculateLayout = () => {
   if (recalculateTimer) {
@@ -50,30 +73,14 @@ const debounceCalculateLayout = () => {
 }
 
 // 计算列数 - 优化小屏幕适配
-const calculateColumnCount = () => {
-  if (!containerRef.value) return 0
-  const containerWidth = containerRef.value.offsetWidth
-  
-  // 根据屏幕尺寸智能调整最小列宽和列数范围
-  let minColumnWidth = props.columnWidth
-  let maxColumns = 4
-  
-  if (containerWidth <= 480) {
-    // 超小屏幕：强制单列或双列
-    minColumnWidth = Math.max(props.columnWidth * 0.8, 200) // 最小200px
-    maxColumns = containerWidth < 360 ? 1 : 2
-  } else if (containerWidth <= 768) {
-    // 小屏幕：适度减小列宽，限制最大列数
-    minColumnWidth = props.columnWidth * 0.85
-    maxColumns = 3
-  } else if (containerWidth <= 1024) {
-    // 中等屏幕：轻微调整
-    minColumnWidth = props.columnWidth * 0.9
-    maxColumns = 4
-  }
+const calculateColumnCount = (availableWidth?: number, responsiveWidth?: number) => {
+  if (!containerRef.value && availableWidth === undefined) return 0
+  const layoutWidth = availableWidth ?? containerRef.value!.offsetWidth
+  const viewportWidth = responsiveWidth ?? layoutWidth
+  const { minColumnWidth, maxColumns } = getResponsiveColumnConfig(viewportWidth)
   
   // 基础计算
-  const baseCount = Math.floor((containerWidth + props.gap) / (minColumnWidth + props.gap)) || 1
+  const baseCount = Math.floor((layoutWidth + props.gap) / (minColumnWidth + props.gap)) || 1
   
   // 应用最大列数限制
   const count = Math.min(baseCount, maxColumns)
@@ -87,7 +94,7 @@ const getItemStyle = (index: number) => {
   if (!position) {
     return {
       opacity: '0',
-      transform: 'translateY(20px) translateZ(0) scale(0.95)',
+      transform: 'translateY(20px) scale(0.95)',
       transition: 'none',
     }
   }
@@ -98,7 +105,7 @@ const getItemStyle = (index: number) => {
     top: `${position.top}px`,
     width: `${position.width}px`,
     opacity: '1',
-    transform: 'translateY(0) translateZ(0) scale(1)',
+    transform: 'none',
     transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // 使用更平滑的缓动函数
   }
 }
@@ -114,13 +121,28 @@ const calculateLayout = async () => {
 
     const container = containerRef.value
     const containerWidth = container.offsetWidth
-    const newColumnCount = calculateColumnCount()
+    const requestedEdgePadding = Math.max(0, props.edgePadding)
+    const { minColumnWidth } = getResponsiveColumnConfig(containerWidth)
+    const minUsableWidth = Math.min(minColumnWidth, containerWidth)
+    const maxEdgePadding = Math.max(0, (containerWidth - minUsableWidth) / 2)
+    const edgePadding = Math.min(requestedEdgePadding, maxEdgePadding)
+    const availableWidth = Math.max(1, containerWidth - edgePadding * 2)
+    const newColumnCount = calculateColumnCount(availableWidth, containerWidth)
 
     columnCount.value = newColumnCount
 
+    if (props.items.length === 0) {
+      cleanupItemObservers()
+      cleanupImageListeners()
+      itemPositions.value = []
+      columnHeights.value = []
+      containerHeight.value = 0
+      return
+    }
+
     // 计算实际列宽
     const totalGap = (columnCount.value - 1) * props.gap
-    const actualColumnWidth = (containerWidth - totalGap) / columnCount.value
+    const actualColumnWidth = (availableWidth - totalGap) / columnCount.value
 
     // 重置列高度
     const newColumnHeights = new Array(columnCount.value).fill(0)
@@ -155,8 +177,8 @@ const calculateLayout = async () => {
       const shortestColumnIndex = newColumnHeights.indexOf(Math.min(...newColumnHeights))
 
       // 计算位置
-      const left = shortestColumnIndex * (actualColumnWidth + props.gap)
-      const top = newColumnHeights[shortestColumnIndex]
+      const left = edgePadding + shortestColumnIndex * (actualColumnWidth + props.gap)
+      const top = edgePadding + newColumnHeights[shortestColumnIndex]
 
       // 保存位置信息到临时数组
       newItemPositions[i] = {
@@ -181,7 +203,7 @@ const calculateLayout = async () => {
     columnHeights.value = newColumnHeights
 
     // 设置容器高度
-    containerHeight.value = Math.max(...columnHeights.value) - props.gap
+    containerHeight.value = Math.max(...columnHeights.value) - props.gap + edgePadding * 2
   } finally {
     isCalculating = false
   }
@@ -277,8 +299,12 @@ const cleanupImageListeners = () => {
 
 .masonry-item {
   box-sizing: border-box;
-  will-change: transform, opacity; /* 优化动画性能 */
-  transform: translateZ(0); /* 开启硬件加速 */
+  will-change: left, top, opacity; /* 保持布局动画优化，避免长期创建层叠上下文 */
   backface-visibility: hidden; /* 防止背面闪烁 */
+}
+
+.masonry-item:hover,
+.masonry-item:focus-within {
+  z-index: 20;
 }
 </style>

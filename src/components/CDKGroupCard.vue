@@ -5,10 +5,6 @@
     @pointermove="onPointerMove"
     @pointerleave="onPointerLeave"
   >
-    <!-- 卡片重叠效果的背景层 -->
-    <div class="card-stack-bg card-stack-1"></div>
-    <div class="card-stack-bg card-stack-2"></div>
-
     <!-- 主卡片 — NIKKE 玻璃卡 -->
     <div
       class="nikke-card"
@@ -283,7 +279,12 @@
       </transition>
     </teleport>
 
-    <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
+    <ImageViewer
+      v-model="viewerVisible"
+      :url="viewerUrl"
+      :title="viewerTitle"
+      :collected-at="viewerCollectedAt"
+    />
   </div>
 </template>
 
@@ -330,10 +331,21 @@ const copiedCode = ref<string | null>(null)
 // 大图预览
 const viewerVisible = ref(false)
 const viewerUrl = ref('')
+const viewerTitle = ref('')
+const viewerCollectedAt = ref('')
 function openViewer(image: string) {
   if (!image) return
   viewerUrl.value = getOriginalImageUrl(image)
+  viewerTitle.value = props.group.groupName || props.group.groupId || 'CDK组合'
+  viewerCollectedAt.value = getEarliestGroupCreated()
   viewerVisible.value = true
+}
+
+function getEarliestGroupCreated(): string {
+  return props.group.cdks
+    .map((cdk) => cdk.created)
+    .filter((created): created is string => Boolean(created))
+    .sort((a, b) => a.localeCompare(b))[0] || ''
 }
 
 // 是否选中整个组合（智能判断）
@@ -560,35 +572,10 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   height: 100%;
   perspective: 800px;
 
-  &:hover {
+  &:hover,
+  &:focus-within {
     z-index: 6;
   }
-}
-
-/* =============== NIKKE 玻璃卡片 =============== */
-.card-stack-bg {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 212, 255, 0.04);
-  border-radius: var(--cdk-card-radius, 12px);
-  border: 1px solid rgba(0, 212, 255, 0.06);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: -1;
-  transform-origin: center top;
-  pointer-events: none;
-}
-
-.card-stack-1 {
-  transform: translate(2px, 2px);
-  opacity: 0.6;
-}
-
-.card-stack-2 {
-  transform: translate(4px, 4px);
-  opacity: 0.3;
 }
 
 .nikke-card {
@@ -619,12 +606,6 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   &.expanding {
     transform: scale(1.03);
     z-index: 3000;
-
-    .card-stack-1,
-    .card-stack-2 {
-      opacity: 0;
-      transform: scale(0.85);
-    }
   }
 
   &.available {
@@ -668,16 +649,6 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   .cdk-group-card-wrapper:hover .nikke-card.partially-available {
     border-color: var(--cdk-border-partially-hover);
     --cdk-state-shadow: var(--cdk-glow-orange);
-  }
-
-  .cdk-group-card-wrapper:hover .card-stack-1 {
-    transform: translate(1px, 3px) scale(1.008) rotate(-0.25deg);
-    opacity: 0.78;
-  }
-
-  .cdk-group-card-wrapper:hover .card-stack-2 {
-    transform: translate(3px, 6px) scale(1.012) rotate(0.35deg);
-    opacity: 0.46;
   }
 
   .cdk-group-card-wrapper:hover .cdk-image img {
@@ -816,7 +787,6 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 
 @media (prefers-reduced-motion: reduce) {
   .nikke-card,
-  .card-stack-bg,
   .cdk-image img {
     transition: none !important;
     animation: none !important;

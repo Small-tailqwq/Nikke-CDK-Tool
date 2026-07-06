@@ -158,8 +158,14 @@ const emit = defineEmits<{
 // 继承CDK卡片的基础样式
 .cdk-group-card-wrapper.ad-card-wrapper {
   position: relative;
+  z-index: 1;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+
+  &:hover,
+  &:focus-within {
+    z-index: 6;
+  }
 
   // 卡片重叠效果
   .card-stack-bg {

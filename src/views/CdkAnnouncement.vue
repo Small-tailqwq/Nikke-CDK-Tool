@@ -86,7 +86,13 @@
     </div>
 
     <!-- 真正的瀑布流容器 -->
-    <MasonryLayout :items="filteredCdks" :column-width="220" :gap="20" :get-item-key="getCdkKey">
+    <MasonryLayout
+      :items="filteredCdks"
+      :column-width="220"
+      :gap="20"
+      :edge-padding="56"
+      :get-item-key="getCdkKey"
+    >
       <template #default="{ item: cdk, index }">
         <!-- 广告卡片 -->
         <AdCard
@@ -143,7 +149,7 @@
             class="cdk-image"
             :class="{ 'has-image': !!cdk.image }"
             :style="cdk.image ? { cursor: 'zoom-in' } : null"
-            @click="cdk.image && openViewer(cdk.image)"
+            @click="cdk.image && openViewer(cdk)"
           >
             <img
               v-if="cdk.image"
@@ -233,7 +239,12 @@
 
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
 
-    <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
+    <ImageViewer
+      v-model="viewerVisible"
+      :url="viewerUrl"
+      :title="viewerTitle"
+      :collected-at="viewerCollectedAt"
+    />
   </div>
 </template>
 
@@ -299,9 +310,13 @@ const copiedCode = ref<string | null>(null)
 // 大图预览
 const viewerVisible = ref(false)
 const viewerUrl = ref('')
-function openViewer(image: string) {
-  if (!image) return
-  viewerUrl.value = getOriginalImageUrl(image)
+const viewerTitle = ref('')
+const viewerCollectedAt = ref('')
+function openViewer(cdk: SingleCDK) {
+  if (!cdk.image) return
+  viewerUrl.value = getOriginalImageUrl(cdk.image)
+  viewerTitle.value = cdk.name || cdk.code || 'CDK图片'
+  viewerCollectedAt.value = cdk.created || ''
   viewerVisible.value = true
 }
 
@@ -852,7 +867,7 @@ onBeforeUnmount(() => {
   padding: 20px;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow: visible;
 
   @media screen and (max-width: 768px) {
     padding: 12px;
@@ -987,7 +1002,14 @@ onBeforeUnmount(() => {
   --shadow-x: 0px;
   --shadow-y: 0px;
   --shadow-blur: 0px;
+  position: relative;
+  z-index: 1;
   perspective: 800px;
+
+  &:hover,
+  &:focus-within {
+    z-index: 6;
+  }
 }
 
 .nikke-card {
