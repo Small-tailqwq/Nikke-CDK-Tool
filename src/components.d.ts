@@ -56,7 +56,6 @@ declare module 'vue' {
     PlaceholderCard: typeof import('./components/PlaceholderCard.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    ScrollWave: typeof import('./components/ScrollWave.vue')['default']
     TextDestructionEffect: typeof import('./components/TextDestructionEffect.vue')['default']
     ThemeTransition: typeof import('./components/ThemeTransition.vue')['default']
     UserDialog: typeof import('./components/UserDialog.vue')['default']
