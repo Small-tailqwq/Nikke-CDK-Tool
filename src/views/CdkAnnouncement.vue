@@ -234,7 +234,6 @@
     <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
 
     <ImageViewer v-model="viewerVisible" :url="viewerUrl" />
-    <ScrollWave />
   </div>
 </template>
 
@@ -258,7 +257,6 @@ import CDKGroupCard from '../components/CDKGroupCard.vue'
 import MasonryLayout from '../components/MasonryLayout.vue'
 import AdCard from '../components/AdCard.vue'
 import ImageViewer from '../components/ImageViewer.vue'
-import ScrollWave from '../components/ScrollWave.vue'
 import { showCustomMessage } from '../utils/customMessage'
 import { useUserStore } from '../stores/user'
 import { useExchangeStore } from '../stores/exchange'

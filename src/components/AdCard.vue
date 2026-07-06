@@ -158,6 +158,7 @@ const emit = defineEmits<{
 // 继承CDK卡片的基础样式
 .cdk-group-card-wrapper.ad-card-wrapper {
   position: relative;
+  overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 
