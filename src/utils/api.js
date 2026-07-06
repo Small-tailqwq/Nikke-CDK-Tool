@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { showCustomMessage } from './customMessage'
 import { generateHistoryServerInfo } from './serverUtils'
+import { getCookieExpireDays } from './dateUtils'
 
 const AUTH_DEBUG = import.meta.env.VITE_AUTH_DEBUG === 'true'
 
@@ -874,7 +875,13 @@ export const autoRenewUserCookie = async (user) => {
     return { success: false, message: '用户Cookie为空' }
   }
 
-  const expireDays = user.cookieExpireDays || 0
+  const recalculatedDays = getCookieExpireDays(user.cookieActualExpireDate)
+  const expireDays =
+    user.cookieExpireDays === -1
+      ? -1
+      : recalculatedDays >= 0
+        ? recalculatedDays
+        : user.cookieExpireDays || 0
 
   if (!shouldRenewCookie(expireDays)) {
     return {

@@ -10,13 +10,38 @@ import {
 } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 import { getLoginCredential } from '../utils/credentialVault'
+import { getCookieExpireDays } from '../utils/dateUtils'
 
 // 创建用户存储模块的日志记录器
 const logger = createLogger('UserStore')
 
+const syncUserCookieExpiry = (user) => {
+  if (!user || user.server === 'cn' || !user.cookie) {
+    return user
+  }
+
+  if (user.cookieExpireDays === -1) {
+    return user
+  }
+
+  const recalculatedDays = getCookieExpireDays(user.cookieActualExpireDate)
+  if (recalculatedDays < 0) {
+    return user
+  }
+
+  if (user.cookieExpireDays === recalculatedDays) {
+    return user
+  }
+
+  return {
+    ...user,
+    cookieExpireDays: recalculatedDays,
+  }
+}
+
 export const useUserStore = defineStore('user', () => {
   // 状态
-  const users = ref(userStorage.loadUsers())
+  const users = ref(userStorage.loadUsers().map((user) => syncUserCookieExpiry(user)))
   const loading = ref(false)
 
   // 用于跟踪正在进行的Cookie检测，避免竞态条件
@@ -77,6 +102,14 @@ export const useUserStore = defineStore('user', () => {
         }
         return user
       })
+
+      const syncedUsers = loadedUsers.map((user) => syncUserCookieExpiry(user))
+      if (JSON.stringify(syncedUsers) !== JSON.stringify(loadedUsers)) {
+        loadedUsers = syncedUsers
+        hasUpdates = true
+      } else {
+        loadedUsers = syncedUsers
+      }
 
       // 如果有数据更新，保存到本地存储
       if (hasUpdates) {
@@ -187,8 +220,8 @@ export const useUserStore = defineStore('user', () => {
                   userName: updatedUser.name,
                   status: '正常',
                 })
-                // 更新Cookie状态为正常，从API响应中获取实际过期时间
-                const expireDays = result.data?.expireDays || 30
+                // 登录返回的 cookie 无法稳定给出真实上游有效期时，统一从当前时间起按 30 天倒计时。
+                const expireDays = 30
                 await updateUser(id, {
                   cookieExpireDays: expireDays,
                   cookieActualExpireDate: new Date(
@@ -566,7 +599,9 @@ export const useUserStore = defineStore('user', () => {
         if (user.server === 'cn' || !user.cookie) {
           return false
         }
-        return shouldRenewCookie(user.cookieExpireDays, 7)
+        const expireDays =
+          user.cookieExpireDays === -1 ? -1 : getCookieExpireDays(user.cookieActualExpireDate)
+        return shouldRenewCookie(expireDays, 7)
       })
 
       if (usersNeedRenewal.length === 0) {

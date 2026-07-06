@@ -47,14 +47,14 @@
                   <!-- 非国服显示Cookie状态 -->
                   <el-tag
                     v-if="user.server !== 'cn'"
-                    :type="getCookieStatusType(user.cookieExpireDays)"
+                    :type="getCookieStatusType(user)"
                     size="small"
                     class="cookie-status"
                   >
                     {{
-                      user.cookieExpireDays === -1
+                      getCookieExpireDays(user) === -1
                         ? 'Cookie时间异常'
-                        : `Cookie剩余 ${user.cookieExpireDays} 天`
+                        : `Cookie剩余 ${getCookieExpireDays(user)} 天`
                     }}
                   </el-tag>
                 </div>
@@ -292,6 +292,7 @@ import { useRoute, useRouter } from 'vue-router'
 const UserDialog = defineAsyncComponent(() => import('../components/UserDialog.vue'))
 
 import { exchangeCDK, getCaptchaCN, exchangeCDKCN } from '../utils/api'
+import { getCookieExpireDays as calculateCookieExpireDays } from '../utils/dateUtils'
 import { showCustomMessage } from '../utils/customMessage'
 
 const route = useRoute()
@@ -455,7 +456,16 @@ const exchangeButtonText = computed(() => {
 })
 
 // 获取Cookie状态对应的标签类型
-const getCookieStatusType = (days) => {
+const getCookieExpireDays = (user) => {
+  if (!user || user.server === 'cn') return 0
+  if (user.cookieExpireDays === -1) return -1
+
+  const recalculatedDays = calculateCookieExpireDays(user.cookieActualExpireDate)
+  return recalculatedDays >= 0 ? recalculatedDays : user.cookieExpireDays || 0
+}
+
+const getCookieStatusType = (user) => {
+  const days = getCookieExpireDays(user)
   if (days === -1) return 'danger' // 过期时间异常
   if (days > 20) return 'success'
   if (days > 7) return 'warning'

@@ -152,11 +152,11 @@
             <div class="cookie-status-display">
               <el-tag v-if="row.server === 'cn'" type="info"> 国服不适用 </el-tag>
               <template v-else>
-                <el-tag :type="getCookieStatusType(row.cookieExpireDays)">
+                <el-tag :type="getCookieStatusType(row)">
                   {{
-                    row.cookieExpireDays === -1
+                    getCookieExpireDays(row) === -1
                       ? 'Cookie时间异常'
-                      : `剩余 ${row.cookieExpireDays} 天`
+                      : `剩余 ${getCookieExpireDays(row)} 天`
                   }}
                 </el-tag>
                 <el-tooltip
@@ -169,7 +169,7 @@
                   </el-tag>
                 </el-tooltip>
                 <el-tooltip
-                  v-if="row.cookieExpireDays === -1"
+                  v-if="getCookieExpireDays(row) === -1"
                   content="Cookie已失效或无法验证，请重新设置完整的Cookie"
                   placement="top"
                 >
@@ -290,12 +290,8 @@ import { useExchangeStore } from '../stores/exchange'
 import BlaBlaStatusMenu from '../components/BlaBlaStatusMenu.vue'
 import UserDialog from '../components/UserDialog.vue'
 import { showCustomMessage, ProgressMessage } from '../utils/customMessage'
-import {
-  renewGlobalCookie,
-  shouldRenewCookie,
-  autoRenewUserCookie,
-  refreshCookieByCredential,
-} from '../utils/api'
+import { renewGlobalCookie, autoRenewUserCookie, refreshCookieByCredential } from '../utils/api'
+import { getCookieExpireDays as calculateCookieExpireDays } from '../utils/dateUtils'
 import { getTencentCaptcha } from '../utils/tencentCaptcha'
 import {
   getLoginCredential,
@@ -482,7 +478,16 @@ const regionMapping = {
 }
 
 // 获取Cookie状态对应的标签类型
-const getCookieStatusType = (days) => {
+const getCookieExpireDays = (user) => {
+  if (!user || user.server === 'cn') return 0
+  if (user.cookieExpireDays === -1) return -1
+
+  const recalculatedDays = calculateCookieExpireDays(user.cookieActualExpireDate)
+  return recalculatedDays >= 0 ? recalculatedDays : user.cookieExpireDays || 0
+}
+
+const getCookieStatusType = (user) => {
+  const days = getCookieExpireDays(user)
   if (days === -1) return 'danger' // 过期时间异常
   if (days > 20) return 'success'
   if (days > 7) return 'warning'
@@ -548,10 +553,10 @@ const shouldShowRenewButton = (user) => {
   if (!user.cookie) {
     return false
   }
-  if (user.cookieExpireDays === -1) {
+  if (getCookieExpireDays(user) === -1) {
     return false
   }
-  return user.cookieExpireDays <= 32
+  return getCookieExpireDays(user) <= 32
 }
 
 const hasSavedLoginCredential = (user) => hasLoginCredential(user)

@@ -31,6 +31,36 @@ export function formatCookieExpireTime(expireDate) {
 }
 
 /**
+ * 根据实际过期时间计算 Cookie 剩余天数。
+ * 默认按自然日向上取整，保证刚获取到的 30 天 Cookie 显示为 30 天。
+ * @param {string|Date} expireDate - 过期时间
+ * @param {string|Date} [now=new Date()] - 当前时间，便于测试
+ * @returns {number} 剩余天数；无效时间返回 -1，已过期返回 0
+ */
+export function getCookieExpireDays(expireDate, now = new Date()) {
+  if (!expireDate) return -1
+
+  try {
+    const date = typeof expireDate === 'string' ? new Date(expireDate) : expireDate
+    const current = typeof now === 'string' ? new Date(now) : now
+
+    if (isNaN(date.getTime()) || isNaN(current.getTime())) {
+      return -1
+    }
+
+    const diffMs = date.getTime() - current.getTime()
+    if (diffMs <= 0) {
+      return 0
+    }
+
+    return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  } catch (error) {
+    console.warn('计算Cookie剩余天数失败:', error)
+    return -1
+  }
+}
+
+/**
  * 计算Cookie剩余时间的描述
  * @param {string|Date} expireDate - 过期时间
  * @returns {string} 剩余时间描述
