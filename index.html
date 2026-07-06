@@ -7,19 +7,22 @@
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
       script-src 'self' 'unsafe-inline' https://global.captcha.gtimg.com https://sg.captcha.qcloud.com;
-      style-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       img-src 'self' data: https:;
       connect-src 'self' https://nikke-cdk.hayasa.org https://nikke-cdk-test.hayasa.org ws://localhost:* http://localhost:*;
-      font-src 'self' data:;
+      font-src 'self' data: https://fonts.gstatic.com;
       frame-src https://global.captcha.gtimg.com https://ssl.captcha.qq.com https://sg.captcha.qcloud.com;
     ">
     <title>NIKKE CDK Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=LXGW+WenKai&display=swap" rel="stylesheet">
     <script src="/Nikke-CDK-Tool/global-polyfill.js"></script>
-    <script type="module" crossorigin src="/Nikke-CDK-Tool/assets/index-1d160dfc.js"></script>
-    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/vue-85abc9fb.js">
-    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/element-plus-39830144.js">
+    <script type="module" crossorigin src="/Nikke-CDK-Tool/assets/index-ade7e623.js"></script>
+    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/vue-b56846b3.js">
+    <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/element-plus-d981e809.js">
     <link rel="modulepreload" crossorigin href="/Nikke-CDK-Tool/assets/axios-3a665b0f.js">
-    <link rel="stylesheet" href="/Nikke-CDK-Tool/assets/index-17cc5bc5.css">
+    <link rel="stylesheet" href="/Nikke-CDK-Tool/assets/index-cb0f8dfe.css">
   </head>
   <body>
     <div id="app"></div>
