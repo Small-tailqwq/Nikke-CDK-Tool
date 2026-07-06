@@ -158,15 +158,16 @@ const emit = defineEmits<{
 // 继承CDK卡片的基础样式
 .cdk-group-card-wrapper.ad-card-wrapper {
   position: relative;
-  overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 
   // 卡片重叠效果
   .card-stack-bg {
     position: absolute;
-    width: 100%;
-    height: 100%;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     border-radius: 8px;
     background: var(--el-bg-color, #ffffff);
     border: 1px solid var(--el-border-color-light);
@@ -175,11 +176,15 @@ const emit = defineEmits<{
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 
     &.card-stack-1 {
-      transform: translate(2px, 2px) rotate(0.5deg);
+      left: 2px;
+      top: 2px;
+      transform: rotate(0.5deg);
     }
 
     &.card-stack-2 {
-      transform: translate(4px, 4px) rotate(1deg);
+      left: 4px;
+      top: 4px;
+      transform: rotate(1deg);
     }
   }
 
@@ -193,11 +198,15 @@ const emit = defineEmits<{
       opacity: 0.15;
 
       &.card-stack-1 {
-        transform: translate(3px, 3px) rotate(0.8deg);
+        left: 3px;
+        top: 3px;
+        transform: rotate(0.8deg);
       }
 
       &.card-stack-2 {
-        transform: translate(6px, 6px) rotate(1.5deg);
+        left: 6px;
+        top: 6px;
+        transform: rotate(1.5deg);
       }
     }
   }
@@ -226,7 +235,7 @@ const emit = defineEmits<{
   .cdk-group-card.ad-card:hover {
     animation: adCardHoverEnter 0.26s cubic-bezier(0.22, 0.61, 0.36, 1);
     box-shadow: 0 18px 36px rgba(240, 147, 251, 0.28);
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-6px);
   }
 
   .cdk-group-card.ad-card:hover .cdk-image img {
@@ -304,15 +313,15 @@ const emit = defineEmits<{
 
 @keyframes adCardHoverEnter {
   0% {
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 
   55% {
-    transform: translateY(-7px) scale(1.022);
+    transform: translateY(-7px);
   }
 
   100% {
-    transform: translateY(-6px) scale(1.02);
+    transform: translateY(-6px);
   }
 }
 
