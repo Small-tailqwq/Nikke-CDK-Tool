@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>字体预览 - 大图查看器背面</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alex+Brush&family=Caveat&family=Cedarville+Cursive&family=Dancing+Script:wght@400;700&family=Great+Vibes&family=LXGW+WenKai&family=Noto+Serif+SC:wght@400;700&family=Pacifico&family=Playwrite+CU&family=Satisfy&family=Tangerine:wght@400;700&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #2a1f14;
+      color: #e8dcc8;
+      font-family: system-ui, sans-serif;
+      padding: 32px 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 8px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+    }
+
+    .sub {
+      text-align: center;
+      font-size: 13px;
+      color: #a09078;
+      margin-bottom: 32px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* --- 明信片背面卡片 --- */
+    .card {
+      background:
+        linear-gradient(90deg, transparent 49.6%, rgba(116, 82, 48, 0.24) 49.8%, rgba(116, 82, 48, 0.24) 50.2%, transparent 50.4%),
+        radial-gradient(circle at 16% 18%, rgba(120, 84, 48, 0.12) 0 1px, transparent 1.5px),
+        radial-gradient(circle at 84% 78%, rgba(120, 84, 48, 0.10) 0 1px, transparent 1.5px),
+        linear-gradient(135deg, #f3e1bd 0%, #dec293 52%, #c9a878 100%);
+      color: rgba(58, 42, 25, 0.82);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: default;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+
+    .card-inner {
+      margin: 14px;
+      border: 1px solid rgba(89, 63, 36, 0.2);
+      border-radius: 7px;
+      padding: 20px 18px;
+      min-height: 180px;
+      position: relative;
+      background:
+        repeating-linear-gradient(
+          -12deg,
+          rgba(255, 255, 255, 0.06) 0 8px,
+          transparent 8px 18px
+        );
+    }
+
+    .card-label {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: rgba(58, 42, 25, 0.5);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(89, 63, 36, 0.15);
+      padding-bottom: 6px;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .card-label .tags {
+      display: flex;
+      gap: 6px;
+    }
+
+    .card-label .tag {
+      background: rgba(89, 63, 36, 0.1);
+      padding: 0 6px;
+      border-radius: 3px;
+      font-size: 10px;
+    }
+
+    /* 标题位置 */
+    .card-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      margin-bottom: 12px;
+    }
+
+    /* 日期位置 */
+    .card-date {
+      text-align: right;
+      font-size: 16px;
+      font-weight: 600;
+      position: absolute;
+      bottom: 20px;
+      right: 18px;
+    }
+
+    /* 正文区域 */
+    .card-body {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+
+    .card-body p {
+      margin-bottom: 6px;
+    }
+
+    /* 高亮当前选中 */
+    .card.highlight {
+      outline: 2px solid #f0c040;
+      outline-offset: 3px;
+    }
+
+    .card.highlight::after {
+      content: '✓ 当前使用';
+      position: absolute;
+      top: -10px;
+      right: 8px;
+      background: #f0c040;
+      color: #2a1f14;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-family: system-ui, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <h1>🃏 大图查看器背面 · 字体预览</h1>
+  <p class="sub">点击卡片复制该字体组合名称</p>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    // 字体组合配置
+    const combos = [
+      {
+        id: 'greatvibes-wenkai',
+        label: 'Great Vibes + LXGW WenKai',
+        tags: ['英:花体连写', '中:楷体'],
+        family: "'Great Vibes', 'LXGW WenKai', 'KaiTi', serif",
+        highlight: true,
+        body: '当前使用的组合。英文花体优雅连写，中文楷体书法风。'
+      },
+      {
+        id: 'alexbrush-wenkai',
+        label: 'Alex Brush + LXGW WenKai',
+        tags: ['英:花体连写'],
+        family: "'Alex Brush', 'LXGW WenKai', 'KaiTi', serif",
+        body: '与 Great Vibes 相似的优雅连写，字形略圆润。'
+      },
+      {
+        id: 'tangerine-wenkai',
+        label: 'Tangerine + LXGW WenKai',
+        tags: ['英:窄花体'],
+        family: "'Tangerine', 'LXGW WenKai', 'KaiTi', serif",
+        body: '窄长高雅的花体，适合正式场合风格。'
+      },
+      {
+        id: 'dancing-wenkai',
+        label: 'Dancing Script + LXGW WenKai',
+        tags: ['英:弹跳连写'],
+        family: "'Dancing Script', 'LXGW WenKai', 'KaiTi', serif",
+        body: '活泼弹跳的连写体，轻松随性。'
+      },
+      {
+        id: 'satisfy-wenkai',
+        label: 'Satisfy + LXGW WenKai',
+        tags: ['英:中等连写'],
+        family: "'Satisfy', 'LXGW WenKai', 'KaiTi', serif",
+        body: '自然流暢的手写连写，介于正式与隨性之间。'
+      },
+      {
+        id: 'cedarville-wenkai',
+        label: 'Cedarville Cursive + LXGW WenKai',
+        tags: ['英:手写风'],
+        family: "'Cedarville Cursive', 'LXGW WenKai', 'KaiTi', serif",
+        body: '更加个性化的手写风格，像真实笔迹。'
+      },
+      {
+        id: 'pacifico-wenkai',
+        label: 'Pacifico + LXGW WenKai',
+        tags: ['英:圆润花体'],
+        family: "'Pacifico', 'LXGW WenKai', 'KaiTi', serif",
+        body: '圆润轻松的连写，有复古招牌感。'
+      },
+      {
+        id: 'playwrite-wenkai',
+        label: 'Playwrite CU + LXGW WenKai',
+        tags: ['英:现代连写'],
+        family: "'Playwrite CU', 'LXGW WenKai', 'KaiTi', serif",
+        body: '现代教育的书写体连写，清晰流暢。'
+      },
+      {
+        id: 'caveat-wenkai',
+        label: 'Caveat + LXGW WenKai',
+        tags: ['英:手写连写'],
+        family: "'Caveat', 'LXGW WenKai', 'KaiTi', serif",
+        body: '轻松的手写体，带自然倾斜。'
+      },
+      {
+        id: 'greatvibes-noto',
+        label: 'Great Vibes + Noto Serif SC',
+        tags: ['英:花体连写', '中:宋体'],
+        family: "'Great Vibes', 'Noto Serif SC', 'STSong', serif",
+        body: '花体英文 + 宋体中文，古典印刷风。'
+      },
+      {
+        id: 'greatvibes-zcool',
+        label: 'Great Vibes + ZCOOL QingKe HuangYou',
+        tags: ['英:花体连写', '中:标题体'],
+        family: "'Great Vibes', 'ZCOOL QingKe HuangYou', sans-serif",
+        body: '花体英文 + 艺术标题中文，现代活泼。'
+      },
+      {
+        id: 'alexbrush-noto',
+        label: 'Alex Brush + Noto Serif SC',
+        tags: ['英:花体连写', '中:宋体'],
+        family: "'Alex Brush', 'Noto Serif SC', 'STSong', serif",
+        body: 'Alex Brush 花体 + 宋体，典雅搭配。'
+      }
+    ];
+
+    const grid = document.getElementById('grid');
+
+    const sampleTitle = '限时兑换活动 UNBREAKABLE MEMORIES';
+    const sampleDate = '收录时间：2026-07-02';
+    const sampleBody = [
+      'LIGHT OF VICTORY I step into the light...',
+      '胜利之光 我步入光芒之中',
+      '希望の光 私は光の中へ歩み出す'
+    ];
+
+    combos.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'card' + (c.highlight ? ' highlight' : '');
+
+      if (c.highlight) {
+        card.style.outline = '2px solid #f0c040';
+        card.style.outlineOffset = '3px';
+      }
+
+      card.innerHTML = `
+        <div class="card-inner" style="font-family: ${c.family}">
+          <div class="card-label">
+            <span>${c.label}</span>
+            <span class="tags">${c.tags.map(t => `<span class="tag">${t}</span>`).join('')}</span>
+          </div>
+          <div class="card-title">${sampleTitle}</div>
+          <div class="card-body">
+            ${sampleBody.map(l => `<p>${l}</p>`).join('')}
+            <p style="margin-top:8px;opacity:0.7">${c.body}</p>
+          </div>
+          <div class="card-date">${sampleDate}</div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        const text = `font-family: ${c.family};`;
+        navigator.clipboard.writeText(text).then(() => {
+          const orig = card.style.outline;
+          card.style.outline = '2px solid #4caf50';
+          card.style.outlineOffset = '3px';
+          setTimeout(() => {
+            card.style.outline = orig;
+          }, 1200);
+        }).catch(() => {
+          prompt('复制以下内容：', text);
+        });
+      });
+
+      card.title = '点击复制 font-family 代码';
+
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>

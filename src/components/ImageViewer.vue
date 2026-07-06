@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
     radial-gradient(circle at 84% 78%, rgba(120, 84, 48, 0.10) 0 1px, transparent 1.5px),
     linear-gradient(135deg, #f3e1bd 0%, #dec293 52%, #c9a878 100%);
   color: rgba(58, 42, 25, 0.78);
-  font-family: var(--cdk-font-mono, ui-monospace, SFMono-Regular, Consolas, monospace);
+  font-family: 'Dancing Script', 'LXGW WenKai', 'KaiTi', 'STKaiti', 'Yu Kyokasho', 'YuMincho', serif;
 
   &::before {
     content: '';

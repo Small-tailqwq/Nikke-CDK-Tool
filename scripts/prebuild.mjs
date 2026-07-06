@@ -85,9 +85,9 @@ async function generateThumbnails() {
       { width: 640, height: 360, suffix: '_thumb@2x' }
     ];
 
-    const supportedFormats = ['.jpg', '.jpeg', '.png', '.webp'];
+    const supportedFormats = ['.jpg', '.jpeg', '.png'];
 
-    // 读取主目录中的图片文件
+    // 读取主目录中的原始图片文件（排除自动生成的 .webp）
     const files = await fs.readdir(IMAGE_DIR);
     const imageFiles = files.filter(file => {
       const ext = path.extname(file).toLowerCase();
@@ -139,12 +139,90 @@ async function generateThumbnails() {
 }
 
 /**
+ * Generate medium-size images for the image viewer (lightbox)
+ * Medium images are significantly smaller than originals but retain good quality for screen viewing.
+ * @returns {Promise<void>}
+ */
+async function generateMediumImages() {
+  try {
+    console.log('🖼️  生成中等尺寸图片（大图查看器专用）...');
+
+    const MEDIUM_DIR = path.join(IMAGE_DIR, 'medium');
+
+    // 确保目录存在
+    await fs.mkdir(MEDIUM_DIR, { recursive: true });
+
+    // 中等尺寸配置（保持宽高比，仅限制宽度）
+    const mediumSizes = [
+      { width: 1600, suffix: '_medium', label: '1x' },
+      { width: 2400, suffix: '_medium@2x', label: '2x' }
+    ];
+
+    const supportedFormats = ['.jpg', '.jpeg', '.png'];
+
+    // 读取主目录中的图片文件
+    const files = await fs.readdir(IMAGE_DIR);
+    const imageFiles = files.filter(file => {
+      const ext = path.extname(file).toLowerCase();
+      return supportedFormats.includes(ext);
+    });
+
+    if (imageFiles.length === 0) {
+      console.log('📁 未找到支持的图片文件');
+      return;
+    }
+
+    console.log(`📁 发现 ${imageFiles.length} 张图片需要生成中等尺寸版本...`);
+
+    let successCount = 0;
+    for (const filename of imageFiles) {
+      const inputPath = path.join(IMAGE_DIR, filename);
+      const baseName = path.basename(filename, path.extname(filename));
+
+      try {
+        for (const size of mediumSizes) {
+          const outputFilename = `${baseName}${size.suffix}.webp`;
+          const outputPath = path.join(MEDIUM_DIR, outputFilename);
+
+          const sharp = await import('sharp');
+          await sharp.default(inputPath)
+            .resize({
+              width: size.width,
+              withoutEnlargement: true,
+              fit: 'inside'
+            })
+            .webp({ quality: 82 })
+            .toFile(outputPath);
+        }
+
+        console.log(`✅ 已生成 ${baseName} 的中等尺寸图片`);
+        successCount++;
+      } catch (error) {
+        console.error(`❌ 生成 ${filename} 中等尺寸图片失败:`, error.message);
+      }
+    }
+
+    console.log(`🎉 中等尺寸图片生成完成! (${successCount}/${imageFiles.length})`);
+
+  } catch (error) {
+    console.error('❌ 中等尺寸图片生成失败:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Process images in the directory - convert to WebP if needed
  * @returns {Promise<void>}
  */
 async function processImages() {
   // Generate thumbnails from main directory images
   await generateThumbnails();
+
+  // Generate medium-size images for the image viewer
+  await generateMediumImages();
+
+  // Convert originals to WebP for smaller file sizes
+  await processImageDirectory(IMAGE_DIR);
 }
 
 /**

@@ -90,7 +90,6 @@
       :items="filteredCdks"
       :column-width="220"
       :gap="20"
-      :edge-padding="56"
       :get-item-key="getCdkKey"
     >
       <template #default="{ item: cdk, index }">
@@ -251,7 +250,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { Document, InfoFilled, Picture } from '@element-plus/icons-vue'
-import { getImageUrl, getImageSrcset, getOriginalImageUrl } from '@/utils/imageUtils'
+import { getImageUrl, getImageSrcset, getMediumImageUrl } from '@/utils/imageUtils'
 import {
   fetchCdkList,
   isCDKGroup,
@@ -314,7 +313,7 @@ const viewerTitle = ref('')
 const viewerCollectedAt = ref('')
 function openViewer(cdk: SingleCDK) {
   if (!cdk.image) return
-  viewerUrl.value = getOriginalImageUrl(cdk.image)
+  viewerUrl.value = getMediumImageUrl(cdk.image)
   viewerTitle.value = cdk.name || cdk.code || 'CDK图片'
   viewerCollectedAt.value = cdk.created || ''
   viewerVisible.value = true
@@ -864,13 +863,13 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .cdk-announcement {
-  padding: 20px;
+  padding: 20px 20px 68px;
   max-width: 100%;
   box-sizing: border-box;
   overflow: visible;
 
   @media screen and (max-width: 768px) {
-    padding: 12px;
+    padding: 12px 12px 60px;
   }
 }
 

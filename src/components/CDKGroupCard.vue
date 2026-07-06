@@ -291,7 +291,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
-import { getImageUrl, getImageSrcset, getOriginalImageUrl } from '@/utils/imageUtils'
+import { getImageUrl, getImageSrcset, getMediumImageUrl } from '@/utils/imageUtils'
 import type { CDKGroup } from '../utils/fetchCdk'
 import {
   getGroupTotalReward,
@@ -335,7 +335,7 @@ const viewerTitle = ref('')
 const viewerCollectedAt = ref('')
 function openViewer(image: string) {
   if (!image) return
-  viewerUrl.value = getOriginalImageUrl(image)
+  viewerUrl.value = getMediumImageUrl(image)
   viewerTitle.value = props.group.groupName || props.group.groupId || 'CDK组合'
   viewerCollectedAt.value = getEarliestGroupCreated()
   viewerVisible.value = true
