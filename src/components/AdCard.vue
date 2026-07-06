@@ -11,7 +11,7 @@
       :class="adBlockerClass"
       v-show="!isBlocked"
     >
-      <!-- 卡片重叠效果的背景层 -->
+      <!-- 卡片重叠效果的背景层 - 使用 clip-path 防止水平溢出 -->
       <div class="card-stack-bg card-stack-1"></div>
       <div class="card-stack-bg card-stack-2"></div>
 
@@ -22,7 +22,7 @@
           'ad-available': true,
           expanding: false,
         }"
-        body-style="padding: 0; display: flex; flex-direction: column;"
+        body-style="padding: 0; display: flex; flex-direction: column; overflow: hidden;"
         @click="handleCardClick"
       >
         <!-- 关闭按钮 -->
@@ -167,33 +167,26 @@ const emit = defineEmits<{
     z-index: 6;
   }
 
-  // 卡片重叠效果
+  // 卡片重叠效果 − 用 width/height calc + transform 确保不产生任何水平溢出
   .card-stack-bg {
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    width: calc(100% - 4px);
+    height: calc(100% - 4px);
     border-radius: 8px;
     background: var(--el-bg-color, #ffffff);
     border: 1px solid var(--el-border-color-light);
     opacity: 0.1;
     z-index: -1;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
 
     &.card-stack-1 {
-      left: 2px;
-      top: 2px;
-      transform: rotate(0.5deg);
+      transform: translate(2px, 2px) rotate(0.5deg);
     }
 
     &.card-stack-2 {
-      left: 4px;
-      top: 4px;
-      transform: rotate(1deg);
+      transform: translate(4px, 4px) rotate(1deg);
     }
   }
-
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -204,15 +197,11 @@ const emit = defineEmits<{
       opacity: 0.15;
 
       &.card-stack-1 {
-        left: 3px;
-        top: 3px;
-        transform: rotate(0.8deg);
+        transform: translate(3px, 3px) rotate(0.8deg);
       }
 
       &.card-stack-2 {
-        left: 6px;
-        top: 6px;
-        transform: rotate(1.5deg);
+        transform: translate(6px, 6px) rotate(1.5deg);
       }
     }
   }
@@ -372,6 +361,8 @@ const emit = defineEmits<{
   color: var(--el-text-color-regular, #666);
   line-height: 1.5;
   flex: 1;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
   transition: color 0.3s ease; /* 添加主题切换动画 */
 }
 

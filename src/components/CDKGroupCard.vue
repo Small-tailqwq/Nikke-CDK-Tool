@@ -289,7 +289,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
 import { getImageUrl, getImageSrcset, getMediumImageUrl } from '@/utils/imageUtils'
 import type { CDKGroup } from '../utils/fetchCdk'
@@ -324,6 +324,14 @@ const { onPointerEnter, onPointerMove, onPointerLeave } = useCardTilt()
 
 // 展开状态
 const isExpanded = ref(false)
+
+watch(isExpanded, (val) => {
+  if (val) {
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = ''
+  }
+})
 
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
