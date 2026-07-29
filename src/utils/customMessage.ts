@@ -148,10 +148,15 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
         flex-shrink: 0;
         font-weight: bold;
       ">${icon}</span>
-      <span style="flex:1">${message}</span>
+      <span class="custom-message-text" style="flex:1"></span>
       ${persistent ? '<span class="custom-message-close" style="cursor:pointer;flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;opacity:0.8;font-size:16px;line-height:1;user-select:none;">✕</span>' : ''}
     </div>
   `
+
+  const messageTextEl = messageEl.querySelector('.custom-message-text')
+  if (messageTextEl) {
+    messageTextEl.textContent = message
+  }
 
   // 添加到共享容器
   appendToContainer(messageEl)

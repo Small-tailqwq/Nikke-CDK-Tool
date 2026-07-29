@@ -292,9 +292,6 @@ export const getExchangeHistory = async (cookie, page = 1, pageSize = 20) => {
       page_size: pageSize,
     }
 
-    // 添加请求负载日志
-    console.log(`发送历史记录请求负载:`, JSON.stringify(requestPayload))
-
     // 发送请求时始终包含完整负载
     const response = await api.post('/global/history', requestPayload)
 

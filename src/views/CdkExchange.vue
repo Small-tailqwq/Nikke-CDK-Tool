@@ -333,9 +333,6 @@ const form = reactive({
 const selectUserFromParam = (userId) => {
   if (!userId) return
 
-  // 日志记录所有用户，帮助调试
-  console.log('当前用户列表:', userStore.users)
-
   // 首先检查用户是否已加载
   const user = userStore.getUserById(userId)
   if (user) {
@@ -349,7 +346,6 @@ const selectUserFromParam = (userId) => {
     userStore
       .fetchUsers()
       .then(() => {
-        console.log('重新加载后的用户列表:', userStore.users)
         const refreshedUser = userStore.getUserById(userId)
         if (refreshedUser) {
           console.log('重新加载后找到用户:', refreshedUser.name, '用户ID:', refreshedUser.id)

@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 
 // --- Configuration ---
 const __filename = fileURLToPath(import.meta.url);
@@ -51,7 +51,7 @@ async function convertToWebP(inputPath, outputPath) {
     } catch (sharpError) {
       // Fallback to cwebp command line tool
       try {
-        execSync(`cwebp -q 80 "${inputPath}" -o "${outputPath}"`, { stdio: 'pipe' });
+        execFileSync('cwebp', ['-q', '80', inputPath, '-o', outputPath], { stdio: 'pipe' });
         console.log(`✅ 使用 cwebp 转换 ${path.basename(inputPath)} 为 WebP 格式`);
         return true;
       } catch (cwebpError) {
@@ -296,7 +296,7 @@ async function ensureDoroIconWebp() {
 
     // Fallback to cwebp
     try {
-      execSync(`cwebp -q 80 "${pngPath}" -o "${webpOut}"`, { stdio: 'pipe' });
+      execFileSync('cwebp', ['-q', '80', pngPath, '-o', webpOut], { stdio: 'pipe' });
       console.log('✅ 使用 cwebp 生成 public/doro_icon.webp');
     } catch (err) {
       console.warn('⚠️  未能生成 doro_icon.webp，请安装 sharp 或 cwebp');

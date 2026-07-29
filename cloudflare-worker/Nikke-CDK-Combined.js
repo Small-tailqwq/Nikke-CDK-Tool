@@ -1306,6 +1306,15 @@ async function handleDirectLogin(request, env) {
   const userAgent = request.headers.get('User-Agent') || ''
 
   try {
+    if (!isAllowedCorsOrigin(origin)) {
+      return new Response(JSON.stringify({
+        code: -1, message: '不允许的请求来源'
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+      })
+    }
+
     const { email, password, ticket, randstr, captchaAppId } = await request.json()
 
     if (!email || !password) {
@@ -1316,6 +1325,9 @@ async function handleDirectLogin(request, env) {
         headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
       })
     }
+
+    const rateLimitResponse = await enforceLoginRateLimit(request, env)
+    if (rateLimitResponse) return rateLimitResponse
 
     const passwordMd5 = md5(password)
 
@@ -2541,6 +2553,70 @@ function isAllowedCorsOrigin(origin) {
     return false
   }
   return false
+}
+
+const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 10 * 60
+const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5
+
+async function enforceLoginRateLimit(request, env) {
+  const origin = request.headers.get('Origin')
+  if (!env.TOKEN_KV) {
+    return new Response(JSON.stringify({
+      code: -1, message: '登录服务暂不可用'
+    }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) }
+    })
+  }
+
+  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
+  const source = new TextEncoder().encode(clientIp)
+  const digest = await crypto.subtle.digest('SHA-256', source)
+  const bucketId = Array.from(
+    new Uint8Array(digest),
+    byte => byte.toString(16).padStart(2, '0')
+  ).join('')
+  const key = `login-rate:${bucketId}`
+  const now = Date.now()
+  const stored = await env.TOKEN_KV.get(key)
+  let windowStartedAt = now
+  let attempts = 0
+
+  if (stored) {
+    try {
+      const current = JSON.parse(stored)
+      const storedWindowStartedAt = Number(current?.windowStartedAt)
+      if (Number.isFinite(storedWindowStartedAt) &&
+        now - storedWindowStartedAt < LOGIN_RATE_LIMIT_WINDOW_SECONDS * 1000) {
+        windowStartedAt = storedWindowStartedAt
+        attempts = Number(current?.attempts) || 0
+      }
+    } catch {
+      // 损坏或旧格式的限流记录从新窗口重新计数
+    }
+  }
+
+  if (attempts >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
+    return new Response(JSON.stringify({
+      code: -1, message: '登录尝试过于频繁，请稍后再试'
+    }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': String(LOGIN_RATE_LIMIT_WINDOW_SECONDS),
+        ...corsHeaders(origin)
+      }
+    })
+  }
+
+  await env.TOKEN_KV.put(key, JSON.stringify({
+    windowStartedAt,
+    attempts: attempts + 1
+  }), {
+    expirationTtl: LOGIN_RATE_LIMIT_WINDOW_SECONDS
+  })
+
+  return null
 }
 
 // CORS响应头
