@@ -82,7 +82,7 @@ export async function decryptCookieData(encryptedBase64, sid, token) {
     return result
   } catch (error) {
     console.error('[Cookie解密] 失败:', error)
-    throw new Error('Cookie 解密失败: ' + error.message)
+    throw new Error('Cookie 解密失败: ' + error.message, { cause: error })
   }
 }
 
@@ -123,7 +123,7 @@ export async function decryptCookieDataLegacy(encryptedBase64, sid) {
     return decoder.decode(decrypted)
   } catch (error) {
     console.error('[Cookie解密-旧版] 失败:', error)
-    throw new Error('Cookie 解密失败（旧版格式）')
+    throw new Error('Cookie 解密失败（旧版格式）', { cause: error })
   }
 }
 

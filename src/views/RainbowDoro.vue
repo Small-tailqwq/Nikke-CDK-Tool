@@ -368,11 +368,12 @@ function drawAliens() {
         // 之字形运动
         alien.y = alien.baseY + Math.sin(alien.x * 0.05) * 60
         break
-      case 'rocket':
+      case 'rocket': {
         // 火箭抛物线运动
         const progress = alien.x / (w + 300)
         alien.y = alien.baseY - Math.sin(progress * Math.PI) * 100
         break
+      }
       case 'straight':
         // 直线运动（星球）
         // Y坐标不变，保持直线

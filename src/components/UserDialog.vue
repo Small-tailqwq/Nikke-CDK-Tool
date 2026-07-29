@@ -625,7 +625,7 @@ const parseApplicationCookie = (cookieStr) => {
 
   // 计算过期时间
   let expireDays = 30 // 默认30天
-  let expireDate = null
+  let expireDate
 
   if (gameTokenExpireDate) {
     const now = new Date()

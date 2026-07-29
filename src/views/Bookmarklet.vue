@@ -64,7 +64,7 @@ const bookmarkletCode = `(() => {
     }
 
     // 从 cookie 优先获取；缺失时从 LS 回退
-    const gameIdFromCookie = cookieMap['game_gameid'] || (document.cookie.match(/__ss_storage_cookie_cache_game_id__=(\d+)/)?.[1]) || '';
+    const gameIdFromCookie = cookieMap['game_gameid'] || (document.cookie.match(/__ss_storage_cookie_cache_game_id__=(\\d+)/)?.[1]) || '';
     const game_id = gameIdFromCookie || '29080';
 
   // 选择正确的 game_token：优先 cookie；LS 中顶层 lip.token 才是游戏侧 token，channel_info.token 仍是 LI Pass token
@@ -124,7 +124,9 @@ function goOfficial() {
   let w = null
   try {
     w = window.open(loginUrl, 'nikkeLoginWin')
-  } catch {}
+  } catch {
+    w = null
+  }
 
   // 被拦截则回退为同标签跳转
   if (!w) {

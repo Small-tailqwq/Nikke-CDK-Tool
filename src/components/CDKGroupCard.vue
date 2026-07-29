@@ -87,7 +87,7 @@
           <h4>包含CDK：</h4>
           <div class="cdk-codes-preview">
             <el-tag
-              v-for="(cdkInfo, index) in getDisplayCdkInfo()"
+              v-for="cdkInfo in getDisplayCdkInfo()"
               :key="cdkInfo.code"
               size="small"
               class="code-preview-tag"

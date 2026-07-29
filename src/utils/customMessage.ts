@@ -1,4 +1,10 @@
 // ========== 通知容器管理 ==========
+import {
+  isInstallable,
+  installNow,
+  dismissInstallPrompt,
+} from './installPrompt'
+
 const CONTAINER_ID = 'custom-notification-container'
 
 function getOrCreateContainer(): HTMLElement {
@@ -177,6 +183,92 @@ export const showCustomMessage = (message: string = 'CDK已复制到剪贴板', 
   if (!persistent) {
     setTimeout(hideMessage, duration)
   }
+}
+
+// ========= PWA 安装引导弹窗 =========
+// 接入现有通知容器，可手动关闭；点「不再提示」后不再弹出。
+let installPromptShown = false
+
+export const showInstallPrompt = () => {
+  // 仅在浏览器支持且用户未关闭过时展示，且同一会话只弹一次
+  if (installPromptShown || !isInstallable()) return
+  installPromptShown = true
+
+  const el = document.createElement('div')
+  el.className = 'custom-notification-item custom-install-prompt'
+  el.innerHTML = `
+    <div style="
+      background: #2b2b2b;
+      color: #fff;
+      padding: 14px 16px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      font-size: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    ">
+      <div style="display:flex; align-items:flex-start; gap:8px;">
+        <span style="
+          flex-shrink:0;
+          width:22px; height:22px;
+          display:inline-flex; align-items:center; justify-content:center;
+          background: rgba(255,255,255,0.15);
+          border-radius:6px; font-size:13px; font-weight:bold;
+        ">APP</span>
+        <div style="flex:1; line-height:1.4;">
+          <div style="font-weight:600; margin-bottom:4px;">安装为应用</div>
+          <div style="font-size:13px; opacity:0.9;">安装后可作独立窗口使用，登录系统即可自动执行每日 BlaBla 任务。</div>
+        </div>
+        <span class="install-prompt-close" style="
+          cursor:pointer; flex-shrink:0;
+          width:20px; height:20px;
+          display:flex; align-items:center; justify-content:center;
+          border-radius:4px; opacity:0.7; font-size:16px; line-height:1; user-select:none;
+        ">✕</span>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="install-prompt-dismiss" style="
+          cursor:pointer; border:1px solid rgba(255,255,255,0.35);
+          background:transparent; color:#fff;
+          padding:6px 12px; border-radius:6px; font-size:13px; font-family:inherit;
+        ">不再提示</button>
+        <button class="install-prompt-install" style="
+          cursor:pointer; border:none;
+          background:#fff; color:#2b2b2b;
+          padding:6px 14px; border-radius:6px; font-size:13px; font-weight:600; font-family:inherit;
+        ">安装应用</button>
+      </div>
+    </div>
+  `
+
+  appendToContainer(el)
+
+  const hide = () => removeFromContainer(el)
+
+  const closeBtn = el.querySelector('.install-prompt-close')
+  if (closeBtn) closeBtn.addEventListener('click', () => {
+    dismissInstallPrompt()
+    hide()
+  })
+
+  const dismissBtn = el.querySelector('.install-prompt-dismiss')
+  if (dismissBtn) dismissBtn.addEventListener('click', () => {
+    dismissInstallPrompt()
+    hide()
+  })
+
+  const installBtn = el.querySelector('.install-prompt-install')
+  if (installBtn) installBtn.addEventListener('click', async () => {
+    const accepted = await installNow()
+    hide()
+    // 用户取消安装时不标记“不再提示”，下次仍可引导
+    if (accepted) {
+      installPromptShown = false
+    }
+  })
 }
 
 // 进度提示工具函数
@@ -396,4 +488,4 @@ export class ProgressMessage {
     this.progressBarEl = null
     this.progressTextEl = null
   }
-} 
+}

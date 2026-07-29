@@ -237,7 +237,6 @@ const selectedServer = ref('')
 const selectedSource = ref('')
 const currentPage = ref(1)
 const pageSize = ref(20)
-const total = ref(0)
 const syncLoading = ref(false)
 
 // 清除历史相关
@@ -284,12 +283,12 @@ const getFilteredRecords = () => {
   return list
 }
 
+const filteredRecords = computed(() => getFilteredRecords())
+const total = computed(() => filteredRecords.value.length)
+
 // 计算属性：根据选择的用户、服务器和分页过滤历史记录
 const historyList = computed(() => {
-  const list = getFilteredRecords()
-
-  // 计算总数
-  total.value = list.length
+  const list = filteredRecords.value
 
   // 分页
   const start = (currentPage.value - 1) * pageSize.value

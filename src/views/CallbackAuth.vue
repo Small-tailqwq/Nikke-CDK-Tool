@@ -226,7 +226,7 @@ async function fetchAuthDataByToken(token) {
         derived.value = responseData.derived || {}
       } catch (decryptError) {
         console.error('❌ Cookie解密失败:', decryptError)
-        throw new Error('Cookie解密失败: ' + decryptError.message)
+        throw new Error('Cookie解密失败: ' + decryptError.message, { cause: decryptError })
       }
     } else {
       // 旧版明文数据（向后兼容）
@@ -314,7 +314,9 @@ function deriveCore(ls) {
     let lip = {}
     try {
       lip = JSON.parse(ls?.['lip-user-info'] || '{}')
-    } catch {}
+    } catch {
+      lip = {}
+    }
     const ci = lip.channel_info || {}
     let extra = lip.extra_json || {}
     if (typeof extra === 'string') {
@@ -343,7 +345,9 @@ function deriveCookieFromLS(ls) {
     let lip = {}
     try {
       lip = JSON.parse(ls?.['lip-user-info'] || '{}')
-    } catch {}
+    } catch {
+      lip = {}
+    }
     const ci = lip.channel_info || {}
     let extra = lip.extra_json || {}
     if (typeof extra === 'string') {

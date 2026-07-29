@@ -75,7 +75,7 @@ const showWhitelistGuide = async () => {
           3. 选择"在此网站上"
         </div>
         <p style="color: #909399; font-size: 12px; margin-bottom: 0;">
-          谢谢你的支持！这并不会帮助我们继续提供免费的工具服务 ❤️<br \>*本广告无任何收益
+          谢谢你的支持！这并不会帮助我们继续提供免费的工具服务 ❤️<br />*本广告无任何收益
         </p>
       </div>`,
       '设置白名单指南',

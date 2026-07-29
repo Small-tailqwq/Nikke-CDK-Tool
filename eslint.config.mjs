@@ -1,27 +1,48 @@
-import { FlatCompat } from '@eslint/eslintrc'
+import tsParser from '@typescript-eslint/parser'
 import js from '@eslint/js'
-import path from 'path'
-import { fileURLToPath } from 'url'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-})
+import prettierConfig from '@vue/eslint-config-prettier'
+import vuePlugin from 'eslint-plugin-vue'
+import globals from 'globals'
+import vueParser from 'vue-eslint-parser'
 
 export default [
-  ...compat.config({
-    root: true,
-    env: { browser: true, es2021: true, node: true },
-    extends: [
-      'eslint:recommended',
-      'plugin:vue/vue3-recommended',
-      '@vue/eslint-config-prettier',
-    ],
-    parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
+  js.configs.recommended,
+  ...vuePlugin.configs['flat/recommended'],
+  {
+    files: ['**/*.{js,mjs,ts,vue}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
     rules: {
       'vue/multi-word-component-names': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
     },
-  }),
+  },
+  {
+    files: ['**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+  },
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tsParser,
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+  },
+  prettierConfig,
 ]

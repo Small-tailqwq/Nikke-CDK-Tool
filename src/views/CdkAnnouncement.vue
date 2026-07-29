@@ -92,7 +92,7 @@
       :gap="20"
       :get-item-key="getCdkKey"
     >
-      <template #default="{ item: cdk, index }">
+      <template #default="{ item: cdk }">
         <!-- 广告卡片 -->
         <AdCard
           v-if="isAdData(cdk)"

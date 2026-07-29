@@ -214,7 +214,7 @@ const DoroSummonAnimation = defineAsyncComponent(
 import { runBlaTasks } from './utils/blaSigner'
 import { getBlaTodayKey, hasUserBlaRunToday } from './utils/blaRunState'
 import { notifyBlaRunCompletion } from './utils/browserNotification'
-import { showCustomMessage, ProgressMessage } from './utils/customMessage'
+import { showCustomMessage, ProgressMessage, showInstallPrompt } from './utils/customMessage'
 import CookieWarningAlert from './components/CookieWarningAlert.vue'
 import './assets/theme.scss'
 
@@ -398,15 +398,20 @@ watch(route, (to, from) => {
   }
 })
 
-// 初始化当前页面索引和启动各种自动检测
-onMounted(async () => {
-  currentPageIndex.value = getPageIndex(route.path)
+  // 初始化当前页面索引和启动各种自动检测
+  onMounted(async () => {
+    currentPageIndex.value = getPageIndex(route.path)
 
-  // 随机选择闪烁标题
-  currentSplashText.value = getRandomSplashText()
+    // 随机选择闪烁标题
+    currentSplashText.value = getRandomSplashText()
 
-  // 🔧 初始化每日检测状态
-  userStore.initDailyCheckStatus()
+    // PWA 安装引导：浏览器派发可安装事件后弹出（关闭后不再提示）
+    const tryShowInstall = () => showInstallPrompt()
+    window.addEventListener('pwa-installable', tryShowInstall)
+    setTimeout(tryShowInstall, 2500)
+
+    // 🔧 初始化每日检测状态
+    userStore.initDailyCheckStatus()
 
   // 🔧 每日首次访问时进行Cookie状态检测
   try {
@@ -585,6 +590,7 @@ body {
   padding: 0;
   height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--el-bg-color-page);
   color: var(--el-text-color-primary);
 }
@@ -592,17 +598,20 @@ body {
 #app {
   height: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--el-bg-color-page);
 }
 
 .app-container {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background-color: var(--el-bg-color-page);
 
   .el-container {
     min-height: 100vh;
+  min-height: 100dvh;
   }
 
   .el-header {
@@ -614,11 +623,15 @@ body {
     padding: 0;
     isolation: isolate; /* 创建新的层叠上下文，防止层级冲突 */
 
-    .header-content {
-      max-width: var(--app-max-width);
-      margin: 0 auto;
-      padding: var(--app-padding);
-      padding-bottom: 0;
+      .header-content {
+        max-width: var(--app-max-width);
+        margin: 0 auto;
+        padding: var(--app-padding);
+        padding-bottom: 0;
+        // 刘海屏安全区：顶部/左右避开系统状态栏与手势区
+        padding-top: calc(var(--app-padding) + env(safe-area-inset-top, 0px));
+        padding-left: max(var(--app-padding), env(safe-area-inset-left, 0px));
+        padding-right: max(var(--app-padding), env(safe-area-inset-right, 0px));
 
       .header-top {
         display: flex;
@@ -699,6 +712,8 @@ body {
           flex-shrink: 0;
           width: 32px;
           height: 32px;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
 
           .auto-icon {
             font-size: 14px;
@@ -706,14 +721,27 @@ body {
             color: var(--el-text-color-primary);
           }
 
-          &:hover {
-            background-color: var(--hover-bg) !important;
-            transform: translateY(-1px) scale(1.05);
+          // 仅鼠标等精确指针设备应用 hover 浮起，避免移动端点击后
+          // 卡在 :hover 态导致按钮“不回弹”
+          @media (hover: hover) and (pointer: fine) {
+            &:hover {
+              background-color: var(--hover-bg) !important;
+              transform: translateY(-1px) scale(1.05);
+            }
           }
 
           &:active {
             background-color: var(--active-bg) !important;
             transform: translateY(0) scale(1.02);
+          }
+        }
+
+        // 触摸设备：放大点击热区到 ≥40px，保证移动端可点性
+        @media (hover: none) and (pointer: coarse) {
+          .help-btn,
+          .theme-toggle-btn {
+            width: 40px;
+            height: 40px;
           }
         }
 
@@ -734,11 +762,11 @@ body {
 
           .help-btn,
           .theme-toggle-btn {
-            width: 28px;
-            height: 28px;
+            width: 38px;
+            height: 38px;
 
             .auto-icon {
-              font-size: 12px;
+              font-size: 13px;
             }
           }
         }
@@ -768,11 +796,11 @@ body {
 
           .help-btn,
           .theme-toggle-btn {
-            width: 26px;
-            height: 26px;
+            width: 36px;
+            height: 36px;
 
             .auto-icon {
-              font-size: 11px;
+              font-size: 12px;
             }
           }
         }
@@ -1209,23 +1237,28 @@ body {
     }
   }
 
-  .footer-content {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    gap: 20px;
+    .footer-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      // 刘海屏安全区：底部避开手势条
+      padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      padding-left: max(20px, env(safe-area-inset-left, 0px));
+      padding-right: max(20px, env(safe-area-inset-right, 0px));
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 20px;
 
-    @media screen and (max-width: 768px) {
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      padding: 0 16px;
+      @media screen and (max-width: 768px) {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 16px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      }
     }
-  }
 
   .footer-section {
     display: flex;

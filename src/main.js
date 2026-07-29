@@ -6,6 +6,10 @@ import 'element-plus/es/components/message/style/css'
 import 'element-plus/es/components/message-box/style/css'
 import App from './App.vue'
 import router from './router'
+import { setupInstallPrompt } from './utils/installPrompt'
+
+// 尽早注册 PWA 安装监听，确保不丢失浏览器的 beforeinstallprompt
+setupInstallPrompt()
 
 // 设置触摸事件的passive默认值为true
 // 这会消除Chrome的警告: [Violation] Added non-passive event listener to a scroll-blocking 'touchstart' event
@@ -21,7 +25,9 @@ if (window.addEventListener) {
       })
       window.addEventListener('test', null, options)
       window.removeEventListener('test', null, options)
-    } catch (err) {}
+    } catch (err) {
+      // 不支持 passive 选项时静默降级
+    }
     return passiveSupported
   })()
 
