@@ -1317,7 +1317,12 @@ async function handleDirectLogin(request, env) {
 
     const { email, password, ticket, randstr, captchaAppId } = await request.json()
 
-    if (!email || !password) {
+    if (
+      typeof email !== 'string' ||
+      !email.trim() ||
+      typeof password !== 'string' ||
+      !password
+    ) {
       return new Response(JSON.stringify({
         code: -1, message: '缺少邮箱或密码'
       }), {
@@ -1326,7 +1331,7 @@ async function handleDirectLogin(request, env) {
       })
     }
 
-    const rateLimitResponse = await enforceLoginRateLimit(request, env)
+    const rateLimitResponse = await enforceLoginFailureLimit(email, request, env)
     if (rateLimitResponse) return rateLimitResponse
 
     const passwordMd5 = md5(password)
@@ -1410,6 +1415,7 @@ async function handleDirectLogin(request, env) {
     }
 
     if (result.ret === 0 && result.is_login) {
+      await clearLoginFailures(email, env)
       const loginSetCookies = extractSetCookiesHeaders(upstreamResp)
       const loginCookieStr = buildCookieStringFromSetCookies(loginSetCookies)
       let userInfoResult = null
@@ -1573,6 +1579,7 @@ async function handleDirectLogin(request, env) {
       })
     }
 
+    await recordLoginFailure(email, env)
     const failurePayload = {
       code: -1,
       message: result.msg || 'Login failed'
@@ -2555,10 +2562,49 @@ function isAllowedCorsOrigin(origin) {
   return false
 }
 
-const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 10 * 60
-const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5
+const LOGIN_FAILURE_COOLDOWN_SECONDS = 30
+const LOGIN_FAILURE_BLOCK_SECONDS = 10 * 60
+const LOGIN_FAILURE_COOLDOWN_THRESHOLD = 2
+const LOGIN_FAILURE_BLOCK_THRESHOLD = 5
 
-async function enforceLoginRateLimit(request, env) {
+async function getLoginFailureRecord(email, env) {
+  const normalizedEmail = String(email).trim().toLowerCase()
+  const source = new TextEncoder().encode(normalizedEmail)
+  const digest = await crypto.subtle.digest('SHA-256', source)
+  const accountId = Array.from(
+    new Uint8Array(digest),
+    byte => byte.toString(16).padStart(2, '0')
+  ).join('')
+  const key = `login-failure:${accountId}`
+  const stored = await env.TOKEN_KV.get(key)
+  let state = { failures: 0, cooldownUntil: 0, blockedUntil: 0 }
+  if (stored) {
+    try {
+      const current = JSON.parse(stored)
+      state = {
+        failures: Number(current?.failures) || 0,
+        cooldownUntil: Number(current?.cooldownUntil) || 0,
+        blockedUntil: Number(current?.blockedUntil) || 0
+      }
+    } catch {
+      // 损坏或旧格式记录按无失败处理
+    }
+  }
+  return { key, state }
+}
+
+function loginRateLimitResponse(origin, retryAfter, message) {
+  return new Response(JSON.stringify({ code: -1, message }), {
+    status: 429,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(retryAfter),
+      ...corsHeaders(origin)
+    }
+  })
+}
+
+async function enforceLoginFailureLimit(email, request, env) {
   const origin = request.headers.get('Origin')
   if (!env.TOKEN_KV) {
     return new Response(JSON.stringify({
@@ -2569,54 +2615,57 @@ async function enforceLoginRateLimit(request, env) {
     })
   }
 
-  const clientIp = request.headers.get('CF-Connecting-IP') || 'unknown'
-  const source = new TextEncoder().encode(clientIp)
-  const digest = await crypto.subtle.digest('SHA-256', source)
-  const bucketId = Array.from(
-    new Uint8Array(digest),
-    byte => byte.toString(16).padStart(2, '0')
-  ).join('')
-  const key = `login-rate:${bucketId}`
   const now = Date.now()
-  const stored = await env.TOKEN_KV.get(key)
-  let windowStartedAt = now
-  let attempts = 0
-
-  if (stored) {
-    try {
-      const current = JSON.parse(stored)
-      const storedWindowStartedAt = Number(current?.windowStartedAt)
-      if (Number.isFinite(storedWindowStartedAt) &&
-        now - storedWindowStartedAt < LOGIN_RATE_LIMIT_WINDOW_SECONDS * 1000) {
-        windowStartedAt = storedWindowStartedAt
-        attempts = Number(current?.attempts) || 0
-      }
-    } catch {
-      // 损坏或旧格式的限流记录从新窗口重新计数
-    }
+  const { state } = await getLoginFailureRecord(email, env)
+  if (state.blockedUntil > now) {
+    const retryAfter = Math.max(1, Math.ceil((state.blockedUntil - now) / 1000))
+    return loginRateLimitResponse(
+      origin,
+      retryAfter,
+      `该账号登录失败次数过多，请等待 ${retryAfter} 秒后重试`
+    )
   }
-
-  if (attempts >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS) {
-    return new Response(JSON.stringify({
-      code: -1, message: '登录尝试过于频繁，请稍后再试'
-    }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': String(LOGIN_RATE_LIMIT_WINDOW_SECONDS),
-        ...corsHeaders(origin)
-      }
-    })
+  if (state.cooldownUntil > now) {
+    const retryAfter = Math.max(1, Math.ceil((state.cooldownUntil - now) / 1000))
+    return loginRateLimitResponse(
+      origin,
+      retryAfter,
+      `登录失败较为频繁，请等待 ${retryAfter} 秒后重试`
+    )
   }
-
-  await env.TOKEN_KV.put(key, JSON.stringify({
-    windowStartedAt,
-    attempts: attempts + 1
-  }), {
-    expirationTtl: LOGIN_RATE_LIMIT_WINDOW_SECONDS
-  })
-
   return null
+}
+
+async function recordLoginFailure(email, env) {
+  try {
+    const { key, state } = await getLoginFailureRecord(email, env)
+    const now = Date.now()
+    const failures = state.failures + 1
+    const blockedUntil = failures >= LOGIN_FAILURE_BLOCK_THRESHOLD
+      ? now + LOGIN_FAILURE_BLOCK_SECONDS * 1000
+      : 0
+    const cooldownUntil = !blockedUntil && failures >= LOGIN_FAILURE_COOLDOWN_THRESHOLD
+      ? now + LOGIN_FAILURE_COOLDOWN_SECONDS * 1000
+      : 0
+    await env.TOKEN_KV.put(key, JSON.stringify({
+      failures,
+      cooldownUntil,
+      blockedUntil
+    }), {
+      expirationTtl: LOGIN_FAILURE_BLOCK_SECONDS
+    })
+  } catch (error) {
+    console.warn('[login-rate-limit] 记录失败次数异常:', error.message)
+  }
+}
+
+async function clearLoginFailures(email, env) {
+  try {
+    const { key } = await getLoginFailureRecord(email, env)
+    await env.TOKEN_KV.delete(key)
+  } catch (error) {
+    console.warn('[login-rate-limit] 清理失败记录异常:', error.message)
+  }
 }
 
 // CORS响应头
