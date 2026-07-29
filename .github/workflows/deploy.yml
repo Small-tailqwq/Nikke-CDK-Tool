@@ -16,12 +16,12 @@ jobs:
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: 设置Node.js环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 18
           cache: npm
@@ -51,13 +51,20 @@ jobs:
         run: cp dist/index.html dist/404.html
 
       - name: 部署到GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
-          clean: true
-          commit-message: |
-            🚀 部署: ${{ github.workflow }} @ ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          deploy_dir="$(mktemp -d)"
+          cp -R dist/. "$deploy_dir/"
+
+          git -C "$deploy_dir" init
+          git -C "$deploy_dir" config user.name "github-actions[bot]"
+          git -C "$deploy_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$deploy_dir" add --all
+          git -C "$deploy_dir" commit -m "🚀 部署: ${{ github.workflow }} @ ${{ github.sha }}"
+          git -C "$deploy_dir" push --force \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            HEAD:gh-pages
 
       - name: 清理老旧Deployment
         run: |
