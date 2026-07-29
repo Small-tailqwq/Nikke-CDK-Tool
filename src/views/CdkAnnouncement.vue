@@ -78,7 +78,8 @@
             批量兑换
             <span class="btn-count">{{ selectedCdks.length }}</span>
           </button>
-          <button class="nikke-btn nikke-btn-ghost" @click="openSubmitCdk">
+          <button class="nikke-btn nikke-btn-submit" @click="openSubmitCdk">
+            <span class="submit-icon" aria-hidden="true">＋</span>
             提交 CDK
           </button>
         </div>
@@ -1008,6 +1009,49 @@ onBeforeUnmount(() => {
   &:hover,
   &:focus-within {
     z-index: 6;
+  }
+}
+
+.nikke-btn-submit {
+  color: #fff;
+  background: #c81e4b;
+  border: 1px solid #a5123b;
+  box-shadow: 0 3px 10px rgba(168, 18, 59, 0.28);
+
+  &:hover {
+    color: #fff;
+    background: #a5123b;
+    border-color: #890c31;
+    box-shadow: 0 5px 16px rgba(168, 18, 59, 0.38);
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(200, 30, 75, 0.3);
+    outline-offset: 2px;
+  }
+
+  .submit-icon {
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  html.dark & {
+    color: #24070e;
+    background: #ff5b7b;
+    border-color: #ff7892;
+    box-shadow: 0 0 14px rgba(255, 51, 85, 0.32);
+
+    &:hover {
+      color: #190409;
+      background: #ff8ca2;
+      border-color: #ffafbd;
+      box-shadow: 0 0 20px rgba(255, 91, 123, 0.5);
+    }
+
+    &:focus-visible {
+      outline-color: rgba(255, 139, 160, 0.55);
+    }
   }
 }
 

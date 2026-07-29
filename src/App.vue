@@ -162,11 +162,10 @@
               </el-tooltip>
               <el-tooltip content="请开发者喝杯咖啡" placement="top">
                 <a
-                  href="#"
+                  href="https://afdian.com/a/small-tailqwq"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="friend-link sponsor-link"
-                  @click.prevent="openSponsorPage"
                 >
                   <el-tag size="small" type="danger" effect="dark"> ❤ 赞助支持 </el-tag>
                 </a>
@@ -339,11 +338,6 @@ const openDocumentation = () => {
     'https://chalk-quotation-b2d.notion.site/Nikke-20f563f728f180e6ad58e9205a7fa271',
     '_blank'
   )
-}
-
-// 打开赞助页面
-const openSponsorPage = () => {
-  window.open('https://afdian.com/a/thesmalltail', '_blank')
 }
 
 // 处理导航点击
@@ -1346,9 +1340,35 @@ body {
     .el-tag {
       transition: all 0.2s ease-out;
     }
-    &:hover .el-tag {
+
+    &:hover .el-tag,
+    &:focus-visible .el-tag {
       transform: translateY(-1px) scale(1.05);
-      filter: brightness(1.2);
+      color: #fff;
+      background-color: #b42345;
+      border-color: #b42345;
+      box-shadow: 0 4px 12px rgba(180, 35, 69, 0.35);
+      filter: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #b42345;
+      outline-offset: 3px;
+      border-radius: 4px;
+    }
+
+    html.dark & {
+      &:hover .el-tag,
+      &:focus-visible .el-tag {
+        color: #27070d;
+        background-color: #ff8ba0;
+        border-color: #ff8ba0;
+        box-shadow: 0 0 14px rgba(255, 75, 108, 0.45);
+      }
+
+      &:focus-visible {
+        outline-color: #ff8ba0;
+      }
     }
   }
 
