@@ -6,22 +6,22 @@ on:
       - masrer
 
 permissions:
-  contents: write
-  deployments: write
+  contents: read
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    name: 构建和部署
+    name: 构建
 
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: 设置Node.js环境
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 18
           cache: npm
@@ -49,6 +49,29 @@ jobs:
 
       - name: 复制首页文件用于SPA路由支持
         run: cp dist/index.html dist/404.html
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: github-pages-dist
+          path: dist
+          if-no-files-found: error
+
+  deploy:
+    runs-on: ubuntu-latest
+    name: 部署
+    needs: build
+    permissions:
+      actions: read
+      contents: write
+      deployments: write
+
+    steps:
+      - name: 下载构建产物
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: github-pages-dist
+          path: dist
 
       - name: 部署到GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
