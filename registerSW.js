@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/Nikke-CDK-Tool/sw.js', { scope: '/Nikke-CDK-Tool/' })})}
