@@ -7,6 +7,7 @@ import {
   shouldRenewCookie,
   getGlobalUserCompleteInfo,
   refreshCookieByCredential,
+  isTransientError,
 } from '../utils/api'
 import { showCustomMessage } from '../utils/customMessage'
 import { getLoginCredential } from '../utils/credentialVault'
@@ -37,6 +38,30 @@ const syncUserCookieExpiry = (user) => {
     ...user,
     cookieExpireDays: recalculatedDays,
   }
+}
+
+// 带重试的Cookie检测：上游临时错误（如1300015 system error）时自动重试，
+// 明确失效（token无效等）则立即返回，避免把临时故障误判为Cookie失效
+const detectCookieWithRetry = async (cookie, { retries = 2, interval = 3000 } = {}) => {
+  let lastResult = null
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, interval))
+    }
+    try {
+      lastResult = await getGlobalUserCompleteInfo(cookie)
+    } catch (error) {
+      lastResult = { success: false, message: error.message || '检测异常' }
+    }
+    if (lastResult.success) {
+      return lastResult
+    }
+    if (!isTransientError(lastResult.message)) {
+      return lastResult
+    }
+    logger.debug(`Cookie检测遇到临时错误，第${attempt + 1}/${retries + 1}次重试: ${lastResult.message}`)
+  }
+  return lastResult
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -207,7 +232,7 @@ export const useUserStore = defineStore('user', () => {
               }
               cookieDetectionMap.set(id, detection)
 
-              const result = await getGlobalUserCompleteInfo(userData.cookie)
+              const result = await detectCookieWithRetry(userData.cookie)
 
               // 检查是否被取消
               if (isCancelled) {
@@ -227,6 +252,11 @@ export const useUserStore = defineStore('user', () => {
                   cookieActualExpireDate: new Date(
                     Date.now() + expireDays * 24 * 60 * 60 * 1000
                   ).toISOString(),
+                })
+              } else if (isTransientError(result.message)) {
+                // 上游临时错误（如1300015 system error）：不覆盖当前状态，避免误判
+                logger.warn(`用户 ${updatedUser.name} 的Cookie检测遇到临时错误，保持当前状态`, {
+                  message: result.message,
                 })
               } else {
                 logger.warn(`用户 ${updatedUser.name} 的新Cookie仍然无效`, {
@@ -371,17 +401,22 @@ export const useUserStore = defineStore('user', () => {
     try {
       console.log('[UserStore] 开始每日Cookie状态检测')
 
-      // 获取所有国际服用户（排除国服和已经是异常状态的用户）
+      // 获取所有国际服用户（排除国服用户）
       const globalUsers = users.value.filter((user) => {
         // 只检测国际服和港澳台服用户
         if (user.server === 'cn' || !user.cookie) {
           return false
         }
 
-        // 跳过已经标记为异常状态的用户（cookieExpireDays < 0）
+        // 已异常用户每天重新验证一次，避免上游临时错误导致的误判永久持续
+        // （但已主动关闭警告的用户跳过，尊重用户选择）
         if (user.cookieExpireDays < 0) {
-          console.log(`[CookieCheck] 跳过已异常用户: ${user.name} (状态: ${user.cookieExpireDays})`)
-          return false
+          if (dailyCheckStatus.value.dismissedWarnings.includes(user.id)) {
+            console.log(`[CookieCheck] 跳过已关闭警告的异常用户: ${user.name}`)
+            return false
+          }
+          console.log(`[CookieCheck] 重新验证已异常用户: ${user.name} (状态: ${user.cookieExpireDays})`)
+          return true
         }
 
         // 跳过今日已检测的用户
@@ -417,14 +452,23 @@ export const useUserStore = defineStore('user', () => {
         try {
           console.log(`[CookieCheck] 正在检测用户 ${user.name} 的Cookie状态...`)
 
-          // 调用API检测Cookie有效性
-          const result = await getGlobalUserCompleteInfo(user.cookie)
+          // 调用API检测Cookie有效性（临时错误自动重试）
+          const result = await detectCookieWithRetry(user.cookie)
 
           // 标记为已检测
           dailyCheckStatus.value.checkedUserIds.push(user.id)
           checkedCount++
 
           if (!result.success) {
+            if (isTransientError(result.message)) {
+              // 重试后仍失败：每日检测是"当日最终判定"，为避免真正失效的Cookie静默
+              // 仍标记为异常（误标可由次日的重新验证自愈），仅调整提示语义
+              console.warn(
+                `[CookieCheck] 用户 ${user.name} 检测多次失败(可能为上游临时错误)，标记为异常并等待次日重新验证:`,
+                result.message
+              )
+            }
+
             // Cookie失效，添加到问题用户列表
             problemUsers.push({
               user: user,
@@ -441,6 +485,28 @@ export const useUserStore = defineStore('user', () => {
             console.log(`[CookieCheck] 用户 ${user.name} Cookie已失效`)
           } else {
             console.log(`[CookieCheck] 用户 ${user.name} Cookie状态正常`)
+
+            // 如果之前被误判为异常，检测成功则恢复状态
+            if (user.cookieExpireDays < 0) {
+              const expireDays = 30
+              await updateUser(user.id, {
+                cookieExpireDays: expireDays,
+                cookieActualExpireDate: new Date(
+                  Date.now() + expireDays * 24 * 60 * 60 * 1000
+                ).toISOString(),
+                needsCookieUpdate: false,
+                needsApiValidation: false,
+              })
+              console.log(`[CookieCheck] 用户 ${user.name} 的Cookie状态已恢复`)
+
+              // 从已关闭警告中移除，允许下次正常检测
+              if (dailyCheckStatus.value.dismissedWarnings.includes(user.id)) {
+                dailyCheckStatus.value.dismissedWarnings = dailyCheckStatus.value.dismissedWarnings.filter(
+                  (uid) => uid !== user.id
+                )
+                saveDailyCheckStatus()
+              }
+            }
 
             // 如果检测成功，可以更新角色信息（可选）
             if (result.playerInfo) {

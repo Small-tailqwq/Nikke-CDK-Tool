@@ -859,6 +859,24 @@ export const shouldRenewCookie = (expireDays, threshold = 7) => {
 }
 
 /**
+ * 判断检测失败是否属于"上游临时错误"（如 1300015 system error、网络抖动）
+ * 临时错误不应被判定为 Cookie 失效，避免误标记
+ * @param {string} message - 检测失败信息
+ * @returns {boolean} 是否为临时错误
+ */
+export const isTransientError = (message) => {
+  if (!message || typeof message !== 'string') return true
+  const text = message.toLowerCase()
+  return (
+    /system error/i.test(text) ||
+    /network|failed to fetch|fetch failed|timeout|aborted|econn|socket|eai_again/i.test(text) ||
+    /网络错误|暂时|临时|稍后重试|超时|连接失败/i.test(text) ||
+    /http 5\d\d/i.test(text) ||
+    /^5\d\d$/.test(text.trim())
+  )
+}
+
+/**
  * 自动续期检查和执行
  * @param {Object} user - 用户对象
  * @returns {Promise<Object>} 续期结果
