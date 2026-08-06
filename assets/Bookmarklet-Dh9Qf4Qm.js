@@ -1,4 +1,4 @@
-import{$t as e,Et as t,F as n,Gt as r,Mt as i,P as a,Tt as o,cn as s,jt as c,kt as l,z as u}from"./element-plus-Bv_F3Y27.js";import{_ as d}from"./index-C2p9v5yE.js";var f={class:`page`},p=[`href`],m={class:`actions`},h=d({__name:`Bookmarklet`,setup(d){let h=s(`(() => {
+import{$t as e,Et as t,F as n,Gt as r,Mt as i,P as a,Tt as o,cn as s,jt as c,kt as l,z as u}from"./element-plus-Bv_F3Y27.js";import{_ as d}from"./index-Bj2awDPY.js";var f={class:`page`},p=[`href`],m={class:`actions`},h=d({__name:`Bookmarklet`,setup(d){let h=s(`(() => {
   try {
     const safeLS = (() => { try { return { ...localStorage }; } catch { return {}; } })();
     let lip = {};
