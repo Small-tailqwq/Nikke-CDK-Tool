@@ -9,16 +9,6 @@
       <div class="blackhole-accretion"></div>
       <div class="blackhole-glow"></div>
     </div>
-
-    <!-- 吸入的文字粒子 -->
-    <div
-      v-for="particle in particles"
-      :key="particle.id"
-      class="sucked-particle"
-      :style="particle.style"
-    >
-      {{ particle.content }}
-    </div>
   </div>
 </template>
 
@@ -30,222 +20,137 @@ const doroStore = useDoroStore()
 const isActive = ref(false)
 const isCleaningUp = ref(false)
 const invertActive = ref(false)
-const particles = ref([])
 const coreStyle = ref({})
-
-let animationFrameId = null
-let nodesToClear = []
+const pageAnimations = []
 let invertTimer = null
 let cleanupTimer = null
+let generation = 0
 
-const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const MAX_PARTICLES = 300
+function restorePage() {
+  pageAnimations.splice(0).forEach((animation) => animation.cancel())
+}
+
+function absorbPage() {
+  const cx = window.innerWidth / 2
+  const cy = window.innerHeight / 2
+  // Measure every block before starting animations; retain the real text and layout.
+  const blocks = [
+    ...document.querySelectorAll(
+      '.el-header, .el-footer, .about-container > *, .about-card > .el-card__body > *'
+    ),
+  ]
+    .map((element) => ({ element, rect: element.getBoundingClientRect() }))
+    .filter(
+      ({ rect }) =>
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom > 0 &&
+        rect.top < window.innerHeight &&
+        rect.right > 0 &&
+        rect.left < window.innerWidth
+    )
+    .slice(0, 36)
+
+  blocks.forEach(({ element, rect }, index) => {
+    const x = rect.left + rect.width / 2
+    const y = (Math.max(0, rect.top) + Math.min(window.innerHeight, rect.bottom)) / 2
+    const dx = cx - x
+    const dy = cy - y
+    const distance = Math.hypot(dx, dy)
+    const twist = dx < 0 ? -1 : 1
+    const delay = 180 + Math.min(distance / Math.hypot(cx, cy), 1) * 350 + (index % 3) * 55
+    const origin = x - rect.left + 'px ' + (y - rect.top) + 'px'
+    const pose = (progress, turn, sx, sy) =>
+      'translate(' +
+      (dx * progress - dy * turn) +
+      'px,' +
+      (dy * progress + dx * turn) +
+      'px) rotate(' +
+      turn * 90 +
+      'deg) scale(' +
+      sx +
+      ',' +
+      sy +
+      ')'
+    pageAnimations.push(
+      element.animate(
+        [
+          { offset: 0, transform: 'none', opacity: 1, transformOrigin: origin },
+          {
+            offset: 0.25,
+            transform: pose(-0.025, -0.015 * twist, 1.015, 0.99),
+            opacity: 1,
+            transformOrigin: origin,
+          },
+          {
+            offset: 0.58,
+            transform: pose(0.18, 0.15 * twist, 0.88, 1.04),
+            opacity: 1,
+            transformOrigin: origin,
+          },
+          {
+            offset: 0.83,
+            transform: pose(0.66, 0.18 * twist, 0.4, 0.65),
+            opacity: 0.9,
+            transformOrigin: origin,
+          },
+          { offset: 1, transform: pose(1, 0, 0.015, 0.015), opacity: 0, transformOrigin: origin },
+        ],
+        {
+          duration: 2650 - delay,
+          delay,
+          easing: 'cubic-bezier(0.55, 0.02, 0.86, 0.4)',
+          fill: 'forwards',
+        }
+      )
+    )
+  })
+}
 
 watch(
   () => doroStore.isTransitioning,
-  (transitioning) => {
-    if (transitioning) {
-      isCleaningUp.value = false
+  async (transitioning) => {
+    const current = ++generation
+    clearTimeout(invertTimer)
+    clearTimeout(cleanupTimer)
+    if (!transitioning) {
+      isCleaningUp.value = true
       invertActive.value = false
-      startBlackHole()
-    } else if (isActive.value && !isCleaningUp.value) {
-      cleanupEffect()
+      // The battle background is mounted before restoring the underlying page.
+      await nextTick()
+      if (current !== generation) return
+      restorePage()
+      cleanupTimer = setTimeout(() => {
+        isActive.value = false
+        isCleaningUp.value = false
+      }, 600)
+      return
     }
+    restorePage()
+    isActive.value = true
+    isCleaningUp.value = false
+    invertActive.value = false
+    coreStyle.value = {
+      left: window.innerWidth / 2 + 'px',
+      top: window.innerHeight / 2 + 'px',
+      transform: 'translate(-50%, -50%)',
+    }
+    await nextTick()
+    if (current !== generation || !doroStore.isTransitioning) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    absorbPage()
+    invertTimer = setTimeout(() => {
+      invertActive.value = true
+    }, 2100)
   }
 )
 
-function startBlackHole() {
-  isActive.value = true
-  if (prefersReducedMotion) {
-    collectAndSuckTexts()
-    setTimeout(() => {
-      nodesToClear.forEach(({ node, originalText }) => {
-        if (node && node.parentNode) node.textContent = originalText
-      })
-      nodesToClear = []
-      isActive.value = false
-    }, 300)
-    return
-  }
-  collectAndSuckTexts()
-}
-
-function cleanupEffect() {
-  isCleaningUp.value = true
-
-  // 反色叠加层先淡出
-  invertActive.value = false
-
-  // 恢复文本
-  nodesToClear.forEach(({ node, originalText }) => {
-    if (node && node.parentNode) node.textContent = originalText
-  })
-  nodesToClear = []
-
-  // 等待短暂过渡后清理所有粒子
-  cleanupTimer = setTimeout(() => {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId)
-    particles.value = []
-    isActive.value = false
-    isCleaningUp.value = false
-  }, 600)
-
-  if (invertTimer) clearTimeout(invertTimer)
-}
-
 onBeforeUnmount(() => {
-  if (animationFrameId) cancelAnimationFrame(animationFrameId)
+  generation++
   clearTimeout(invertTimer)
   clearTimeout(cleanupTimer)
-  nodesToClear.forEach(({ node, originalText }) => {
-    if (node && node.parentNode) node.textContent = originalText
-  })
-  nodesToClear = []
-  isActive.value = false
-  isCleaningUp.value = false
+  restorePage()
 })
-
-function collectAndSuckTexts() {
-  const centerX = window.innerWidth / 2
-  const centerY = window.innerHeight / 2
-  const collected = []
-  nodesToClear = []
-  let id = 0
-
-  function scanTextNodes(element) {
-    if (element.nodeType === Node.TEXT_NODE) {
-      const text = element.textContent.trim()
-      if (text && text.length > 0) {
-        const range = document.createRange()
-        range.selectNodeContents(element)
-        const rect = range.getBoundingClientRect()
-
-        if (rect.width > 0 && rect.height > 0) {
-          nodesToClear.push({ node: element, originalText: element.textContent })
-          const chars = Array.from(text)
-          chars.forEach((char, index) => {
-            if (char.trim() && collected.length < MAX_PARTICLES) {
-              const charWidth = rect.width / chars.length
-              const startX = rect.left + charWidth * index + charWidth / 2
-              const startY = rect.top + rect.height / 2
-              const dx = centerX - startX
-              const dy = centerY - startY
-              const dist = Math.sqrt(dx * dx + dy * dy)
-              const angle = Math.atan2(dy, dx)
-              const spiralOffset = (Math.random() - 0.5) * Math.PI * 0.6
-
-              collected.push({
-                id: id++,
-                content: char,
-                startX,
-                startY,
-                centerX,
-                centerY,
-                dist: Math.max(dist, 20),
-                angle: angle + spiralOffset,
-                delay: Math.random() * 1800,
-                duration: 600 + Math.random() * 1200,
-                rotation: (Math.random() - 0.5) * 720,
-              })
-            }
-          })
-        }
-      }
-    } else if (element.nodeType === Node.ELEMENT_NODE) {
-      if (!['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(element.tagName)) {
-        for (let child of element.childNodes) {
-          scanTextNodes(child)
-        }
-      }
-    }
-  }
-
-  const bodyChildren = document.body.children
-  for (let element of bodyChildren) {
-    if (
-      !element.classList.contains('blackhole-container') &&
-      !element.classList.contains('floating-doro') &&
-      !element.classList.contains('fragments-container')
-    ) {
-      scanTextNodes(element)
-    }
-  }
-
-  nodesToClear.forEach(({ node }) => {
-    if (node.parentNode) node.textContent = ''
-  })
-
-  const startTime = Date.now()
-
-  particles.value = collected.map((p) => ({
-    ...p,
-    style: {
-      position: 'fixed',
-      left: `${p.startX}px`,
-      top: `${p.startY}px`,
-      zIndex: 10000,
-      pointerEvents: 'none',
-      userSelect: 'none',
-      fontSize: '16px',
-      fontWeight: 'normal',
-      color: '#333',
-      transform: 'translate(-50%, -50%) rotate(0deg) scale(1)',
-      opacity: 1,
-    },
-  }))
-
-  coreStyle.value = {
-    position: 'fixed',
-    left: `${centerX}px`,
-    top: `${centerY}px`,
-    transform: 'translate(-50%, -50%) scale(0)',
-    zIndex: 9997,
-    transition: 'transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s',
-  }
-
-  nextTick(() => {
-    coreStyle.value.transform = 'translate(-50%, -50%) scale(1)'
-
-    // 延迟触发反色
-    invertTimer = setTimeout(() => {
-      invertActive.value = true
-    }, 2000)
-
-    const animate = () => {
-      if (isCleaningUp.value) return
-
-      const elapsed = Date.now() - startTime
-
-      particles.value.forEach((p) => {
-        if (elapsed < p.delay) return
-        const progress = Math.min(1, (elapsed - p.delay) / p.duration)
-        const easedProgress = Math.pow(progress, 2.5)
-
-        const spiralRadius = (1 - easedProgress) * p.dist
-        const spiralAngle = p.angle + easedProgress * Math.PI * 5
-        const currentX = p.centerX + Math.cos(spiralAngle) * spiralRadius
-        const currentY = p.centerY + Math.sin(spiralAngle) * spiralRadius
-        const scale = 1 - easedProgress * 0.9
-        const rot = easedProgress * p.rotation
-        const opacity = Math.max(0, 1 - easedProgress * 1.3)
-
-        if (isCleaningUp.value) {
-          p.style.opacity = 0
-          p.style.transition = 'opacity 0.3s ease-out'
-        } else {
-          p.style.transform = `translate(-50%, -50%) translate(${currentX - p.startX}px, ${currentY - p.startY}px) rotate(${rot}deg) scale(${scale})`
-          p.style.opacity = opacity
-        }
-      })
-
-      if (!isCleaningUp.value) {
-        animationFrameId = requestAnimationFrame(animate)
-      }
-    }
-
-    animationFrameId = requestAnimationFrame(animate)
-  })
-}
 </script>
 
 <style scoped>
@@ -254,6 +159,23 @@ function collectAndSuckTexts() {
   inset: 0;
   pointer-events: none;
   z-index: 9998;
+}
+
+.blackhole-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 16%, rgba(7, 3, 15, 0.8) 100%);
+  animation: gravity-darken 2.65s ease-in forwards;
+}
+
+@keyframes gravity-darken {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .invert-overlay {
@@ -367,23 +289,14 @@ function collectAndSuckTexts() {
   }
 }
 
-.sucked-particle {
-  position: fixed;
-  pointer-events: none;
-  user-select: none;
-  white-space: nowrap;
-  font-family: inherit;
-  will-change: transform, opacity;
-}
-
 @media (prefers-reduced-motion: reduce) {
+  .blackhole-container::before {
+    display: none;
+  }
   .invert-overlay {
     display: none;
   }
   .blackhole-core {
-    display: none;
-  }
-  .sucked-particle {
     display: none;
   }
 }

@@ -31,8 +31,8 @@
       '--shake-intensity': `${longPressIntensity}px`,
     }"
     @click.stop="doroStore.handleInteractionClick"
-    @mousedown.stop="doroStore.handleDragStart"
-    @touchstart.stop.passive="doroStore.handleDragStart"
+    @pointerdown.stop="doroStore.handleDragStart"
+    @dragstart.prevent
   >
     <picture>
       <source :srcset="baseUrl + 'doro_icon.webp'" type="image/webp" />
@@ -305,6 +305,7 @@ function generateFragments() {
   height: 60px; /* 恢复原始大小 */
   cursor: grab;
   user-select: none;
+  touch-action: none;
   /* 移除transform的transition，防止干扰scale */
   transition: opacity 0.3s;
   opacity: 1;

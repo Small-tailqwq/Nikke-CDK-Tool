@@ -618,12 +618,10 @@ html {
 /* 全局按钮增强样式 */
 .el-button {
   transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
-  transform: translateZ(0);
-  will-change: transform, box-shadow;
   
   /* 悬停效果 */
   &:hover:not(.is-disabled):not(.is-loading) {
-    transform: translateY(-1px) translateZ(0) scale(1.02);
+    transform: translateY(-1px) scale(1.02);
     box-shadow: 
       0 4px 12px rgba(0, 0, 0, 0.15),
       0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -631,7 +629,7 @@ html {
   
   /* 激活效果 */
   &:active:not(.is-disabled):not(.is-loading) {
-    transform: translateY(0) translateZ(0) scale(0.98);
+    transform: translateY(0) scale(0.98);
     transition: all 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
   }
   
@@ -1014,4 +1012,12 @@ html.dark {
       0 0 0 1px var(--el-color-primary),
       0 0 8px rgba(0, 212, 255, 0.25) !important;
   }
-} 
+}
+
+// Apply a theme in one paint instead of starting transitions on every descendant.
+html.theme-changing,
+html.theme-changing *,
+html.theme-changing *::before,
+html.theme-changing *::after {
+  transition: none !important;
+}

@@ -69,7 +69,15 @@ export function getThemeTitle() {
 // 初始化主题
 getInitialTheme()
 
+let themeFrame = 0
 watchEffect(() => {
-  document.documentElement.classList.toggle('dark', theme.value === 'dark')
-  document.documentElement.classList.toggle('light', theme.value === 'light')
+  const root = document.documentElement
+  // The sweep owns the transition; interpolating every card underneath repaints the whole page.
+  cancelAnimationFrame(themeFrame)
+  root.classList.add('theme-changing')
+  root.classList.toggle('dark', theme.value === 'dark')
+  root.classList.toggle('light', theme.value === 'light')
+  themeFrame = requestAnimationFrame(() => {
+    themeFrame = requestAnimationFrame(() => root.classList.remove('theme-changing'))
+  })
 })

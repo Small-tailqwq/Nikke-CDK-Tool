@@ -35,23 +35,13 @@ const active = ref(false)
 let switchTimer = null
 let completeTimer = null
 
-// Heights and handcrafted delays extracted from the reference effect
-const STRIPE_HEIGHTS = [1, 10, 3, 5, 12, 2, 6, 12, 2, 5, 10, 1, 5, 15, 2, 5, 1, 10, 1, 5, 2]
-const baseDelays = [
-  0.078, 0.136, 0.068, 0.024, 0.026, 0.162, 0.048, 0.074, 0.1, 0.162, 0.076, 0.04, 0.074, 0.158,
-  0.054, 0.184, 0.168, 0.074, 0.118, 0.146, 0.114,
-]
-const accentDelays = [
-  0.156, 0.272, 0.136, 0.048, 0.052, 0.324, 0.096, 0.148, 0.2, 0.324, 0.152, 0.08, 0.148, 0.316,
-  0.108, 0.368, 0.336, 0.148, 0.236, 0.292, 0.228,
-]
+const STRIPE_HEIGHTS = [7, 13, 5, 11, 8, 6, 14, 9, 5, 12, 4, 6]
+const baseDelays = [0.02, 0.05, 0, 0.04, 0.01, 0.06, 0.03, 0.02, 0.05, 0.01, 0.04, 0]
+const accentDelays = baseDelays.map((delay) => delay + 0.03)
 
-// Base layer reaches full screen expansion around 400ms-500ms based on the 50% keyframe.
-// We trigger the actual theme CSS variable swap at 450ms.
-const SWITCH_MS = 450
-
-// Total animation duration (0.8s) + maximum delay (0.368s) = 1.168s. We clean up at 1200ms.
-const COMPLETE_MS = 1200
+// All rows are opaque from 306ms to 468ms; swap inside that shared plateau.
+const SWITCH_MS = 340
+const COMPLETE_MS = 820
 
 function stripeStyle(i, delay) {
   return {
@@ -63,6 +53,9 @@ function stripeStyle(i, delay) {
 watch(
   () => props.visible,
   (val) => {
+    clearTimeout(switchTimer)
+    clearTimeout(completeTimer)
+    active.value = false
     if (val) {
       const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -84,7 +77,8 @@ watch(
         emit('complete')
       }, COMPLETE_MS)
     }
-  }
+  },
+  { immediate: true }
 )
 
 onBeforeUnmount(() => {
@@ -113,8 +107,7 @@ onBeforeUnmount(() => {
   margin-top: -1px;
   transform: scaleX(0);
   will-change: transform;
-  /* Single sweep animation taking exactly 0.8s */
-  animation: stripe-sweep 0.8s cubic-bezier(0.785, 0.135, 0.15, 0.86) forwards;
+  animation: stripe-sweep 0.72s cubic-bezier(0.785, 0.135, 0.15, 0.86) forwards;
 }
 
 /* ── Colors ── */
@@ -140,11 +133,12 @@ onBeforeUnmount(() => {
     transform: scaleX(0);
     transform-origin: 0 0;
   }
-  50% {
+  30%,
+  64% {
     transform: scaleX(1);
     transform-origin: 0 0;
   }
-  51% {
+  65% {
     transform: scaleX(1);
     transform-origin: 100% 0;
   }

@@ -87,6 +87,9 @@ function getAvailableLane() {
 }
 
 function spawnDoro() {
+  spawnTimer = null
+  if (document.hidden) return
+  spawnTimer = setTimeout(spawnDoro, 800 + Math.random() * 1000)
   const lane = getAvailableLane()
   if (!lane) return
   usedLanes.add(lane.laneIdx)
@@ -98,8 +101,6 @@ function spawnDoro() {
     tailLen: 400 + Math.random() * 80,
     born: Date.now(),
   })
-  // 下一只doro随机0.8~1.8秒后生成
-  spawnTimer = setTimeout(spawnDoro, 800 + Math.random() * 1000)
 }
 
 // 初始化背景元素
@@ -236,6 +237,8 @@ function spawnShootingStar() {
 let frameCount = 0
 
 function render() {
+  rafId = null
+  if (document.hidden) return
   const canvas = cvs.value
   const dpi = window.devicePixelRatio || 1
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -470,15 +473,22 @@ function drawShootingStars() {
 
 // 页面可见性检测
 function handleVisibilityChange() {
+  if (document.hidden) {
+    cancelAnimationFrame(rafId)
+    clearTimeout(spawnTimer)
+    rafId = null
+    spawnTimer = null
+    return
+  }
   if (!document.hidden) {
     // 页面重新变为可见时，检查并重启动画
     console.log('页面重新可见，检查动画状态')
-    if (!rafId) {
+    if (!rafId && doroImg.complete && doroImg.naturalWidth > 0) {
       console.log('重新启动render循环')
       rafId = requestAnimationFrame(render)
     }
-    // 如果没有doro且没有生成计时器，重新启动生成
-    if (doros.length === 0 && !spawnTimer) {
+    // 恢复后台暂停的生成计时器
+    if (!spawnTimer) {
       console.log('重新启动doro生成')
       spawnDoro()
     }
@@ -502,13 +512,19 @@ onMounted(() => {
   initBackground()
 
   spawnDoro()
-  doroImg.onload = () => render()
+  doroImg.onload = () => {
+    if (!rafId && !document.hidden) rafId = requestAnimationFrame(render)
+  }
+  if (doroImg.complete && doroImg.naturalWidth > 0) doroImg.onload()
 
   // 添加页面可见性检测
   document.addEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onBeforeUnmount(() => {
+  doroImg.onload = null
+  testWebp.onload = null
+  testWebp.onerror = null
   cancelAnimationFrame(rafId)
   clearTimeout(spawnTimer)
   document.removeEventListener('visibilitychange', handleVisibilityChange)

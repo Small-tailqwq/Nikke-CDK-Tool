@@ -1,6 +1,7 @@
 <template>
   <div
     class="cdk-group-card-wrapper"
+    data-card-tilt
     @pointerenter="onPointerEnter"
     @pointermove="onPointerMove"
     @pointerleave="onPointerLeave"
@@ -580,7 +581,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   height: 100%;
   perspective: 800px;
 
-  &:hover,
+  &.is-pointer-hovered,
   &:focus-within {
     z-index: 6;
   }
@@ -631,7 +632,7 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .cdk-group-card-wrapper:hover .nikke-card {
+  .cdk-group-card-wrapper.is-pointer-hovered .nikke-card {
     transform:
       rotateX(var(--tilt-x))
       rotateY(var(--tilt-y))
@@ -644,22 +645,22 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
       var(--cdk-state-shadow, 0 0 0 rgba(0,0,0,0));
   }
 
-  .cdk-group-card-wrapper:hover .nikke-card.available {
+  .cdk-group-card-wrapper.is-pointer-hovered .nikke-card.available {
     border-color: var(--cdk-border-available-hover);
     --cdk-state-shadow: var(--cdk-glow-cyan);
   }
 
-  .cdk-group-card-wrapper:hover .nikke-card.unavailable {
+  .cdk-group-card-wrapper.is-pointer-hovered .nikke-card.unavailable {
     border-color: var(--cdk-border-unavailable-hover);
     --cdk-state-shadow: var(--cdk-glow-red);
   }
 
-  .cdk-group-card-wrapper:hover .nikke-card.partially-available {
+  .cdk-group-card-wrapper.is-pointer-hovered .nikke-card.partially-available {
     border-color: var(--cdk-border-partially-hover);
     --cdk-state-shadow: var(--cdk-glow-orange);
   }
 
-  .cdk-group-card-wrapper:hover .cdk-image img {
+  .cdk-group-card-wrapper.is-pointer-hovered .cdk-image img {
     transform: scale(1.045);
     filter: brightness(var(--img-brightness));
   }

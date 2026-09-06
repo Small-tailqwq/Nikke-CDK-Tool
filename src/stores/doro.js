@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch, reactive, onScopeDispose } from 'vue'
 import { useRouter } from 'vue-router'
 
 // --- 持久化存储 ---
@@ -31,6 +31,7 @@ export const useDoroStore = defineStore('doro', () => {
   // --- 内部状态 ---
   let longPressTimer = null
   let activationTimeout = null
+  let cancelPress = null
 
   // --- 响应式 State ---
 
@@ -179,6 +180,8 @@ export const useDoroStore = defineStore('doro', () => {
 
   // ** 重置所有状态 **
   function resetAllState() {
+    cancelPress?.()
+    clearTimeout(activationTimeout)
     activationClicks.value = 0
     activationLocked.value = false
     isVisible.value = false
@@ -218,22 +221,20 @@ export const useDoroStore = defineStore('doro', () => {
 
     if (activationClicks.value >= 10) {
       activationLocked.value = true
-      isSummoning.value = true
-      isPhysicsBall.value = true
 
       // 新增：触发按钮掉落动画
       isButtonFalling.value = true
 
-      setTimeout(() => {
-        activationLocked.value = false
-        // 这里不直接显示Doro，等待动画组件 emit 事件
-      }, 1000)
+      activationTimeout = setTimeout(() => {
+        activationTimeout = null
+        startSummonAnimation()
+      }, 3000)
     }
   }
 
   // ** 2. 处理Doro悬浮球的点击 (重写彩蛋逻辑) **
   function handleInteractionClick() {
-    if (isDragging.value) return
+    if (isDragging.value || isExploding.value || isTransitioning.value) return
 
     // 路由判断，确保首次点击跳转到/about
     if (router.currentRoute.value.path !== '/about') {
@@ -560,89 +561,64 @@ export const useDoroStore = defineStore('doro', () => {
 
   // ** 5. 处理Doro悬浮球的交互 (拖动与长按) **
   function handleDragStart(event) {
-    // 在跟枪游戏中禁用拖动
-    if (isInAimingGame.value) return
-
-    console.log('handleDragStart called')
-    isDragging.value = false // 重置拖动状态
-
-    // 启动长按检测
-    isLongPressing.value = true
+    if (isInAimingGame.value || isTransitioning.value || isExploding.value) return
+    if (!event.isPrimary || event.button !== 0) return
+    cancelPress?.()
+    const target = event.currentTarget
+    const pointerId = event.pointerId
+    const startX = event.clientX
+    const startY = event.clientY
+    const startPos = { ...position.value }
+    isDragging.value = false
+    let feedbackTimer = setTimeout(() => { isLongPressing.value = true }, 180)
     longPressTimer = setTimeout(() => {
-      console.log('Long press timeout triggered - calling selfDestruct')
-      // 3秒后触发自爆 - 调用拥有正确计时的selfDestruct函数
+      finishPress()
       selfDestruct()
     }, 3000)
 
-    // 记录初始拖动位置
-    const startX =
-      event.clientX || (event.touches && event.touches[0] ? event.touches[0].clientX : 0)
-    const startY =
-      event.clientY || (event.touches && event.touches[0] ? event.touches[0].clientY : 0)
-    const startPos = { ...position.value }
-    let hasMovedSignificantly = false
-
-    function onDrag(moveEvent) {
-      const currentX =
-        moveEvent.clientX ||
-        (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientX : 0)
-      const currentY =
-        moveEvent.clientY ||
-        (moveEvent.touches && moveEvent.touches[0] ? moveEvent.touches[0].clientY : 0)
-      const deltaX = Math.abs(currentX - startX)
-      const deltaY = Math.abs(currentY - startY)
-
-      // 只有在明显移动时才认为是拖动（避免微小的手抖被误认为拖动）
-      if (deltaX > 5 || deltaY > 5) {
-        hasMovedSignificantly = true
-        // 一旦开始明显移动，就不是长按了，是拖动
-        if (isLongPressing.value) {
-          console.log('Movement detected, canceling long press')
-          clearTimeout(longPressTimer)
-          longPressTimer = null
-          isLongPressing.value = false
-        }
-        isDragging.value = true // 确认是拖动操作
-
-        // 更新位置
-        const newX = startPos.x + (currentX - startX)
-        const newY = startPos.y + (currentY - startY)
-
-        // 边界检查
-        const doroSize = currentDoroSize.value // 使用动态大小
-        const minX = 0
-        const minY = 0
-        const maxX = window.innerWidth - doroSize
-        const maxY = window.innerHeight - doroSize
-
-        position.value.x = Math.max(minX, Math.min(newX, maxX))
-        position.value.y = Math.max(minY, Math.min(newY, maxY))
-      }
-    }
-
-    function onDragEnd() {
-      console.log('onDragEnd called, hasMovedSignificantly:', hasMovedSignificantly)
-      // 清理所有事件和状态
+    function stopLongPress() {
+      clearTimeout(feedbackTimer)
       clearTimeout(longPressTimer)
+      feedbackTimer = null
       longPressTimer = null
       isLongPressing.value = false
-
-      // 使用setTimeout确保drag和click事件不会混淆
-      setTimeout(() => {
-        isDragging.value = false
-      }, 0)
-
-      window.removeEventListener('mousemove', onDrag)
-      window.removeEventListener('mouseup', onDragEnd)
-      window.removeEventListener('touchmove', onDrag)
-      window.removeEventListener('touchend', onDragEnd)
     }
-
-    window.addEventListener('mousemove', onDrag)
-    window.addEventListener('mouseup', onDragEnd)
-    window.addEventListener('touchmove', onDrag, { passive: true })
-    window.addEventListener('touchend', onDragEnd)
+    function onDrag(moveEvent) {
+      if (moveEvent.pointerId !== pointerId) return
+      const dx = moveEvent.clientX - startX
+      const dy = moveEvent.clientY - startY
+      if (!isDragging.value && Math.abs(dx) <= 5 && Math.abs(dy) <= 5) return
+      stopLongPress()
+      isDragging.value = true
+      position.value.x = Math.max(0, Math.min(startPos.x + dx, window.innerWidth - currentDoroSize.value))
+      position.value.y = Math.max(0, Math.min(startPos.y + dy, window.innerHeight - currentDoroSize.value))
+    }
+    function finishPress(endEvent) {
+      if (endEvent?.pointerId !== undefined && endEvent.pointerId !== pointerId) return
+      stopLongPress()
+      window.removeEventListener('pointermove', onDrag, true)
+      window.removeEventListener('pointerup', finishPress, true)
+      window.removeEventListener('pointercancel', finishPress, true)
+      window.removeEventListener('blur', finishPress)
+      target.removeEventListener('lostpointercapture', finishPress)
+      cancelPress = null
+      if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId)
+      // Keep drag suppression until the release's click has been dispatched.
+      setTimeout(() => { isDragging.value = false }, 0)
+    }
+    cancelPress = finishPress
+    target.setPointerCapture(pointerId)
+    window.addEventListener('pointermove', onDrag, { passive: true, capture: true })
+    window.addEventListener('pointerup', finishPress, true)
+    window.addEventListener('pointercancel', finishPress, true)
+    window.addEventListener('blur', finishPress)
+    target.addEventListener('lostpointercapture', finishPress)
   }
+
+  onScopeDispose(() => {
+    cancelPress?.()
+    clearTimeout(activationTimeout)
+  })
 
   // 召唤动画开始
   function startSummonAnimation() {
@@ -651,6 +627,7 @@ export const useDoroStore = defineStore('doro', () => {
   }
   // 召唤动画结束，切换为悬浮 Doro
   function finishSummonAnimation() {
+    activationLocked.value = false
     isSummoning.value = false
     isPhysicsBall.value = false
     isVisible.value = true
@@ -676,8 +653,9 @@ export const useDoroStore = defineStore('doro', () => {
 
   // ** 监听状态并持久化 **
   watch(
-    [isVisible, position],
+    [isVisible, position, isDragging, isInAimingGame],
     () => {
+      if (isDragging.value || isInAimingGame.value) return
       DoroStorage.setState({
         isVisible: isVisible.value,
         position: position.value,

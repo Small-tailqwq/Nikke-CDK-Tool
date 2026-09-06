@@ -122,6 +122,7 @@
         <div
           v-else
           class="single-card-wrapper"
+          data-card-tilt
           @pointerenter="onCardPointerEnter"
           @pointermove="onCardPointerMove"
           @pointerleave="onCardPointerLeave"
@@ -1006,7 +1007,7 @@ onBeforeUnmount(() => {
   z-index: 1;
   perspective: 800px;
 
-  &:hover,
+  &.is-pointer-hovered,
   &:focus-within {
     z-index: 6;
   }
@@ -1089,7 +1090,7 @@ onBeforeUnmount(() => {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .single-card-wrapper:hover .nikke-card {
+  .single-card-wrapper.is-pointer-hovered .nikke-card {
     transform:
       rotateX(var(--tilt-x))
       rotateY(var(--tilt-y))
@@ -1102,17 +1103,17 @@ onBeforeUnmount(() => {
       var(--cdk-state-shadow, 0 0 0 rgba(0,0,0,0));
   }
 
-  .single-card-wrapper:hover .nikke-card.available {
+  .single-card-wrapper.is-pointer-hovered .nikke-card.available {
     border-color: var(--cdk-border-available-hover);
     --cdk-state-shadow: var(--cdk-glow-cyan);
   }
 
-  .single-card-wrapper:hover .nikke-card.unavailable {
+  .single-card-wrapper.is-pointer-hovered .nikke-card.unavailable {
     border-color: var(--cdk-border-unavailable-hover);
     --cdk-state-shadow: var(--cdk-glow-red);
   }
 
-  .single-card-wrapper:hover .cdk-image img {
+  .single-card-wrapper.is-pointer-hovered .cdk-image img {
     transform: scale(1.045);
     filter: brightness(var(--img-brightness));
   }

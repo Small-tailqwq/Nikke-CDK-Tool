@@ -116,7 +116,9 @@
               </el-tooltip>
               <el-tooltip
                 v-if="doroStore.shouldShowButton"
+                ref="doroTooltip"
                 :content="doroStore.tooltipMessage"
+                :disabled="doroStore.isButtonFalling"
                 placement="top"
               >
                 <el-tag
@@ -220,6 +222,12 @@ import './assets/theme.scss'
 const route = useRoute()
 const navStore = useNavStore()
 const doroStore = useDoroStore()
+const doroTooltip = ref(null)
+watch(
+  () => doroStore.tooltipMessage,
+  () => doroTooltip.value?.updatePopper(),
+  { flush: 'post' }
+)
 const userStore = useUserStore()
 
 const ttVisible = ref(false)
@@ -227,7 +235,8 @@ const ttDirection = ref('star-trail')
 let ttPendingThemeMode = null
 let ttPendingThemeValue = null
 
-function onToggleTheme(event) {
+function onToggleTheme() {
+  if (ttVisible.value) return
   let nextMode, nextTheme
   if (themeMode.value === 'light') {
     nextMode = 'dark'

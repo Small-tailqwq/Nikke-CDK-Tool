@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 interface Props {
   items: any[]
@@ -26,268 +26,130 @@ const props = withDefaults(defineProps<Props>(), {
   columnWidth: 280,
   gap: 20,
   edgePadding: 0,
-  getItemKey: (item: any, index: number) => index,
+  getItemKey: (_item: any, index: number) => index,
 })
 
 const containerRef = ref<HTMLElement>()
 const itemPositions = ref<Array<{ left: number; top: number; width: number }>>([])
-const columnHeights = ref<number[]>([])
 const containerHeight = ref(0)
-const columnCount = ref(0)
+let observer: ResizeObserver | null = null
+let layoutFrame = 0
+let mounted = false
+let lastContainerWidth = 0
+const observedSizes = new Map<HTMLElement, { width: number; height: number }>()
 
-let resizeObserver: ResizeObserver | null = null
-let isCalculating = false
-let recalculateTimer: number | null = null
-let itemResizeObservers: ResizeObserver[] = []
-let imageUnloaders: Array<() => void> = []
-
-const getResponsiveColumnConfig = (viewportWidth: number) => {
-  let minColumnWidth = props.columnWidth
-  let maxColumns = 4
-
-  if (viewportWidth <= 480) {
-    // 超小屏幕：强制单列或双列
-    minColumnWidth = Math.max(props.columnWidth * 0.8, 200) // 最小200px
-    maxColumns = viewportWidth < 360 ? 1 : 2
-  } else if (viewportWidth <= 768) {
-    // 小屏幕：适度减小列宽，限制最大列数
-    minColumnWidth = props.columnWidth * 0.85
-    maxColumns = 3
-  } else if (viewportWidth <= 1024) {
-    // 中等屏幕：轻微调整
-    minColumnWidth = props.columnWidth * 0.9
-    maxColumns = 4
-  }
-
-  return { minColumnWidth, maxColumns }
+const getResponsiveColumnConfig = (width: number) => {
+  if (width <= 480)
+    return { minWidth: Math.max(props.columnWidth * 0.8, 200), maxColumns: width < 360 ? 1 : 2 }
+  if (width <= 768) return { minWidth: props.columnWidth * 0.85, maxColumns: 3 }
+  if (width <= 1024) return { minWidth: props.columnWidth * 0.9, maxColumns: 4 }
+  return { minWidth: props.columnWidth, maxColumns: 4 }
 }
 
-// 防抖函数
-const debounceCalculateLayout = () => {
-  if (recalculateTimer) {
-    clearTimeout(recalculateTimer)
-  }
-  recalculateTimer = setTimeout(() => {
-    calculateLayout()
-  }, 50) // 减少防抖时间，提高响应性
-}
-
-// 计算列数 - 优化小屏幕适配
-const calculateColumnCount = (availableWidth?: number, responsiveWidth?: number) => {
-  if (!containerRef.value && availableWidth === undefined) return 0
-  const layoutWidth = availableWidth ?? containerRef.value!.offsetWidth
-  const viewportWidth = responsiveWidth ?? layoutWidth
-  const { minColumnWidth, maxColumns } = getResponsiveColumnConfig(viewportWidth)
-  
-  // 基础计算
-  const baseCount = Math.floor((layoutWidth + props.gap) / (minColumnWidth + props.gap)) || 1
-  
-  // 应用最大列数限制
-  const count = Math.min(baseCount, maxColumns)
-  
-  return Math.max(1, count)
-}
-
-// 获取项目样式
 const getItemStyle = (index: number) => {
   const position = itemPositions.value[index]
-  if (!position) {
-    return {
-      opacity: '0',
-      transform: 'translateY(20px) scale(0.95)',
-      transition: 'none',
-    }
-  }
-
   return {
     position: 'absolute' as const,
-    left: `${position.left}px`,
-    top: `${position.top}px`,
-    width: `${position.width}px`,
-    opacity: '1',
-    transform: 'none',
-    transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)', // 使用更平滑的缓动函数
+    left: '0px',
+    top: '0px',
+    width: position ? `${position.width}px` : '100%',
+    opacity: position ? '1' : '0',
+    transform: position ? `translate(${position.left}px, ${position.top}px)` : 'translateY(20px)',
   }
 }
 
-// 计算布局
-const calculateLayout = async () => {
-  if (!containerRef.value || isCalculating) return
+function scheduleLayout() {
+  if (!mounted || layoutFrame) return
+  layoutFrame = requestAnimationFrame(calculateLayout)
+}
 
-  isCalculating = true
-
-  try {
-    await nextTick()
-
-    const container = containerRef.value
-    const containerWidth = container.offsetWidth
-    const requestedEdgePadding = Math.max(0, props.edgePadding)
-    const { minColumnWidth } = getResponsiveColumnConfig(containerWidth)
-    const minUsableWidth = Math.min(minColumnWidth, containerWidth)
-    const maxEdgePadding = Math.max(0, (containerWidth - minUsableWidth) / 2)
-    const edgePadding = Math.min(requestedEdgePadding, maxEdgePadding)
-    const availableWidth = Math.max(1, containerWidth - edgePadding * 2)
-    const newColumnCount = calculateColumnCount(availableWidth, containerWidth)
-
-    columnCount.value = newColumnCount
-
-    if (props.items.length === 0) {
-      cleanupItemObservers()
-      cleanupImageListeners()
-      itemPositions.value = []
-      columnHeights.value = []
-      containerHeight.value = 0
-      return
+function calculateLayout() {
+  cancelAnimationFrame(layoutFrame)
+  layoutFrame = 0
+  const container = containerRef.value
+  if (!mounted || !container) return
+  const width = container.clientWidth
+  if (!width) return
+  lastContainerWidth = width
+  const { minWidth, maxColumns } = getResponsiveColumnConfig(width)
+  const padding = Math.min(
+    Math.max(0, props.edgePadding),
+    Math.max(0, (width - Math.min(minWidth, width)) / 2)
+  )
+  const availableWidth = Math.max(1, width - padding * 2)
+  const count = Math.max(
+    1,
+    Math.min(maxColumns, Math.floor((availableWidth + props.gap) / (minWidth + props.gap)))
+  )
+  const itemWidth = Math.max(1, (availableWidth - (count - 1) * props.gap) / count)
+  const items = Array.from(container.children) as HTMLElement[]
+  const activeItems = new Set(items)
+  for (const element of observedSizes.keys()) {
+    if (!activeItems.has(element)) {
+      observer?.unobserve(element)
+      observedSizes.delete(element)
     }
-
-    // 计算实际列宽
-    const totalGap = (columnCount.value - 1) * props.gap
-    const actualColumnWidth = (availableWidth - totalGap) / columnCount.value
-
-    // 重置列高度
-    const newColumnHeights = new Array(columnCount.value).fill(0)
-    const newItemPositions: Array<{ left: number; top: number; width: number }> = []
-
-    // 等待所有元素渲染完成
-    await nextTick()
-
-    // 获取当前实际的元素，确保和props.items数量一致
-    const items = container.querySelectorAll('.masonry-item')
-
-    // 如果DOM元素数量和props.items数量不一致，可能还在渲染中，稍后重试
-    if (items.length !== props.items.length) {
-      setTimeout(() => {
-        if (!isCalculating) {
-          calculateLayout()
-        }
-      }, 16) // 大约一帧的时间
-      return
-    }
-
-    // 清理旧的观察者（每次重算重新绑定，避免残留）
-    cleanupItemObservers()
-    cleanupImageListeners()
-
-    // 真正的瀑布流算法：每次选择最矮的列放置下一个元素
-    for (let i = 0; i < props.items.length; i++) {
-      const item = items[i] as HTMLElement
-      if (!item) continue
-
-      // 找到最矮的列
-      const shortestColumnIndex = newColumnHeights.indexOf(Math.min(...newColumnHeights))
-
-      // 计算位置
-      const left = edgePadding + shortestColumnIndex * (actualColumnWidth + props.gap)
-      const top = edgePadding + newColumnHeights[shortestColumnIndex]
-
-      // 保存位置信息到临时数组
-      newItemPositions[i] = {
-        left,
-        top,
-        width: actualColumnWidth,
-      }
-
-      // 获取元素高度并更新列高度
-      await nextTick() // 确保样式已应用
-      const itemHeight = item.offsetHeight || 200 // 默认高度
-      newColumnHeights[shortestColumnIndex] += itemHeight + props.gap
-
-      // 监听单个子项高度变化（例如内部展开、图片加载后高度变化）
-      attachItemObserver(item)
-      // 监听图片加载
-      attachImageLoadListeners(item)
-    }
-
-    // 一次性更新所有位置信息，避免中间状态导致的闪烁
-    itemPositions.value = newItemPositions
-    columnHeights.value = newColumnHeights
-
-    // 设置容器高度
-    containerHeight.value = Math.max(...columnHeights.value) - props.gap + edgePadding * 2
-  } finally {
-    isCalculating = false
   }
+
+  // Batch width writes before measuring heights: one layout, no per-card read/write cycle.
+  for (const item of items) {
+    if (item.style.width !== `${itemWidth}px`) item.style.width = `${itemWidth}px`
+  }
+  const heights = new Array(count).fill(padding)
+  const positions = items.map((item) => {
+    const column = heights.indexOf(Math.min(...heights))
+    const position = {
+      left: padding + column * (itemWidth + props.gap),
+      top: heights[column],
+      width: itemWidth,
+    }
+    const measured = { width: item.offsetWidth, height: item.offsetHeight }
+    heights[column] += measured.height + props.gap
+    if (!observedSizes.has(item)) observer?.observe(item)
+    observedSizes.set(item, measured)
+    return position
+  })
+  itemPositions.value = positions
+  containerHeight.value = items.length ? Math.max(...heights) - props.gap + padding : 0
 }
 
-// 监听项目变化
-watch(
-  () => props.items,
-  () => {
-    // 当items变化时，不清空位置信息，保持现有布局直到新布局计算完成
-    nextTick(() => {
-      debounceCalculateLayout()
-    })
-  },
-  { deep: true }
-)
-
-// 监听窗口大小变化
-const handleResize = () => {
-  debounceCalculateLayout()
-}
+watch(() => props.items.map((item, index) => props.getItemKey(item, index)), scheduleLayout, {
+  flush: 'post',
+})
+watch(() => [props.columnWidth, props.gap, props.edgePadding], scheduleLayout, { flush: 'post' })
 
 onMounted(() => {
-  nextTick(() => {
-    calculateLayout()
-    window.addEventListener('resize', handleResize)
-    // 监听缩放事件（通过visualViewport API）
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize)
+  mounted = true
+  observer = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      const element = entry.target as HTMLElement
+      if (element === containerRef.value) {
+        if (element.clientWidth !== lastContainerWidth) scheduleLayout()
+        continue
+      }
+      const previous = observedSizes.get(element)
+      if (
+        previous &&
+        (element.offsetWidth !== previous.width || element.offsetHeight !== previous.height)
+      ) {
+        scheduleLayout()
+      }
     }
   })
+  if (containerRef.value) observer.observe(containerRef.value)
+  window.addEventListener('resize', scheduleLayout)
+  scheduleLayout()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize)
-  if (window.visualViewport) {
-    window.visualViewport.removeEventListener('resize', handleResize)
-  }
-  cleanupItemObservers()
-  cleanupImageListeners()
-  if (recalculateTimer) {
-    clearTimeout(recalculateTimer)
-  }
+  mounted = false
+  cancelAnimationFrame(layoutFrame)
+  observer?.disconnect()
+  observedSizes.clear()
+  window.removeEventListener('resize', scheduleLayout)
 })
 
-// 暴露重新计算方法
-defineExpose({
-  recalculate: calculateLayout,
-})
-
-// =================== 动态高度监听逻辑 ===================
-const attachItemObserver = (el: HTMLElement) => {
-  try {
-    const ro = new ResizeObserver(() => {
-      if (!isCalculating) debounceCalculateLayout()
-    })
-    ro.observe(el)
-    itemResizeObservers.push(ro)
-  } catch (e) {
-    // 忽略不支持情况
-  }
-}
-
-const cleanupItemObservers = () => {
-  itemResizeObservers.forEach((ro) => ro.disconnect())
-  itemResizeObservers = []
-}
-
-const attachImageLoadListeners = (root: HTMLElement) => {
-  const imgs = root.querySelectorAll('img')
-  imgs.forEach((img) => {
-    if (img.complete) return // 已完成无需监听
-    const handler = () => {
-      debounceCalculateLayout()
-    }
-    img.addEventListener('load', handler, { once: true })
-    imageUnloaders.push(() => img.removeEventListener('load', handler))
-  })
-}
-
-const cleanupImageListeners = () => {
-  imageUnloaders.forEach((off) => off())
-  imageUnloaders = []
-}
+defineExpose({ recalculate: scheduleLayout })
 </script>
 
 <style scoped>
@@ -299,12 +161,20 @@ const cleanupImageListeners = () => {
 
 .masonry-item {
   box-sizing: border-box;
-  will-change: left, top, opacity; /* 保持布局动画优化，避免长期创建层叠上下文 */
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease;
   backface-visibility: hidden; /* 防止背面闪烁 */
 }
 
 .masonry-item:hover,
 .masonry-item:focus-within {
   z-index: 20;
+}
+@media (prefers-reduced-motion: reduce) {
+  .masonry-layout,
+  .masonry-item {
+    transition: none;
+  }
 }
 </style>

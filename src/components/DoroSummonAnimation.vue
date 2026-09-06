@@ -54,6 +54,8 @@ let vx = 0
 let vy = 0
 let isStatic = false
 let animationFrameId = null
+let settleTimer = null
+let fallbackTimer = null
 
 function init() {
   // 如果提供了起始位置，从该位置开始；否则从屏幕边缘
@@ -114,7 +116,7 @@ function animate() {
   if (Math.abs(vx) < 0.2 && Math.abs(vy) < 0.2 && y.value >= bottom - 1) {
     isStatic = true
     cancelAnimationFrame(animationFrameId) // 停止动画
-    setTimeout(() => {
+    settleTimer = setTimeout(() => {
       emit('summonEnd')
     }, 300) // 静止后延迟切换
   } else {
@@ -126,7 +128,7 @@ onMounted(() => {
   init()
   animate()
   // 增加一个10秒的保险，防止动画卡死
-  setTimeout(() => {
+  fallbackTimer = setTimeout(() => {
     if (!isStatic) {
       isStatic = true
       cancelAnimationFrame(animationFrameId)
@@ -137,6 +139,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   cancelAnimationFrame(animationFrameId)
+  clearTimeout(settleTimer)
+  clearTimeout(fallbackTimer)
 })
 </script>
 
