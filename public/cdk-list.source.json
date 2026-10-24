@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-07-02T13:33:23.195Z",
+  "lastUpdate": "2026-10-24T11:15:00.000Z",
   "cdks": [
     {
       "type": "group",
@@ -766,6 +766,79 @@
           "note": "蛋糕是徒弟的眼镜",
           "author": "",
           "created": "2026-04-18"
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "groupId": "NIKKE4thAnniversary",
+      "groupName": "4周年直播",
+      "note": "收录4周年纪念生放送「約束の地へ、女神集結」相关 CDK。",
+      "cdks": [
+        {
+          "code": "ToTheFrontline",
+          "name": "奔赴前线",
+          "reward": "指挥官自由使用卷×1,技能手册自选宝箱×1,爆裂手册自选宝箱×1,代码手册选择宝箱×20,模组高级增强器×20",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 To the Frontline（奔赴前线），契合4周年决战/前线叙事与生放送主题。奖励来自玩家晒出的兑换宣传图。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "RECLAIMTHESURFACE",
+          "name": "夺回地表",
+          "reward": "珠宝×900,成长套件：24H×1,模组高级增强器×60,指挥官自由使用卷×5",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 Reclaim the Surface（夺回地表），呼应本篇主线「地上夺还」设定与4周年第3次地上夺还战叙事。奖励图为玩家晒图而非官推原文，数量以图为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "GODDESSMARCHON",
+          "name": "女神进军",
+          "reward": "招募券×5,同步扩充×2,代码手册选择宝箱×60",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 Goddess March On（女神们继续前进、进军），契合4周年「女神集結」与向前推进地表夺还的叙事。奖励来自玩家晒图（B站水印），数量以图为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "FORGETMENOT",
+          "name": "勿忘我",
+          "reward": "招募券×10",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 Forget Me Not（勿忘我 / 别忘了我）。奖励来自直播截图，数量以图为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "NIKKE4EVER",
+          "name": "妮姬到永远",
+          "reward": "招募券×1,4周年纪念蛋糕×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 NIKKE 4 Ever（妮姬到永远 / NIKKE forever）。奖励来自直播截图，4周年纪念蛋糕×1 与招募券×1，数量以文字标签为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
         }
       ]
     },
