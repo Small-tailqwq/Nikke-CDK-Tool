@@ -1,10 +1,10 @@
 <template>
   <section v-if="openCount" class="event-panel">
-    <button class="event-toggle" type="button" :aria-expanded="expanded" @click="toggle">
+    <div class="event-heading event-title">
       <strong>4周年 · 女神的轨迹</strong>
       <span>{{ state ? `${state.completed.length}/13` : '查看活动' }}</span>
-    </button>
-    <div v-if="expanded" class="event-content">
+    </div>
+    <div class="event-content">
       <div class="event-actions">
         <el-button size="small" :loading="loading" :disabled="busy" @click="refresh"
           >刷新</el-button
@@ -50,7 +50,6 @@
               :aria-label="`${task.name}投票`"
               placeholder="选择投票选项"
               :disabled="busy || Boolean(Number(polls[task.id].is_voted))"
-              :teleported="false"
             >
               <el-option
                 v-for="option in polls[task.id].options"
@@ -73,7 +72,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useUserStore } from '../stores/user'
 import {
   NIKKE4TH_TASKS,
@@ -96,7 +95,6 @@ const taskLabels = {
   answer: '娜由塔的回答',
   share: '分享',
 }
-const expanded = ref(false)
 const loading = ref(false)
 const busy = ref(false)
 const error = ref('')
@@ -128,10 +126,7 @@ async function refresh() {
   }
 }
 
-function toggle() {
-  expanded.value = !expanded.value
-  if (expanded.value) refresh()
-}
+onMounted(refresh)
 
 async function run(options = {}) {
   if (busy.value || !props.user.cookie) return
@@ -172,17 +167,14 @@ function share() {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 10px;
 }
-.event-toggle {
-  width: 100%;
+.event-title {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   padding: 12px;
-  border: 0;
   border-radius: 10px;
   background: var(--el-fill-color-light);
   color: var(--el-text-color-primary);
-  cursor: pointer;
   text-align: left;
 }
 .event-content {
@@ -192,7 +184,6 @@ function share() {
   padding: 12px;
   font-size: 12px;
 }
-.event-actions,
 .event-heading,
 .event-status {
   display: flex;
@@ -200,8 +191,22 @@ function share() {
   gap: 8px;
 }
 .event-tasks {
-  max-height: 320px;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 24px;
+}
+.event-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+  padding: 8px 0;
+  background: var(--el-bg-color);
+  z-index: 1;
+}
+.event-actions .el-button + .el-button {
+  margin-left: 0;
 }
 .event-task {
   display: flex;
@@ -214,8 +219,16 @@ function share() {
   line-height: 1.5;
 }
 .event-log {
-  max-height: 110px;
-  overflow-y: auto;
   line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .event-tasks {
+    grid-template-columns: 1fr;
+  }
+  .event-status {
+    flex-direction: column;
+  }
 }
 </style>

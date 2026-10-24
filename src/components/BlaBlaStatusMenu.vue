@@ -1,270 +1,239 @@
 <template>
   <div class="bla-menu-wrapper">
     <el-tag v-if="user.server === 'cn'" type="info" size="small">国服不适用</el-tag>
-    <el-popover
-      v-else
-      trigger="click"
-      placement="bottom"
-      :width="popoverWidth"
-      popper-class="bla-popover"
-      @show="handleShow"
-    >
-      <template #reference>
-        <button type="button" class="bla-badge-trigger">
-          <el-tag :type="badgeState.type" size="small">
-            {{ badgeState.label }}
-          </el-tag>
-          <el-tag
-            v-if="hasCustomExchangeConfig"
+    <template v-else>
+      <button
+        type="button"
+        class="bla-badge-trigger"
+        :aria-label="`查看 ${user.name || '当前账号'} 的 BlaBla 管理`"
+        aria-haspopup="dialog"
+        :aria-expanded="dialogVisible"
+        @click="dialogVisible = true"
+      >
+        <el-tag :type="badgeState.type" size="small">{{ badgeState.label }}</el-tag>
+        <el-tag v-if="hasCustomExchangeConfig" type="warning" size="small" effect="plain"
+          >配置</el-tag
+        >
+        <el-icon class="trigger-arrow"><ArrowDown /></el-icon>
+      </button>
+      <el-dialog
+        v-model="dialogVisible"
+        :title="`BlaBla 管理 · ${user.name || '未命名用户'}`"
+        width="min(900px, calc(100vw - 32px))"
+        top="5vh"
+        class="bla-dialog"
+        append-to-body
+        @open="handleShow"
+      >
+        <template #header>
+          <div class="panel-header">
+            <div class="panel-heading">
+              <h2>BlaBla 管理</h2>
+              <span class="account-name">{{ user.name || '未命名用户' }}</span>
+            </div>
+            <div class="panel-actions">
+              <el-button
+                :loading="overviewLoading"
+                :disabled="!canInspect || runLoading"
+                @click="refreshOverview()"
+              >
+                刷新状态
+              </el-button>
+              <el-button
+                type="primary"
+                :loading="runLoading"
+                :disabled="!canRun"
+                @click="runTasksNow"
+              >
+                执行每日任务
+              </el-button>
+            </div>
+          </div>
+        </template>
+        <div class="bla-panel">
+          <el-alert
+            v-if="!user.cookie"
             type="warning"
-            size="small"
-            effect="plain"
-            class="config-indicator"
-          >
-            配置
-          </el-tag>
-          <el-icon class="trigger-arrow"><ArrowDown /></el-icon>
-        </button>
-      </template>
+            :closable="false"
+            title="缺少 Cookie，暂时无法查询任务状态。"
+          />
+          <el-alert
+            v-else-if="overviewError"
+            type="warning"
+            :closable="false"
+            :title="overviewError"
+          />
+          <el-alert
+            v-else-if="!user.blaEnabled"
+            type="info"
+            :closable="false"
+            title="未开启自动任务，仍可查看状态和配置兑换。"
+          />
 
-      <div class="bla-panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">BlaBla 管控</div>
-            <div class="panel-subtitle">{{ user.name || '未命名用户' }}</div>
-          </div>
-          <div class="panel-actions">
-            <el-button
-              text
-              size="small"
-              :loading="overviewLoading"
-              :disabled="!canInspect || runLoading"
-              @click="refreshOverview()"
-            >
-              刷新状态
-            </el-button>
-            <el-button
-              type="primary"
-              size="small"
-              :loading="runLoading"
-              :disabled="!canRun"
-              @click="runTasksNow"
-            >
-              立即执行
-            </el-button>
-          </div>
-        </div>
-
-        <el-alert
-          v-if="!user.blaEnabled"
-          type="info"
-          show-icon
-          :closable="false"
-          title="当前账号未开启自动 BlaBla 任务，但仍可单独查看状态或预先配置兑换方案。"
-        />
-        <el-alert
-          v-else-if="!user.cookie"
-          type="warning"
-          show-icon
-          :closable="false"
-          title="当前账号缺少 Cookie，暂时无法查询 BlaBla 任务状态。"
-        />
-        <el-alert
-          v-else-if="overviewError"
-          type="warning"
-          show-icon
-          :closable="false"
-          :title="overviewError"
-        />
-
-        <div class="overview-grid">
-          <div class="overview-card">
-            <span class="card-label">今日任务</span>
-            <strong class="card-value">{{ taskProgressText }}</strong>
-          </div>
-          <div class="overview-card">
-            <span class="card-label">积分</span>
-            <strong class="card-value">{{ totalPointsText }}</strong>
-          </div>
-          <div class="overview-card">
-            <span class="card-label">兑换策略</span>
-            <strong class="card-value">{{ effectivePlanShortText }}</strong>
-          </div>
-          <div class="overview-card">
-            <span class="card-label">上次刷新</span>
-            <strong class="card-value">{{ overviewTimeText }}</strong>
-          </div>
-        </div>
-
-        <div class="panel-section compact-section">
-          <button
-            type="button"
-            class="summary-toggle"
-            :aria-expanded="taskExpanded"
-            @click="taskExpanded = !taskExpanded"
-          >
-            <div class="summary-main">
-              <div class="summary-heading">
-                <div class="section-title">任务完成情况</div>
-                <span class="section-summary">{{ taskProgressText }}</span>
-              </div>
-              <el-progress
-                :percentage="overviewPercentage"
-                :status="progressStatus"
-                :stroke-width="6"
-                :show-text="false"
-              />
-              <div class="summary-caption">{{ taskSummaryHint }}</div>
+          <div class="overview-grid">
+            <div class="overview-card">
+              <span>今日任务</span><strong>{{ taskProgressText }}</strong>
             </div>
-            <el-icon class="summary-arrow" :class="{ 'is-open': taskExpanded }">
-              <ArrowDown />
-            </el-icon>
-          </button>
-          <div v-if="taskExpanded" class="summary-body">
-            <div v-if="taskItems.length" class="task-list">
-              <div v-for="task in taskItems" :key="task.id" class="task-row">
-                <span class="task-name">{{ task.name }}</span>
-                <el-tag :type="getTaskTagType(task)" size="small">{{ task.statusText }}</el-tag>
-              </div>
+            <div class="overview-card">
+              <span>积分</span><strong>{{ totalPointsText }}</strong>
             </div>
-            <div v-else class="empty-text">暂无任务状态，点击“刷新状态”后可查看。</div>
-          </div>
-        </div>
-
-        <Nikke4thEvent :user="user" />
-
-        <div class="panel-section">
-          <div class="section-header">
-            <div class="section-title">每月兑换配置</div>
-            <el-switch v-model="draftConfig.enabled" />
-          </div>
-          <div class="section-help">
-            关闭时继续沿用默认通用购买配置；开启后仅当前账号使用单独的每月兑换商品设置。 当前提供
-            {{ monthlyProductOptions.length }} 个固定商品可选。
-          </div>
-          <el-select
-            v-model="draftConfig.items"
-            multiple
-            filterable
-            clearable
-            collapse-tags
-            collapse-tags-tooltip
-            class="config-select"
-            :disabled="!draftConfig.enabled"
-            :teleported="false"
-            placeholder="选择每月兑换的 Global 珠宝商品"
-          >
-            <el-option
-              v-for="option in monthlyProductOptions"
-              :key="option"
-              :label="option"
-              :value="option"
-            />
-          </el-select>
-          <div class="config-actions">
-            <el-button size="small" @click="resetDraftToStored">撤销</el-button>
-            <el-button size="small" type="primary" :loading="savingConfig" @click="saveConfig">
-              保存配置
-            </el-button>
-          </div>
-        </div>
-
-        <div class="panel-section compact-section">
-          <button
-            type="button"
-            class="summary-toggle"
-            :aria-expanded="exchangeExpanded"
-            @click="exchangeExpanded = !exchangeExpanded"
-          >
-            <div class="summary-main">
-              <div class="summary-heading">
-                <div class="section-title">兑换情况</div>
-                <span class="section-summary">{{ exchangeSummaryText }}</span>
-              </div>
-              <el-progress
-                :percentage="exchangeProgressPercentage"
-                :status="exchangeProgressStatus"
-                :stroke-width="6"
-                :show-text="false"
-              />
-              <div class="summary-caption">{{ exchangeSummaryHint }}</div>
+            <div class="overview-card">
+              <span>兑换策略</span><strong>{{ effectivePlanShortText }}</strong>
             </div>
-            <el-icon class="summary-arrow" :class="{ 'is-open': exchangeExpanded }">
-              <ArrowDown />
-            </el-icon>
-          </button>
-          <div v-if="exchangeExpanded" class="summary-body">
-            <div class="exchange-box">
-              <div class="exchange-row">
-                <span class="exchange-label">本月兑换状态</span>
-                <strong class="exchange-value">{{ monthlyExchangeStatusText }}</strong>
-              </div>
-              <div class="exchange-row">
-                <span class="exchange-label">当前生效策略</span>
-                <strong class="exchange-value">{{ effectivePlanText }}</strong>
-              </div>
-              <div class="exchange-row">
-                <span class="exchange-label">本月兑换进度</span>
-                <strong class="exchange-value">{{ exchangeProgressDetailText }}</strong>
-              </div>
-              <div class="exchange-row">
-                <span class="exchange-label">已选商品</span>
-                <span class="exchange-value">{{ selectedItemsText }}</span>
-              </div>
-              <div v-if="activeExchangeItems.length" class="exchange-row">
-                <span class="exchange-label">本月已兑商品</span>
-                <span class="exchange-value">{{ redeemedItemsText }}</span>
-              </div>
-              <div v-if="activeExchangeItems.length" class="exchange-row">
-                <span class="exchange-label">本月待兑商品</span>
-                <span class="exchange-value">{{ pendingItemsText }}</span>
-              </div>
-              <div v-if="hasRecentExchangeMessage" class="exchange-row">
-                <span class="exchange-label">最近兑换结果</span>
-                <span class="exchange-value">
-                  {{ exchangeExecutionMessage }}
-                  <span v-if="user.blaLastRedeemAt" class="exchange-time">
-                    {{ formatDateTime(user.blaLastRedeemAt) }}
-                  </span>
-                </span>
-              </div>
-              <div v-else class="empty-text">暂无兑换记录，后续执行后会在这里显示。</div>
+            <div class="overview-card">
+              <span>上次刷新</span><strong>{{ overviewTimeText }}</strong>
             </div>
           </div>
-        </div>
 
-        <div class="panel-section compact-section">
-          <button
-            type="button"
-            class="summary-toggle summary-toggle-plain"
-            :aria-expanded="logExpanded"
-            @click="logExpanded = !logExpanded"
-          >
-            <div class="summary-main">
-              <div class="summary-heading">
-                <div class="section-title">最近执行日志</div>
-                <span class="section-summary">{{ logSummaryText }}</span>
+          <el-tabs v-model="activeTab" class="panel-tabs">
+            <el-tab-pane label="每日任务" name="tasks">
+              <div class="tab-scroll beautiful-scrollbar">
+                <section class="content-card">
+                  <div class="section-header">
+                    <h3>任务完成情况</h3>
+                    <span class="section-summary">{{ taskProgressText }}</span>
+                  </div>
+                  <el-progress
+                    :percentage="overviewPercentage"
+                    :status="progressStatus"
+                    :stroke-width="6"
+                    :show-text="false"
+                  />
+                  <p class="section-help">{{ taskSummaryHint }}</p>
+                  <div v-if="taskItems.length" class="task-list">
+                    <div v-for="task in taskItems" :key="task.id" class="task-row">
+                      <span>{{ task.name }}</span>
+                      <el-tag :type="getTaskTagType(task)" size="small">{{
+                        task.statusText
+                      }}</el-tag>
+                    </div>
+                  </div>
+                  <el-empty v-else description="暂无任务状态" :image-size="64" />
+                </section>
               </div>
-              <div class="summary-caption">{{ logSummaryHint }}</div>
-            </div>
-            <el-icon class="summary-arrow" :class="{ 'is-open': logExpanded }">
-              <ArrowDown />
-            </el-icon>
-          </button>
-          <div v-if="logExpanded" class="summary-body">
-            <div v-if="recentMessages.length" class="log-scroll beautiful-scrollbar">
-              <div class="log-list">
-                <div v-for="(message, index) in recentMessages" :key="index" class="log-line">
-                  {{ message }}
+            </el-tab-pane>
+            <el-tab-pane v-if="hasAnniversaryEvent" label="周年活动" name="event" lazy>
+              <div class="tab-scroll beautiful-scrollbar"><Nikke4thEvent :user="user" /></div>
+            </el-tab-pane>
+            <el-tab-pane label="每月兑换" name="exchange">
+              <div class="tab-scroll beautiful-scrollbar">
+                <div class="exchange-layout">
+                  <section class="content-card config-card">
+                    <div class="section-header">
+                      <h3>单独配置</h3>
+                      <el-switch v-model="draftConfig.enabled" aria-label="启用单独兑换配置" />
+                    </div>
+                    <p class="section-help">关闭后使用通用兑换配置。</p>
+                    <el-select
+                      v-model="draftConfig.items"
+                      multiple
+                      filterable
+                      clearable
+                      class="config-select"
+                      :disabled="!draftConfig.enabled"
+                      placeholder="选择每月兑换商品"
+                      aria-label="每月兑换商品"
+                    >
+                      <el-option
+                        v-for="option in monthlyProductOptions"
+                        :key="option"
+                        :label="option"
+                        :value="option"
+                      />
+                    </el-select>
+                    <div class="config-actions">
+                      <el-button
+                        :disabled="!hasDraftChanges || savingConfig"
+                        @click="resetDraftToStored"
+                        >撤销</el-button
+                      >
+                      <el-button
+                        type="primary"
+                        :loading="savingConfig"
+                        :disabled="!hasDraftChanges"
+                        @click="saveConfig"
+                        >保存配置</el-button
+                      >
+                    </div>
+                  </section>
+                  <section class="content-card">
+                    <div class="section-header">
+                      <h3>本月兑换</h3>
+                      <span class="section-summary">{{ exchangeSummaryText }}</span>
+                    </div>
+                    <el-progress
+                      :percentage="exchangeProgressPercentage"
+                      :status="exchangeProgressStatus"
+                      :stroke-width="6"
+                      :show-text="false"
+                    />
+                    <p class="section-help">{{ monthlyExchangeStatusText }}</p>
+                    <dl class="exchange-details">
+                      <div>
+                        <dt>生效策略</dt>
+                        <dd>{{ effectivePlanText }}</dd>
+                      </div>
+                      <div>
+                        <dt>已选商品</dt>
+                        <dd>{{ selectedItemsText }}</dd>
+                      </div>
+                      <div v-if="activeExchangeItems.length">
+                        <dt>本月已兑</dt>
+                        <dd>{{ redeemedItemsText }}</dd>
+                      </div>
+                      <div v-if="activeExchangeItems.length">
+                        <dt>本月待兑</dt>
+                        <dd>{{ pendingItemsText }}</dd>
+                      </div>
+                      <div v-if="hasRecentExchangeMessage">
+                        <dt>最近兑换</dt>
+                        <dd>
+                          {{ exchangeExecutionMessage
+                          }}<span v-if="user.blaLastRedeemAt" class="muted">{{
+                            formatDateTime(user.blaLastRedeemAt)
+                          }}</span>
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
                 </div>
-                <div v-if="user.blaLastRun" class="log-time">最近执行: {{ user.blaLastRun }}</div>
               </div>
-            </div>
-            <div v-else class="empty-text">暂无执行日志，后续执行后会在这里显示。</div>
-          </div>
+            </el-tab-pane>
+            <el-tab-pane name="logs">
+              <template #label
+                ><span class="log-tab-label"
+                  >执行日志<span class="log-count">{{ logSummaryText }}</span></span
+                ></template
+              >
+              <section class="log-panel">
+                <div class="log-header">
+                  <span>{{ logSummaryHint }}</span
+                  ><el-tag
+                    v-if="user.blaLastResult"
+                    :type="user.blaLastResult === 'success' ? 'success' : 'warning'"
+                    size="small"
+                    >{{ user.blaLastResult === 'success' ? '执行完成' : '执行异常' }}</el-tag
+                  >
+                </div>
+                <ol
+                  v-if="recentMessages.length"
+                  class="log-list beautiful-scrollbar"
+                  aria-label="最近一次执行日志"
+                >
+                  <li v-for="(message, index) in recentMessages" :key="index" class="log-line">
+                    <span class="log-number" aria-hidden="true">{{
+                      String(index + 1).padStart(2, '0')
+                    }}</span>
+                    <span class="log-message">{{ message }}</span>
+                  </li>
+                </ol>
+                <el-empty v-else description="暂无执行日志" :image-size="64" />
+              </section>
+            </el-tab-pane>
+          </el-tabs>
         </div>
-      </div>
-    </el-popover>
+      </el-dialog>
+    </template>
   </div>
 </template>
 
@@ -276,6 +245,7 @@ import { showCustomMessage } from '../utils/customMessage'
 import { fetchBlaOverview, runBlaTasks } from '../utils/blaSigner'
 import { getBlaTodayKey } from '../utils/blaRunState'
 import Nikke4thEvent from './Nikke4thEvent.vue'
+import { getNikke4thOpenCount } from '../utils/nikke4th'
 
 const props = defineProps({
   user: {
@@ -294,10 +264,9 @@ const overviewLoading = ref(false)
 const runLoading = ref(false)
 const savingConfig = ref(false)
 const overviewError = ref('')
-const taskExpanded = ref(false)
-const exchangeExpanded = ref(false)
-const logExpanded = ref(false)
-const popoverWidth = computed(() => (window.innerWidth <= 768 ? 320 : 380))
+const dialogVisible = ref(false)
+const activeTab = ref('tasks')
+const hasAnniversaryEvent = getNikke4thOpenCount() > 0
 
 const monthlyProductOptions = [
   '[Global] 珠寶 ×30',
@@ -422,7 +391,7 @@ const taskProgressText = computed(() => {
 const taskSummaryHint = computed(() => {
   const overview = currentOverview.value
   if (!overview || overview.totalCount === 0) {
-    return '点击展开可查看明细，刷新状态后会展示当天任务进度。'
+    return '刷新状态后可查看当天任务进度。'
   }
   if (overview.pendingCount === 0) {
     return '今日 BlaBla 任务已经全部完成。'
@@ -436,7 +405,7 @@ const taskSummaryHint = computed(() => {
   if (overview.manualPendingCount > 0) {
     return `剩余 ${overview.manualPendingCount} 项需手动完成。`
   }
-  return '点击展开可查看各个任务的具体完成情况。'
+  return '各项任务的完成情况如下。'
 })
 
 const totalPointsText = computed(() => {
@@ -469,7 +438,7 @@ const overviewTimeText = computed(() => {
 })
 
 const recentMessages = computed(() => {
-  return Array.isArray(props.user.blaLastMessages) ? props.user.blaLastMessages.slice(0, 8) : []
+  return Array.isArray(props.user.blaLastMessages) ? props.user.blaLastMessages : []
 })
 
 const hasExchangeRunThisMonth = computed(() => {
@@ -508,22 +477,6 @@ const exchangeSummaryText = computed(() => {
   return '沿用通用配置'
 })
 
-const exchangeSummaryHint = computed(() => {
-  if (exchangeTargetCount.value > 0 && exchangeCompletedCount.value >= exchangeTargetCount.value) {
-    return exchangeExecutionMessage.value || '本月配置商品已全部完成兑换记录。'
-  }
-  if (hasCustomExchangeConfig.value && !exchangeTargetCount.value) {
-    return '已开启单独配置，但当前还没有选择每月兑换商品。'
-  }
-  if (hasExchangeRunThisMonth.value) {
-    return exchangeExecutionMessage.value || '本月已执行过兑换检查，点击展开可查看明细。'
-  }
-  if (hasCustomExchangeConfig.value) {
-    return `已配置 ${exchangeTargetCount.value} 个商品，本月暂无兑换记录。`
-  }
-  return '当前账号继续沿用通用购买配置，本月暂无单独兑换记录。'
-})
-
 const monthlyExchangeStatusText = computed(() => {
   if (exchangeTargetCount.value > 0 && exchangeCompletedCount.value >= exchangeTargetCount.value) {
     return exchangeExecutionMessage.value || '本月已完成兑换记录写入'
@@ -544,12 +497,6 @@ const exchangeExecutionMessage = computed(() => props.user.blaLastRedeemMessage 
 
 const hasRecentExchangeMessage = computed(() => {
   return Boolean(props.user.blaLastRedeemAt || props.user.blaLastRedeemMessage)
-})
-
-const exchangeProgressDetailText = computed(() => {
-  if (!hasCustomExchangeConfig.value) return '沿用通用配置'
-  if (!exchangeTargetCount.value) return '0/0，待配置'
-  return `${exchangeCompletedCount.value}/${exchangeTargetCount.value}`
 })
 
 const redeemedItemsText = computed(() => {
@@ -575,7 +522,7 @@ const logSummaryHint = computed(() => {
   if (props.user.blaLastRun) {
     return `最近执行时间：${props.user.blaLastRun}`
   }
-  return '默认收起，点击后可查看最近一次执行输出。'
+  return '暂无执行记录'
 })
 
 const canInspect = computed(() => {
@@ -611,14 +558,8 @@ const getTaskTagType = (task) => {
   return 'info'
 }
 
-const resetExpandedSections = () => {
-  taskExpanded.value = false
-  exchangeExpanded.value = false
-  logExpanded.value = false
-}
-
 const handleShow = () => {
-  resetExpandedSections()
+  activeTab.value = 'tasks'
   syncDraftFromUser()
   if (canInspect.value && !currentOverview.value && !overviewLoading.value) {
     refreshOverview(false)
@@ -686,6 +627,7 @@ const runTasksNow = async () => {
       ...(result.success ? { blaLastRunDateKey: getBlaTodayKey() } : {}),
     })
 
+    activeTab.value = 'logs'
     const summaryParts = []
     if (result.overview) {
       summaryParts.push(`任务 ${result.overview.completedCount}/${result.overview.totalCount}`)
@@ -729,7 +671,11 @@ const saveConfig = async () => {
 }
 
 watch(
-  () => [props.user.id, props.user.blaCustomExchangeEnabled, props.user.blaMonthlyExchangeItems],
+  [
+    () => props.user.id,
+    () => props.user.blaCustomExchangeEnabled,
+    () => props.user.blaMonthlyExchangeItems,
+  ],
   () => {
     syncDraftFromUser()
   },
@@ -737,321 +683,332 @@ watch(
 )
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 .bla-menu-wrapper {
   display: flex;
   justify-content: center;
 }
-
 .bla-badge-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: none;
+  border: 0;
   background: transparent;
-  padding: 0;
+  padding: 4px 0;
   cursor: pointer;
   color: inherit;
-
-  .config-indicator {
-    margin-left: -2px;
-  }
-
   .trigger-arrow {
     font-size: 12px;
     color: var(--el-text-color-secondary);
-    transition: transform 0.2s ease;
-  }
-
-  &:hover .trigger-arrow {
-    transform: translateY(1px);
   }
 }
-
-.bla-panel {
+.bla-dialog {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.panel-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.panel-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.panel-subtitle {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.overview-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.overview-card {
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--el-fill-color-light);
-  border: 1px solid var(--el-border-color-lighter);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.card-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.card-value {
-  font-size: 13px;
-  color: var(--el-text-color-primary);
-  word-break: break-word;
-}
-
-.panel-section {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.compact-section {
-  gap: 10px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-}
-
-.section-summary {
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--el-color-primary);
-  font-weight: 500;
-}
-
-.section-help {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
-
-.summary-toggle {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--el-fill-color-light), var(--el-fill-color-blank));
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
-}
-
-.summary-toggle:hover {
-  border-color: var(--el-color-primary-light-5);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.summary-toggle-plain {
-  background: var(--el-fill-color-light);
-}
-
-.summary-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.summary-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.summary-caption {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
-
-.summary-arrow {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--el-text-color-secondary);
-  transition: transform 0.2s ease;
-}
-
-.summary-arrow.is-open {
-  transform: rotate(180deg);
-}
-
-.summary-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.task-list,
-.log-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.log-scroll {
-  max-height: 168px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.task-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--el-fill-color-extra-light);
-}
-
-.task-name {
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--el-text-color-primary);
-}
-
-.config-select {
-  width: 100%;
-}
-
-.config-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.exchange-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: var(--el-fill-color-extra-light);
-  border: 1px solid var(--el-border-color-lighter);
-}
-
-.exchange-row {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.exchange-label {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.exchange-value {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-primary);
-  word-break: break-word;
-}
-
-.exchange-time,
-.log-time {
-  display: block;
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-
-.log-line {
-  font-size: 12px;
-  line-height: 1.5;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: var(--el-fill-color-extra-light);
-  color: var(--el-text-color-regular);
-}
-
-.empty-text {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
-}
-
-:deep(.bla-popover) {
-  padding: 12px !important;
-  border-radius: 14px;
-}
-
-@media screen and (max-width: 768px) {
-  .panel-header {
+  max-height: calc(100dvh - 48px);
+  padding: 24px;
+  border-radius: 16px;
+  .el-dialog__header {
+    padding: 0 40px 20px 0;
+    margin: 0;
+    flex-shrink: 0;
+  }
+  .el-dialog__headerbtn {
+    top: 16px;
+    right: 12px;
+  }
+  .el-dialog__body {
+    min-height: 0;
+    display: flex;
     flex-direction: column;
-    align-items: stretch;
+    padding: 0;
   }
-
+  .panel-header,
+  .panel-heading,
+  .panel-actions,
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .panel-header,
+  .section-header {
+    justify-content: space-between;
+  }
+  .panel-heading {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    min-width: 0;
+  }
+  .panel-heading h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--el-text-color-primary);
+  }
+  .account-name {
+    color: var(--el-text-color-secondary);
+    overflow-wrap: anywhere;
+  }
   .panel-actions {
-    justify-content: flex-end;
+    flex-shrink: 0;
+    gap: 8px;
   }
-
+  .panel-actions .el-button + .el-button {
+    margin-left: 0;
+  }
+  .bla-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    height: min(640px, calc(100dvh - 180px));
+    min-height: 0;
+  }
   .overview-grid {
-    grid-template-columns: 1fr;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    flex-shrink: 0;
   }
-
-  .summary-heading {
+  .overview-card {
+    display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 10px;
+    background: var(--el-fill-color-light);
+    span {
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+    }
+    strong {
+      font-size: 15px;
+      color: var(--el-text-color-primary);
+      overflow-wrap: anywhere;
+    }
   }
-
+  .panel-tabs {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .panel-tabs > .el-tabs__header {
+    flex-shrink: 0;
+    margin-bottom: 16px;
+  }
+  .panel-tabs > .el-tabs__content {
+    flex: 1;
+    min-height: 0;
+  }
+  .panel-tabs .el-tab-pane {
+    height: 100%;
+  }
+  .tab-scroll {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 6px;
+    box-sizing: border-box;
+  }
+  h3 {
+    margin: 0;
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+  }
+  .section-summary {
+    color: var(--el-color-primary);
+    font-size: 13px;
+    text-align: right;
+  }
+  .section-help {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--el-text-color-secondary);
+  }
+  .content-card {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .task-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
   .task-row {
-    flex-direction: column;
-    align-items: stretch;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
   }
-
+  .task-row .el-tag {
+    flex-shrink: 0;
+  }
+  .exchange-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .config-select {
+    width: 100%;
+  }
   .config-actions {
-    justify-content: stretch;
-
-    .el-button {
-      flex: 1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .config-actions .el-button + .el-button {
+    margin-left: 0;
+  }
+  .exchange-details {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 0;
+    font-size: 13px;
+  }
+  .exchange-details dt {
+    margin-bottom: 5px;
+    color: var(--el-text-color-secondary);
+  }
+  .exchange-details dd {
+    margin: 0;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    color: var(--el-text-color-primary);
+  }
+  .muted {
+    display: block;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+  .log-tab-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-count {
+    font-size: 11px;
+    line-height: 18px;
+    border-radius: 5px;
+    padding: 0 5px;
+    background: var(--el-fill-color);
+    color: var(--el-text-color-secondary);
+  }
+  .log-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+    flex-shrink: 0;
+  }
+  .log-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 10px;
+  }
+  .log-line {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .log-line:last-child {
+    border-bottom: 0;
+  }
+  .log-line:nth-child(even) {
+    background: var(--el-fill-color-extra-light);
+  }
+  .log-number {
+    color: var(--el-text-color-placeholder);
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+  .log-message {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: var(--el-text-color-regular);
+  }
+}
+@media screen and (max-width: 600px) {
+  .bla-dialog {
+    margin: 12px auto !important;
+    max-height: calc(100dvh - 24px);
+    padding: 16px;
+    .el-dialog__header {
+      padding-right: 32px;
+      padding-bottom: 16px;
+    }
+    .el-dialog__headerbtn {
+      top: 6px;
+      right: 4px;
+    }
+    .panel-header {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .panel-actions {
+      flex-wrap: wrap;
+    }
+    .bla-panel {
+      height: calc(100dvh - 200px);
+      gap: 12px;
+    }
+    .overview-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .overview-card {
+      padding: 10px 12px;
+      gap: 5px;
+    }
+    .overview-card strong {
+      font-size: 14px;
+    }
+    .task-list,
+    .exchange-layout {
+      grid-template-columns: 1fr;
+    }
+    .content-card {
+      padding: 14px;
+    }
+    .log-line {
+      padding: 10px;
+      gap: 6px;
+      grid-template-columns: 22px minmax(0, 1fr);
+    }
+    .log-header {
+      flex-wrap: wrap;
+    }
+    .panel-tabs .el-tabs__item {
+      padding: 0 12px;
     }
   }
 }
