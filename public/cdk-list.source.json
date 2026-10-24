@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-10-24T10:32:00.000Z",
+  "lastUpdate": "2026-10-24T11:04:00.000Z",
   "cdks": [
     {
       "type": "group",
@@ -811,6 +811,19 @@
           ],
           "status": "可用",
           "note": "字面为 Goddess March On（女神们继续前进、进军），契合4周年「女神集結」与向前推进地表夺还的叙事。奖励来自玩家晒图（B站水印），数量以图为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "FORGETMENOT",
+          "name": "勿忘我",
+          "reward": "招募券×10",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 Forget Me Not（勿忘我 / 别忘了我）。奖励来自直播截图，数量以图为准。",
           "author": "Small-tailqwq",
           "created": "2026-10-24"
         }
