@@ -2,7 +2,10 @@ import axios from 'axios'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
 export const NIKKE4TH_URL = 'https://www.blablalink.com/events/nikke4th/index.html?language=TW'
-const SHARE_GROUP_ID = '89652eee-8ef8-4bb0-a5df-c947b1b05f1f'
+const SHARE_GROUP_IDS = [
+  'cc7d81c4-7e50-45dd-a761-283ed3fd169b',
+  '89652eee-8ef8-4bb0-a5df-c947b1b05f1f',
+]
 const END_TIME = Date.parse('2026-11-18T22:59:59+08:00')
 const ANSWERS = [
   '时机已经成熟……',
@@ -122,7 +125,9 @@ export async function fetchNikke4thState(cookie) {
   return {
     role: data.get_saved_role_info || null,
     completed: [...new Set(completed)],
-    shareReward: (data.user_has_present_group_id_list || []).includes(SHARE_GROUP_ID),
+    shareReward: (data.user_has_present_group_id_list || []).some((id) =>
+      SHARE_GROUP_IDS.includes(id)
+    ),
     updatedAt: new Date().toISOString(),
   }
 }

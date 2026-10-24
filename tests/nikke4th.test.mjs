@@ -7,9 +7,15 @@ import vm from 'node:vm'
 const COOKIE = 'game_token=TOKEN_PLACEHOLDER'
 const now = Date.parse('2026-10-24T12:00:00+08:00')
 
-async function createRunner({ completed = [], commentError = false, voted = false } = {}) {
+async function createRunner({
+  completed = [],
+  commentError = false,
+  voted = false,
+  claimedShare = false,
+  groupId = 'cc7d81c4-7e50-45dd-a761-283ed3fd169b',
+} = {}) {
   const requests = []
-  let shareReward = false
+  let shareReward = claimedShare
   let role = null
   const workerSource = await readFile('cloudflare-worker/Nikke-CDK-Combined.js', 'utf8')
   const worker = vm.runInNewContext(
@@ -47,9 +53,7 @@ async function createRunner({ completed = [], commentError = false, voted = fals
               tag_id: String(id),
               mission_has_done: true,
             })),
-            user_has_present_group_id_list: shareReward
-              ? ['89652eee-8ef8-4bb0-a5df-c947b1b05f1f']
-              : [],
+            user_has_present_group_id_list: shareReward ? [groupId] : [],
           }
         } else if (path === 'GetSavedRoleInfo') {
           data = { role_info: { area_id: '84', role_id: 'ROLE_PLACEHOLDER' } }
@@ -152,6 +156,16 @@ test('空白留言和未选择的投票跳过，已投票的章节不再次投�
   assert.ok(
     !api.requests.some(({ path }) => ['PostComment', 'UserSelectPollOption'].includes(path))
   )
+})
+
+test('繁中奖励记录已存在时不重复申请招募券', async () => {
+  const api = await createRunner({
+    claimedShare: true,
+    groupId: '89652eee-8ef8-4bb0-a5df-c947b1b05f1f',
+  })
+  const result = await api.runNikke4thTasks(COOKIE, { shared: true, basic: false })
+  assert.equal(result.shareReward, true)
+  assert.ok(!api.requests.some(({ path }) => path.includes('194050')))
 })
 
 test('留言响应失败时不自动重试，也不登记该章印记', async () => {

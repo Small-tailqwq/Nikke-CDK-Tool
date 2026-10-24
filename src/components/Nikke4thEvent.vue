@@ -9,7 +9,7 @@
         <el-button size="small" :loading="loading" :disabled="busy" @click="refresh"
           >刷新</el-button
         >
-        <el-button size="small" :disabled="busy || !state" @click="share">分享活动</el-button>
+        <el-button size="small" :disabled="busy || !state" @click="share">领取分享奖励</el-button>
         <el-button
           size="small"
           type="primary"
@@ -163,11 +163,6 @@ async function run(options = {}) {
 }
 
 function share() {
-  window.open(
-    `https://twitter.com/intent/tweet?url=${encodeURIComponent(eventUrl)}`,
-    '_blank',
-    'noopener,noreferrer'
-  )
   run({ comments: {}, votes: {}, shared: true, basic: false })
 }
 </script>

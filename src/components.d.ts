@@ -56,6 +56,7 @@ declare module 'vue' {
     FloatingDoro: typeof import('./components/FloatingDoro.vue')['default']
     ImageViewer: typeof import('./components/ImageViewer.vue')['default']
     MasonryLayout: typeof import('./components/MasonryLayout.vue')['default']
+    Nikke4thEvent: typeof import('./components/Nikke4thEvent.vue')['default']
     PlaceholderCard: typeof import('./components/PlaceholderCard.vue')['default']
     RewardInput: typeof import('./components/admin/RewardInput.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
