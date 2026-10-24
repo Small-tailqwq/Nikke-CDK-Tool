@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-10-24T11:04:00.000Z",
+  "lastUpdate": "2026-10-24T11:15:00.000Z",
   "cdks": [
     {
       "type": "group",
@@ -824,6 +824,19 @@
           ],
           "status": "可用",
           "note": "字面为 Forget Me Not（勿忘我 / 别忘了我）。奖励来自直播截图，数量以图为准。",
+          "author": "Small-tailqwq",
+          "created": "2026-10-24"
+        },
+        {
+          "code": "NIKKE4EVER",
+          "name": "妮姬到永远",
+          "reward": "招募券×1,4周年纪念蛋糕×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 NIKKE 4 Ever（妮姬到永远 / NIKKE forever）。奖励来自直播截图，4周年纪念蛋糕×1 与招募券×1，数量以文字标签为准。",
           "author": "Small-tailqwq",
           "created": "2026-10-24"
         }
