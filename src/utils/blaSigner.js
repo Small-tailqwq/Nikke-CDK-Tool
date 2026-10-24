@@ -16,8 +16,8 @@ const HEADERS = {
 const BLA_TASK_TYPE = {
   DAILY_CHECKIN: 1,
   MANUAL_IN_GAME: 2,
-  AUTO_REPEAT_A: 13,
-  AUTO_REPEAT_B: 14,
+  BROWSE_POST: 13,
+  LIKE_POST: 14,
 }
 
 const BLA_MONTHLY_LIMIT_CODE = 1100010
@@ -60,7 +60,9 @@ const getRandomDelay = (min, max) => {
 
 async function req(path, cookie, payload = null) {
   const url = `${API_BASE}${path}`
-  for (let attempt = 0; attempt <= REQUEST_RETRY_COUNT; attempt++) {
+  // PostStar 会切换点赞状态，响应丢失时重试可能取消点赞。
+  const retryCount = path === '/global/bla/like-post' ? 0 : REQUEST_RETRY_COUNT
+  for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const resp = await axios.post(url, payload === null ? { cookie } : { cookie, payload }, {
         headers: HEADERS,
@@ -71,8 +73,7 @@ async function req(path, cookie, payload = null) {
     } catch (e) {
       const status = e.response?.status
       const shouldRetry =
-        attempt < REQUEST_RETRY_COUNT &&
-        (!status || status === 429 || (status >= 500 && status < 600))
+        attempt < retryCount && (!status || status === 429 || (status >= 500 && status < 600))
 
       if (shouldRetry) {
         await sleep(REQUEST_RETRY_DELAY_MS * (attempt + 1))
@@ -108,10 +109,6 @@ const isDirectCompleteTask = (
   taskType = task?.task_type ?? null
 ) => {
   if (!task?.task_id) return false
-
-  if (taskType === BLA_TASK_TYPE.AUTO_REPEAT_A || taskType === BLA_TASK_TYPE.AUTO_REPEAT_B) {
-    return true
-  }
 
   if (taskType === BLA_TASK_TYPE.MANUAL_IN_GAME) {
     return DIRECT_COMPLETE_NAME_PATTERNS.some((pattern) => pattern.test(taskName))
@@ -264,6 +261,71 @@ async function submitCompleteTask(cookie, taskId) {
   return {
     success: res.code === 0,
     message: res.msg || (res.code === 0 ? '处理成功' : '处理失败'),
+  }
+}
+
+async function runCommunityTask(cookie, taskSummary) {
+  const isLike = taskSummary.taskType === BLA_TASK_TYPE.LIKE_POST
+  const need = Math.max(taskSummary.needTimes, 1)
+  const remaining = Math.max(need - taskSummary.currentTimes, 0)
+  const seenPosts = new Set()
+  let cursor = ''
+  let done = 0
+  let failure = ''
+
+  for (let page = 0; page < 3 && done < remaining; page++) {
+    const postList = await req('/global/bla/post-list', cookie, {
+      limit: '20',
+      order_by: 1,
+      need_all_region: true,
+      nextPageCursor: cursor,
+    })
+    if (postList.code !== 0) {
+      failure = `${postList.msg || '获取帖子失败'} (${postList.code})`
+      break
+    }
+
+    for (const post of postList.data?.list || []) {
+      if (!post.post_uuid || post.is_mine || seenPosts.has(post.post_uuid)) continue
+      seenPosts.add(post.post_uuid)
+
+      const detail = await req('/global/bla/post-detail', cookie, {
+        post_uuid: post.post_uuid,
+        browse_post: isLike ? 2 : 1,
+        original_content: 0,
+      })
+      if (detail.code !== 0) {
+        failure = `${detail.msg || '获取帖子详情失败'} (${detail.code})`
+        break
+      }
+      if (isLike) {
+        if (detail.data?.my_upvote?.is_star) continue
+        const result = await req('/global/bla/like-post', cookie, {
+          post_uuid: post.post_uuid,
+          type: 1,
+          like_type: 1,
+        })
+        if (result.code !== 0) {
+          failure = `${result.msg || '点赞失败'} (${result.code})`
+          break
+        }
+      }
+
+      done++
+      if (done >= remaining) break
+      await sleep(getRandomDelay(TASK_REPEAT_DELAY_RANGE.min, TASK_REPEAT_DELAY_RANGE.max))
+    }
+
+    if (failure || done >= remaining) break
+    const nextCursor = postList.data?.page_info?.next_page_cursor
+    if (postList.data?.page_info?.is_finish || !nextCursor || nextCursor === cursor) break
+    cursor = nextCursor
+  }
+
+  if (!failure && done < remaining) failure = '未找到足够的可处理帖子'
+  return {
+    success: !failure,
+    message: `${taskSummary.currentTimes + done}/${need}${failure ? `：${failure}` : ''}`,
   }
 }
 
@@ -608,24 +670,34 @@ export async function runBlaTasks(cookie, options = {}) {
           taskName: name,
           detail: result.msg,
         })
-      } else if (
-        (taskType === BLA_TASK_TYPE.AUTO_REPEAT_A ||
-          taskType === BLA_TASK_TYPE.AUTO_REPEAT_B ||
-          isDirectCompleteTask(task, name, taskType)) &&
-        taskId
-      ) {
+      } else if (taskType === BLA_TASK_TYPE.BROWSE_POST || taskType === BLA_TASK_TYPE.LIKE_POST) {
+        const result = await runCommunityTask(cookie, taskSummary)
+        addMsg(`[${name}] ${result.message}`)
+        if (!result.success) allSuccess = false
+        onProgress?.({
+          current: index + 1,
+          total: totalTasks,
+          taskName: name,
+          detail: result.message,
+        })
+      } else if (isDirectCompleteTask(task, name, taskType) && taskId) {
         const need = Math.max(taskSummary.needTimes || 0, 1)
         const remainingTimes = Math.max(need - (taskSummary.currentTimes || 0), 1)
         let done = 0
+        let failure = ''
         for (let repeatIndex = 0; repeatIndex < remainingTimes; repeatIndex++) {
           const result = await submitCompleteTask(cookie, taskId)
-          if (result.success) done++
+          if (!result.success) {
+            failure = result.message
+            break
+          }
+          done++
           if (repeatIndex < remainingTimes - 1) {
             await sleep(getRandomDelay(TASK_REPEAT_DELAY_RANGE.min, TASK_REPEAT_DELAY_RANGE.max))
           }
         }
         const finalDone = Math.min((taskSummary.currentTimes || 0) + done, need)
-        const repeatMessage = `${finalDone}/${need}`
+        const repeatMessage = `${finalDone}/${need}${failure ? `：${failure}` : ''}`
         addMsg(`[${name}] ${repeatMessage}`)
         if (done < remainingTimes) allSuccess = false
         onProgress?.({

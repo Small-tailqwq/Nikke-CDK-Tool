@@ -3129,6 +3129,40 @@ async function handleBlaTotalPoints(request) {
   })
 }
 
+async function handleBlaPostList(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/ugc/direct/standalonesite/Dynamics/GetPostListNew',
+    method: 'POST',
+    defaultPayload: {
+      limit: '20',
+      order_by: 1,
+      need_all_region: true,
+    },
+  })
+}
+
+async function handleBlaPostDetail(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/ugc/direct/standalonesite/Dynamics/GetPost',
+    method: 'POST',
+    defaultPayload: {
+      browse_post: 2,
+      original_content: 0,
+    },
+  })
+}
+
+async function handleBlaLikePost(request) {
+  return proxyBlaRequest(request, {
+    targetUrl: 'https://api.blablalink.com/api/ugc/proxy/standalonesite/Dynamics/PostStar',
+    method: 'POST',
+    defaultPayload: {
+      type: 1,
+      like_type: 1,
+    },
+  })
+}
+
 async function handleBlaRoleInfo(request) {
   return proxyBlaRequest(request, {
     targetUrl: 'https://api.blablalink.com/api/game/proxy/Game/GetSavedRoleInfo',
@@ -3587,6 +3621,12 @@ export default {
         return handleBlaCompleteTask(request)
       case path === '/global/bla/total-points' && method === 'POST':
         return handleBlaTotalPoints(request)
+      case path === '/global/bla/post-list' && method === 'POST':
+        return handleBlaPostList(request)
+      case path === '/global/bla/post-detail' && method === 'POST':
+        return handleBlaPostDetail(request)
+      case path === '/global/bla/like-post' && method === 'POST':
+        return handleBlaLikePost(request)
       case path === '/global/bla/role-info' && method === 'POST':
         return handleBlaRoleInfo(request)
       case path === '/global/bla/commodity-list' && method === 'POST':

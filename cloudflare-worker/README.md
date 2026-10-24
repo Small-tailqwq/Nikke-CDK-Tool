@@ -166,6 +166,9 @@ POST https://nikke-cdk.hayasa.org/global/bla/task-list
 POST https://nikke-cdk.hayasa.org/global/bla/daily-checkin
 POST https://nikke-cdk.hayasa.org/global/bla/complete-task
 POST https://nikke-cdk.hayasa.org/global/bla/total-points
+POST https://nikke-cdk.hayasa.org/global/bla/post-list
+POST https://nikke-cdk.hayasa.org/global/bla/post-detail
+POST https://nikke-cdk.hayasa.org/global/bla/like-post
 Content-Type: application/json
 
 {
@@ -177,6 +180,8 @@ Content-Type: application/json
 ```
 
 说明：前端本地开发环境不要直连 `https://api.blablalink.com`，否则会被浏览器 CORS 拦截；BlaBla 相关请求应统一通过这里的 Worker 代理。
+
+浏览任务通过 `post-detail` 传入 `post_uuid`、`browse_post: 1` 和 `original_content: 0`；点赞前使用 `browse_post: 2` 查询帖子状态，再通过 `like-post` 传入 `post_uuid`、`type: 1` 和 `like_type: 1`。`PostStar` 会切换点赞状态，前端跳过已点赞帖子，且不自动重试点赞请求。前端使用上述帖子接口前，需先部署包含这些路由的 Worker。
 
 注意：根据现有抓包与实测，`/global/cookie-renewal` 调用的上游 `https://api.blablalink.com/api/user/Login` 只会把现有 `game_token` 重新写回浏览器 Cookie，通常不会签发新的游戏令牌，因此不能视为“真实续签”。
 
