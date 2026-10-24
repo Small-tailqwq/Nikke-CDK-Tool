@@ -3007,7 +3007,7 @@ async function handleGlobalCdkExchange(request) {
 
 async function proxyBlaRequest(request, options) {
   const origin = request.headers.get('Origin')
-  const { targetUrl, method = 'GET', defaultPayload = {} } = options
+  const { targetUrl, method = 'GET', defaultPayload = {}, activity = false } = options
 
   try {
     const requestData = await request.json()
@@ -3043,10 +3043,19 @@ async function proxyBlaRequest(request, options) {
       })
     }
 
+    if (activity) {
+      finalUrl.searchParams.set('u', crypto.randomUUID())
+      finalUrl.searchParams.set('a', '10005')
+      finalUrl.searchParams.set('ts', String(Math.round(Date.now() / 1000)))
+      const signInput = `${finalUrl.pathname}?${decodeURI(finalUrl.search.slice(1))}&appkey=intel#!2022$act`
+      finalUrl.searchParams.set('s', md5(signInput))
+    }
+
     const proxyRequest = new Request(finalUrl.toString(), {
       method,
       headers: {
         ...BLA_HEADERS,
+        ...(activity ? { 'X-Gameid': '29080', 'x-language': 'zh-tw' } : {}),
         'Cookie': cookie,
         'Origin': 'https://www.blablalink.com',
         'Referer': 'https://www.blablalink.com/',
@@ -3160,6 +3169,25 @@ async function handleBlaLikePost(request) {
       type: 1,
       like_type: 1,
     },
+  })
+}
+
+const NIKKE4TH_ROUTES = {
+  state: { path: '/flow/Wand-20261012155307-aa00d44cb6a8c', activity: true, defaultPayload: { lang_type: 'zh-tw' } },
+  'save-role': { path: '/flow/Wand-20261012160757-01e7c4935eaa4', activity: true },
+  complete: { path: '/flow/Wand-20261012173319-25c2281c34fe1?lang_type=zh-tw', activity: true },
+  'share-gift': { path: '/flow/Wand-20261012194050-b78b27823fc6a?lang_type=zh-tw', activity: true, defaultPayload: { lang_type: 'zh-tw' } },
+  comment: { path: '/ugc/proxy/standalonesite/Dynamics/PostComment' },
+  poll: { path: '/ugc/direct/standalonesite/Dynamics/GetPollDetail' },
+  vote: { path: '/ugc/proxy/standalonesite/Dynamics/UserSelectPollOption' },
+}
+
+async function handleNikke4thRequest(request, action) {
+  const { path, ...options } = NIKKE4TH_ROUTES[action]
+  return proxyBlaRequest(request, {
+    targetUrl: `https://api.blablalink.com/api${path}`,
+    method: 'POST',
+    ...options,
   })
 }
 
@@ -3611,6 +3639,9 @@ export default {
         return handleCookieRenewal(request)
 
       // BlaBla 任务代理
+      case path.startsWith('/global/bla/nikke4th/') && method === 'POST' &&
+        Object.hasOwn(NIKKE4TH_ROUTES, path.slice('/global/bla/nikke4th/'.length)):
+        return handleNikke4thRequest(request, path.slice('/global/bla/nikke4th/'.length))
       case path === '/global/bla/check-login' && method === 'POST':
         return handleBlaCheckLogin(request)
       case path === '/global/bla/task-list' && method === 'POST':

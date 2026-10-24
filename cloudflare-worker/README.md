@@ -183,6 +183,14 @@ Content-Type: application/json
 
 浏览任务通过 `post-detail` 传入 `post_uuid`、`browse_post: 1` 和 `original_content: 0`；点赞前使用 `browse_post: 2` 查询帖子状态，再通过 `like-post` 传入 `post_uuid`、`type: 1` 和 `like_type: 1`。`PostStar` 会切换点赞状态，前端跳过已点赞帖子，且不自动重试点赞请求。前端使用上述帖子接口前，需先部署包含这些路由的 Worker。
 
+### 4周年「女神的轨迹」活动
+
+`POST /global/bla/nikke4th/{state,save-role,complete,share-gift,comment,poll,vote}` 使用相同的 `{ cookie, payload }` 请求格式。Worker 为活动流程接口添加官方签名和游戏、语言请求头，留言和投票使用对应的社区接口。
+
+用户管理页的 BlaBla 面板可查询活动进度、填写留言、选择投票并执行任务。空白项和已完成章节会跳过；留言和投票不自动重试。印记以活动接口回查结果为准。活动共13个印记，最终章于北京时间2026年10月25日10:00开放，活动于11月18日22:59结束。先部署 Worker，再发布前端。
+
+活动规则：[「女神的轨迹」4周年活动](https://www.blablalink.com/post/detail?post_uuid=2578391934563964420)。
+
 注意：根据现有抓包与实测，`/global/cookie-renewal` 调用的上游 `https://api.blablalink.com/api/user/Login` 只会把现有 `game_token` 重新写回浏览器 Cookie，通常不会签发新的游戏令牌，因此不能视为“真实续签”。
 
 ### 真实续签（推荐）

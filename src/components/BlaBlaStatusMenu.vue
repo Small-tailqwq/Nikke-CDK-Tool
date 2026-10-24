@@ -131,6 +131,8 @@
           </div>
         </div>
 
+        <Nikke4thEvent :user="user" />
+
         <div class="panel-section">
           <div class="section-header">
             <div class="section-title">每月兑换配置</div>
@@ -273,6 +275,7 @@ import { useUserStore } from '../stores/user'
 import { showCustomMessage } from '../utils/customMessage'
 import { fetchBlaOverview, runBlaTasks } from '../utils/blaSigner'
 import { getBlaTodayKey } from '../utils/blaRunState'
+import Nikke4thEvent from './Nikke4thEvent.vue'
 
 const props = defineProps({
   user: {
