@@ -18,6 +18,8 @@ async function createRunner({
   browse = 2,
   likes = 3,
   gameCompleted = true,
+  gameCredit = true,
+  gameError,
   likeError,
   credit = true,
 } = {}) {
@@ -54,6 +56,12 @@ async function createRunner({
           }
         } else if (path === 'GetUserTotalPoints') {
           data = { total_points: 5252 }
+        } else if (path === 'CompleteTaskAddPoint') {
+          assert.equal(payload.task_id, '14')
+          assert.equal(payload.intl_game_id, '29080')
+          if (gameError)
+            return Response.json(gameError, { status: gameError.status || 200 })
+          if (gameCredit) gameCompleted = true
         } else if (path === 'GetPostListNew') {
           assert.equal(payload.limit, '20')
           data = {
@@ -175,8 +183,24 @@ test('任务已完成时不再请求帖子和点赞接口', async () => {
   )
 })
 
-test('游玩游戏等待游戏内完成，不向补分接口提交也不视为自动执行失败', async () => {
+test('游玩游戏先尝试官方登记，回查完成后显示已完成', async () => {
   const runner = await createRunner({ browse: 5, likes: 5, gameCompleted: false })
+  const result = await runner.run()
+
+  assert.equal(result.success, true)
+  assert.equal(result.overview.completedCount, 4)
+  assert.equal(result.overview.manualPendingCount, 0)
+  assert.equal(runner.requests.filter(({ path }) => path === 'CompleteTaskAddPoint').length, 1)
+  assert.ok(result.messages.some((message) => message.includes('官方进度已确认完成')))
+})
+
+test('游玩游戏登记返回成功但未计入时，保留未完成状态并提示自行启动游戏', async () => {
+  const runner = await createRunner({
+    browse: 5,
+    likes: 5,
+    gameCompleted: false,
+    gameCredit: false,
+  })
   const result = await runner.run()
 
   assert.equal(result.success, true)
@@ -187,6 +211,21 @@ test('游玩游戏等待游戏内完成，不向补分接口提交也不视为�
   assert.equal(gameTask.completed, false)
   assert.equal(gameTask.requiresManual, true)
   assert.equal(gameTask.statusText, '需游戏内完成')
-  assert.ok(result.messages.some((message) => message.includes('需游戏内完成，跳过')))
-  assert.equal(runner.requests.filter(({ path }) => path === 'CompleteTaskAddPoint').length, 0)
+  assert.ok(result.messages.some((message) => message.includes('请自行启动游戏后刷新状态')))
+  assert.equal(runner.requests.filter(({ path }) => path === 'CompleteTaskAddPoint').length, 1)
+})
+
+test('游玩游戏登记报错时只尝试一次，提示手动且不影响其他自动任务', async () => {
+  const runner = await createRunner({
+    gameCompleted: false,
+    gameError: { code: 500, msg: 'system error', status: 500 },
+  })
+  const result = await runner.run()
+
+  assert.equal(result.success, true)
+  assert.equal(result.overview.completedCount, 3)
+  assert.equal(result.overview.manualPendingCount, 1)
+  assert.equal(result.overview.autoPendingCount, 0)
+  assert.equal(runner.requests.filter(({ path }) => path === 'CompleteTaskAddPoint').length, 1)
+  assert.ok(result.messages.some((message) => message.includes('请自行启动游戏后刷新状态')))
 })

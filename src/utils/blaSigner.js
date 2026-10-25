@@ -59,7 +59,10 @@ const getRandomDelay = (min, max) => {
 async function req(path, cookie, payload = null) {
   const url = `${API_BASE}${path}`
   // PostStar 会切换点赞状态，响应丢失时重试可能取消点赞。
-  const retryCount = path === '/global/bla/like-post' ? 0 : REQUEST_RETRY_COUNT
+  const retryCount =
+    path === '/global/bla/like-post' || path === '/global/bla/complete-task'
+      ? 0
+      : REQUEST_RETRY_COUNT
   for (let attempt = 0; attempt <= retryCount; attempt++) {
     try {
       const resp = await axios.post(url, payload === null ? { cookie } : { cookie, payload }, {
@@ -572,6 +575,7 @@ export async function fetchBlaOverview(cookie, options = {}) {
 export async function runBlaTasks(cookie, options = {}) {
   const { onProgress, exchangeEnabled = false, exchangeItems = [], exchangeRecord = {} } = options
   const messages = []
+  const attemptedGameTasks = new Set()
   let allSuccess = true
 
   const addMsg = (msg) => {
@@ -644,12 +648,17 @@ export async function runBlaTasks(cookie, options = {}) {
           detail: result.message,
         })
       } else if (taskType === BLA_TASK_TYPE.MANUAL_IN_GAME) {
-        addMsg(`[${name}] 需游戏内完成，跳过`)
+        await req('/global/bla/complete-task', cookie, {
+          task_id: task.task_id,
+          intl_game_id: '29080',
+        })
+        attemptedGameTasks.add(String(task.task_id))
+        addMsg(`[${name}] 已尝试网页登记，将回查官方进度`)
         onProgress?.({
           current: index + 1,
           total: totalTasks,
           taskName: name,
-          detail: '需手动完成',
+          detail: '已尝试登记，等待回查',
         })
       } else {
         addMsg(`[${name}] 未知任务类型，跳过`)
@@ -682,6 +691,18 @@ export async function runBlaTasks(cookie, options = {}) {
     const overview = buildOverview(latestTasks, overviewTotalPoints, {
       stale: !refreshedTaskResult.success,
     })
+
+    for (const task of overview.tasks.filter((item) => attemptedGameTasks.has(String(item.id)))) {
+      addMsg(
+        `[${task.name}] ${
+          task.completed
+            ? '官方进度已确认完成'
+            : refreshedTaskResult.success
+              ? '官方进度未完成，请自行启动游戏后刷新状态'
+              : '未能回查官方进度，请刷新状态确认；仍未完成时自行启动游戏'
+        }`
+      )
+    }
 
     addMsg(
       `任务概览: ${overview.completedCount}/${overview.totalCount}${

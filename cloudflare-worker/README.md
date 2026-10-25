@@ -183,7 +183,7 @@ Content-Type: application/json
 
 浏览任务通过 `post-detail` 传入 `post_uuid`、`browse_post: 1` 和 `original_content: 0`；点赞前使用 `browse_post: 2` 查询帖子状态，再通过 `like-post` 传入 `post_uuid`、`type: 1` 和 `like_type: 1`。`PostStar` 会切换点赞状态，前端跳过已点赞帖子，且不自动重试点赞请求。前端使用上述帖子接口前，需先部署包含这些路由的 Worker。
 
-“每日游玩游戏”由游戏登录触发，前端仅显示其进度，作为需游戏内完成的任务处理。
+“每日游玩游戏”先尝试一次任务登记接口，再以官方回查的进度为准；未完成时提示自行启动游戏后刷新，不将其视为自动任务失败。工具不唤起客户端。
 
 ### 4周年「女神的轨迹」活动
 
