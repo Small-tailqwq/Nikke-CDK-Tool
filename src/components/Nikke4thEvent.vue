@@ -137,6 +137,7 @@ async function run(options = {}) {
     const result = await runNikke4thTasks(props.user.cookie, {
       comments,
       votes,
+      shared: true,
       onMessage: (message) => messages.value.push(message),
       onComment: (id) => {
         comments[id] = ''
