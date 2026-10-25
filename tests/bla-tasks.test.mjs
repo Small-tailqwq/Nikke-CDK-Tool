@@ -14,7 +14,13 @@ const task = (id, name, type, current, need) => ({
   ],
 })
 
-async function createRunner({ browse = 2, likes = 3, likeError, credit = true } = {}) {
+async function createRunner({
+  browse = 2,
+  likes = 3,
+  gameCompleted = true,
+  likeError,
+  credit = true,
+} = {}) {
   const requests = []
   const browsed = new Set()
   const liked = new Set(['post-1', 'post-2'])
@@ -41,7 +47,7 @@ async function createRunner({ browse = 2, likes = 3, likeError, credit = true } 
           data = {
             tasks: [
               task('15', '每日簽到', 1, 1, 1),
-              task('14', '【每日】遊玩遊戲', 2, 1, 1),
+              task('14', '【每日】遊玩遊戲', 2, gameCompleted ? 1 : 0, 1),
               task('72', '瀏覽5個貼文', 13, browse, 5),
               task('73', '按讚5個貼文', 14, likes, 5),
             ],
@@ -167,4 +173,20 @@ test('任务已完成时不再请求帖子和点赞接口', async () => {
       .length,
     0
   )
+})
+
+test('游玩游戏等待游戏内完成，不向补分接口提交也不视为自动执行失败', async () => {
+  const runner = await createRunner({ browse: 5, likes: 5, gameCompleted: false })
+  const result = await runner.run()
+
+  assert.equal(result.success, true)
+  assert.equal(result.overview.completedCount, 3)
+  assert.equal(result.overview.manualPendingCount, 1)
+  assert.equal(result.overview.autoPendingCount, 0)
+  const gameTask = result.overview.tasks.find((item) => item.id === '14')
+  assert.equal(gameTask.completed, false)
+  assert.equal(gameTask.requiresManual, true)
+  assert.equal(gameTask.statusText, '需游戏内完成')
+  assert.ok(result.messages.some((message) => message.includes('需游戏内完成，跳过')))
+  assert.equal(runner.requests.filter(({ path }) => path === 'CompleteTaskAddPoint').length, 0)
 })

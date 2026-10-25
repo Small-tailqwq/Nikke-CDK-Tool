@@ -183,6 +183,8 @@ Content-Type: application/json
 
 浏览任务通过 `post-detail` 传入 `post_uuid`、`browse_post: 1` 和 `original_content: 0`；点赞前使用 `browse_post: 2` 查询帖子状态，再通过 `like-post` 传入 `post_uuid`、`type: 1` 和 `like_type: 1`。`PostStar` 会切换点赞状态，前端跳过已点赞帖子，且不自动重试点赞请求。前端使用上述帖子接口前，需先部署包含这些路由的 Worker。
 
+“每日游玩游戏”由游戏登录触发，前端仅显示其进度，作为需游戏内完成的任务处理。
+
 ### 4周年「女神的轨迹」活动
 
 `POST /global/bla/nikke4th/{state,save-role,complete,share-gift,comment,poll,vote}` 使用相同的 `{ cookie, payload }` 请求格式。Worker 为活动流程接口添加官方签名和游戏、语言请求头，留言和投票使用对应的社区接口。

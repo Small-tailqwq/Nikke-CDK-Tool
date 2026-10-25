@@ -22,8 +22,6 @@ const BLA_TASK_TYPE = {
 
 const BLA_MONTHLY_LIMIT_CODE = 1100010
 
-const DIRECT_COMPLETE_NAME_PATTERNS = [/遊玩遊戲/i, /游玩游戏/i, /play\s*game/i, /launch\s*game/i]
-
 const normalizeExchangeItems = (items) => {
   if (!Array.isArray(items)) return []
   const seen = new Set()
@@ -103,20 +101,6 @@ const getTaskName = (task) => {
   return '未命名任务'
 }
 
-const isDirectCompleteTask = (
-  task,
-  taskName = getTaskName(task),
-  taskType = task?.task_type ?? null
-) => {
-  if (!task?.task_id) return false
-
-  if (taskType === BLA_TASK_TYPE.MANUAL_IN_GAME) {
-    return DIRECT_COMPLETE_NAME_PATTERNS.some((pattern) => pattern.test(taskName))
-  }
-
-  return false
-}
-
 const summarizeTask = (task) => {
   const rewards = Array.isArray(task?.reward_infos) ? task.reward_infos : []
   const rewardNeeds = rewards
@@ -157,9 +141,7 @@ const summarizeTask = (task) => {
   const completedByReward = rewards.length > 0 && rewards.every((reward) => reward.is_completed)
   const completedByFlag = Boolean(task?.is_completed || task?.is_finished || task?.completed)
   const completed = completedByReward || completedByFlag
-  const requiresManual =
-    task?.task_type === BLA_TASK_TYPE.MANUAL_IN_GAME &&
-    !isDirectCompleteTask(task, getTaskName(task), task?.task_type ?? null)
+  const requiresManual = task?.task_type === BLA_TASK_TYPE.MANUAL_IN_GAME
   const currentTimes = completed ? Math.max(rawCurrent, needTimes || 1) : rawCurrent
 
   let statusText = '待完成'
@@ -244,24 +226,6 @@ async function submitDailyCheckin(cookie) {
     return { success: true, msg: '今日已签到' }
   }
   return { success: false, msg: res.msg || '签到失败' }
-}
-
-async function submitCompleteTask(cookie, taskId) {
-  const res = await req('/global/bla/complete-task', cookie, {
-    task_id: taskId,
-    intl_game_id: '29080',
-  })
-  const normalizedMessage = String(res.msg || '').toLowerCase()
-  if (normalizedMessage.includes('already') || normalizedMessage.includes('重复')) {
-    return {
-      success: true,
-      message: '已完成',
-    }
-  }
-  return {
-    success: res.code === 0,
-    message: res.msg || (res.code === 0 ? '处理成功' : '处理失败'),
-  }
 }
 
 async function runCommunityTask(cookie, taskSummary) {
@@ -647,7 +611,6 @@ export async function runBlaTasks(cookie, options = {}) {
       const taskSummary = summarizeTask(task)
       const name = taskSummary.name
       const taskType = taskSummary.taskType
-      const taskId = task?.task_id
 
       if (taskSummary.completed) {
         addMsg(`[${name}] 已完成`)
@@ -679,32 +642,6 @@ export async function runBlaTasks(cookie, options = {}) {
           total: totalTasks,
           taskName: name,
           detail: result.message,
-        })
-      } else if (isDirectCompleteTask(task, name, taskType) && taskId) {
-        const need = Math.max(taskSummary.needTimes || 0, 1)
-        const remainingTimes = Math.max(need - (taskSummary.currentTimes || 0), 1)
-        let done = 0
-        let failure = ''
-        for (let repeatIndex = 0; repeatIndex < remainingTimes; repeatIndex++) {
-          const result = await submitCompleteTask(cookie, taskId)
-          if (!result.success) {
-            failure = result.message
-            break
-          }
-          done++
-          if (repeatIndex < remainingTimes - 1) {
-            await sleep(getRandomDelay(TASK_REPEAT_DELAY_RANGE.min, TASK_REPEAT_DELAY_RANGE.max))
-          }
-        }
-        const finalDone = Math.min((taskSummary.currentTimes || 0) + done, need)
-        const repeatMessage = `${finalDone}/${need}${failure ? `：${failure}` : ''}`
-        addMsg(`[${name}] ${repeatMessage}`)
-        if (done < remainingTimes) allSuccess = false
-        onProgress?.({
-          current: index + 1,
-          total: totalTasks,
-          taskName: name,
-          detail: repeatMessage,
         })
       } else if (taskType === BLA_TASK_TYPE.MANUAL_IN_GAME) {
         addMsg(`[${name}] 需游戏内完成，跳过`)
