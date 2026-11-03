@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-10-24T11:15:00.000Z",
+  "lastUpdate": "2026-11-02T12:28:46.000Z",
   "cdks": [
     {
       "type": "group",
@@ -797,7 +797,7 @@
       "type": "group",
       "groupId": "NIKKE4thAnniversary",
       "groupName": "4周年直播",
-      "note": "收录4周年纪念生放送「約束の地へ、女神集結」相关 CDK。",
+      "note": "收录4周年纪念生放送「約束の地へ、女神集結」相关 CDK，同期 4 周年活动与线下相关兑换码也收录于此。",
       "cdks": [
         {
           "code": "ToTheFrontline",
@@ -863,6 +863,45 @@
           "note": "字面为 NIKKE 4 Ever（妮姬到永远 / NIKKE forever）。奖励来自直播截图，4周年纪念蛋糕×1 与招募券×1，数量以文字标签为准。",
           "author": "Small-tailqwq",
           "created": "2026-10-24"
+        },
+        {
+          "code": "TOMONICHIJOUE",
+          "name": "共赴地上",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "日服户外广告感想帖破 100 件的奖励。字面为「共に地上へ」（与你一起上地上）。来源：[妮姬JP的X](https://x.com/NIKKE_japan/status/2116817526659121620)。有效期至 11/30 23:59（UTC+9）。",
+          "author": "killua",
+          "created": "2026-11-01"
+        },
+        {
+          "code": "NIKKE4thYongsan",
+          "name": "4周年龙山",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "韩服龙山 IPark Mall 户外广告活动「MARIAN: WHITE & BLACK IN 용산」全员码。来源：[妮姬KR的X](https://x.com/NIKKE_kr/status/2116859044849733981)。有效期至 11/18 23:59（UTC+9）。",
+          "author": "killua",
+          "created": "2026-11-01"
+        },
+        {
+          "code": "4ANNIVVICTORY",
+          "name": "4周年胜利",
+          "reward": "成长套件：1H×3,技能手册宝箱×3,爆裂手册宝箱×3,双模组高级增强器×3",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "日服「NIKKE速报」战场报告满 200 件的奖励。来源：[妮姬JP的X](https://x.com/NIKKE_japan/status/2117195018238640225)。有效期至 12/1 23:59（UTC+9）。奖励细项来自 [GameWith](https://gamewith.jp/nikke/article/show/371014)（官推未列明细）。",
+          "author": "killua",
+          "created": "2026-11-02"
         }
       ],
       "image": "announcement-images/NIKKE4thAnniversary.webp"
