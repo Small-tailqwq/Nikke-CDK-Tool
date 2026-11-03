@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-11-02T12:28:46.000Z",
+  "lastUpdate": "2026-11-03T02:45:25.000Z",
   "cdks": [
     {
       "type": "group",
@@ -878,6 +878,19 @@
           "note": "日服「NIKKE速报」战场报告满 200 件的奖励。来源：[妮姬JP的X](https://x.com/NIKKE_japan/status/2117195018238640225)。有效期至 12/1 23:59（UTC+9）。奖励细项来自 [GameWith](https://gamewith.jp/nikke/article/show/371014)（官推未列明细）。",
           "author": "killua",
           "created": "2026-11-02"
+        },
+        {
+          "code": "MEMORIESWITHYOU",
+          "name": "与你的回忆",
+          "reward": "模组高级增强器×20,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "字面为 Memories with You（与你的回忆）。奖励以贡献者兑换截图为准，细项亦见 [GameWith](https://gamewith.jp/nikke/article/show/371014)。未找到官方 X 原文；社区 Discord 贡献于 2026-10-30。GameKee 记有效期至 11/24 22:59。",
+          "author": "SHIFTEA",
+          "created": "2026-10-30"
         }
       ]
     },
