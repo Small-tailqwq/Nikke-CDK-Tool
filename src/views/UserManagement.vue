@@ -44,6 +44,7 @@
             <el-button
               type="success"
               size="small"
+              plain
               :loading="batchRenewLoading"
               :disabled="!hasRenewableUsers"
               @click="handleBatchRenewCookies"

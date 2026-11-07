@@ -229,7 +229,41 @@ html.dark {
   stroke: var(--el-loading-spinner-color);
 }
 
+html {
+  color-scheme: light;
+}
+
 html.dark {
+  color-scheme: dark;
+
+  // 各类按钮的禁用态：主题只覆盖了正常态，禁用时会回退到 Element 亮色默认值（如浅绿底白字）。
+  // Element 对 plain + disabled 直接写死颜色且选择器较深，这里用更高优先级直接覆盖。
+  $disabled-accents: (
+    primary: (0, 212, 255),
+    success: (0, 212, 255),
+    warning: (240, 160, 48),
+    danger: (255, 51, 85),
+    info: (163, 166, 173),
+  );
+
+  @each $type, $rgb in $disabled-accents {
+    $r: nth($rgb, 1);
+    $g: nth($rgb, 2);
+    $b: nth($rgb, 3);
+
+    .el-button.el-button--#{$type}.is-disabled {
+      &,
+      &:hover,
+      &:focus,
+      &:active {
+        color: rgba($r, $g, $b, 0.42);
+        background-color: rgba($r, $g, $b, 0.06);
+        border-color: rgba($r, $g, $b, 0.16);
+        box-shadow: none;
+      }
+    }
+  }
+
   .el-loading-mask {
     background-color: var(--el-mask-color);
   }
