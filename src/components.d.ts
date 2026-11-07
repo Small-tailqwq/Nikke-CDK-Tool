@@ -59,6 +59,7 @@ declare module 'vue' {
     MasonryLayout: typeof import('./components/MasonryLayout.vue')['default']
     Nikke4thEvent: typeof import('./components/Nikke4thEvent.vue')['default']
     PlaceholderCard: typeof import('./components/PlaceholderCard.vue')['default']
+    ReclamationEvent: typeof import('./components/ReclamationEvent.vue')['default']
     RewardInput: typeof import('./components/admin/RewardInput.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

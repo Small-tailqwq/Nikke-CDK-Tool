@@ -604,6 +604,7 @@ const refreshUserTokenByCredential = async (user, options = {}) => {
     try {
       captchaResult = await getTencentCaptcha({
         appid: credentialResult.captchaAppId || '',
+        timeoutMs: 180000,
       })
     } catch (error) {
       return {

@@ -205,6 +205,14 @@ Content-Type: application/json
 
 仓库内对应的 Worker 端点是 `POST /api/login`，前端“邮箱登录 / 获取Token”与已保存凭证的刷新逻辑都应走这条链路。
 
+### 第三次地面夺还战
+
+`POST /global/reclamation/{public-init,state,rewards,roles,save-role,claim,share,settle}` 使用 `{ cookie, payload }` 请求格式，复用现有国际服账号的 Cookie。Worker 将游戏凭据转换为活动认证参数并签名，向固定 NEX 活动后端转发。
+
+用户管理页的 BlaBla 面板中，“地面夺还战”可查询个人进度、绑定角色、领取奖励并进行30秒、最多10次攻击的小游戏。结算提交本局实际得分，领奖和结算不自动重试；操作后回查官方进度。先部署 Worker，再发布前端。
+
+“一键分享”完成首次分享和已击败战区的战绩分享，并由活动接口发放分享奖励；“一键领取”逐项领取官方状态为可领取的奖励。批量操作先刷新状态，跳过已领取项目，请求失败即停止并回查进度。
+
 ### 安全令牌认证
 
 ```http

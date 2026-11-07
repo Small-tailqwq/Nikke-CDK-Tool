@@ -3172,6 +3172,91 @@ async function handleBlaLikePost(request) {
   })
 }
 
+const RECLAMATION_ROUTES = {
+  'public-init': 'publicInit',
+  state: 'init',
+  rewards: 'rewardRecords',
+  roles: 'roleList',
+  'save-role': 'saveRole',
+  settle: 'battleSettlement',
+  claim: 'claimReward',
+  share: 'shareReward',
+}
+
+async function handleReclamationRequest(request, action) {
+  const headers = { 'Content-Type': 'application/json', ...corsHeaders(request.headers.get('Origin')) }
+  let input
+  try {
+    input = await request.json()
+  } catch {
+    return new Response(JSON.stringify({ code: 400, msg: '请求格式错误' }), { status: 400, headers })
+  }
+  const cookie = typeof input?.cookie === 'string' ? input.cookie : ''
+  const payload = input?.payload || {}
+  const target = new URL(`https://nex-4k09c8-run-app-api.playerinfinite.com/api/nikkeboss/${RECLAMATION_ROUTES[action]}`)
+  if (action !== 'public-init') {
+    const credentials = {
+      openid: getCookieValue(cookie, 'game_openid'),
+      token: getCookieValue(cookie, 'game_token'),
+      channel: getCookieValue(cookie, 'game_channelid'),
+    }
+    if (Object.values(credentials).some((value) => !value)) {
+      return new Response(JSON.stringify({ code: 400, msg: 'Cookie 缺少游戏登录凭据' }), { status: 400, headers })
+    }
+    Object.entries(credentials).forEach(([key, value]) => target.searchParams.set(key, value))
+    target.searchParams.set('account_type', '1')
+    target.searchParams.set('lang_type', 'en')
+    target.searchParams.set('game_id', '29080')
+  }
+  let body = {}
+  if (action === 'roles' || action === 'save-role') {
+    if (!['81', '82', '83', '84', '85'].includes(String(payload.area_id))) {
+      return new Response(JSON.stringify({ code: 400, msg: '请选择国际服区服' }), { status: 400, headers })
+    }
+    body = { game_id: '29080', area_id: Number(payload.area_id) }
+    if (action === 'save-role') {
+      if (!payload.role_id || typeof payload.role_id !== 'string') {
+        return new Response(JSON.stringify({ code: 400, msg: '请选择游戏角色' }), { status: 400, headers })
+      }
+      body.role_id = payload.role_id
+    }
+  } else if (action === 'settle') {
+    if (!Number.isInteger(payload.boss_id) || payload.boss_id < 1 || payload.boss_id > 7 ||
+        !Number.isInteger(payload.damage) || payload.damage < 10000 || payload.damage > 300000 || payload.damage % 5000 !== 0) {
+      return new Response(JSON.stringify({ code: 400, msg: '战斗结算参数错误' }), { status: 400, headers })
+    }
+    body = { boss_id: payload.boss_id, damage: payload.damage }
+  } else if (action === 'claim' || action === 'share') {
+    if (!Number.isInteger(payload.reward_id) || payload.reward_id < 1 || payload.reward_id > 20 || payload.reward_id === 19) {
+      return new Response(JSON.stringify({ code: 400, msg: '奖励编号错误' }), { status: 400, headers })
+    }
+    if (action === 'share' && ![2, 12, 13, 14, 15, 16, 20].includes(payload.reward_id)) {
+      return new Response(JSON.stringify({ code: 400, msg: '分享奖励编号错误' }), { status: 400, headers })
+    }
+    body = { reward_id: payload.reward_id }
+  }
+  target.searchParams.set('u', crypto.randomUUID())
+  target.searchParams.set('a', '10005')
+  target.searchParams.set('ts', String(Math.round(Date.now() / 1000)))
+  target.searchParams.set('s', md5(`${target.pathname}?${decodeURI(target.search.slice(1))}&appkey=intel#!2022$act`))
+  try {
+    const response = await fetch(target.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Origin': 'https://nikke-en.com',
+        'Referer': 'https://nikke-en.com/events/3rdreclamation/',
+      },
+      body: JSON.stringify(body),
+    })
+    return new Response(response.body, { status: response.status, headers })
+  } catch {
+    // 网络异常可能含有带 token 的上游 URL。
+    return new Response(JSON.stringify({ code: 502, msg: '活动请求未确认，请刷新进度后查看结果' }), { status: 502, headers })
+  }
+}
+
 const NIKKE4TH_ROUTES = {
   state: { path: '/flow/Wand-20261012155307-aa00d44cb6a8c', activity: true, defaultPayload: { lang_type: 'zh-tw' } },
   'save-role': { path: '/flow/Wand-20261012160757-01e7c4935eaa4', activity: true },
@@ -3639,6 +3724,9 @@ export default {
         return handleCookieRenewal(request)
 
       // BlaBla 任务代理
+      case path.startsWith('/global/reclamation/') && method === 'POST' &&
+        Object.hasOwn(RECLAMATION_ROUTES, path.slice('/global/reclamation/'.length)):
+        return handleReclamationRequest(request, path.slice('/global/reclamation/'.length))
       case path.startsWith('/global/bla/nikke4th/') && method === 'POST' &&
         Object.hasOwn(NIKKE4TH_ROUTES, path.slice('/global/bla/nikke4th/'.length)):
         return handleNikke4thRequest(request, path.slice('/global/bla/nikke4th/'.length))
