@@ -3,6 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import vm from 'node:vm'
+import { computed, ref } from 'vue'
 
 const cookie =
   'game_openid=OPENID_PLACEHOLDER; game_token=TOKEN_PLACEHOLDER; game_channelid=131; game_gameid=29080; unrelated=SECRET_PLACEHOLDER'
@@ -11,6 +12,9 @@ async function createRunner({
   networkError = false,
   rewardGroups = [{ reward_id: 1, status: 1 }],
   failRewardId = null,
+  random = Math.random,
+  settlementError = false,
+  consumeAttempts = true,
 } = {}) {
   const requests = []
   let damage = 100000
@@ -75,7 +79,12 @@ async function createRunner({
         data = { sent: true }
       } else if (action === 'battleSettlement') {
         damage += payload.damage
-        attempts -= 1
+        if (consumeAttempts) attempts -= 1
+        if (settlementError) throw new Error('SETTLEMENT_NETWORK_ERROR_PLACEHOLDER')
+        for (const reward of rewards) {
+          const threshold = { 3: 300000, 4: 1000000, 5: 2000000, 6: 3000000 }[reward.reward_id]
+          if (threshold && reward.status === 0 && damage >= threshold) reward.status = 1
+        }
         data = { damage: payload.damage, remaining_attempts: attempts }
       } else {
         data = {}
@@ -88,8 +97,9 @@ async function createRunner({
     .replace('import.meta.env.VITE_API_BASE_URL', 'undefined')
     .replaceAll('export ', '')
   const client = vm.runInNewContext(
-    `${apiSource}\n;({ requestReclamation, fetchReclamationState, getReclamationHit, getReclamationBosses, getReclamationShareIds, getReclamationClaimIds, runReclamationRewards })`,
+    `${apiSource}\n;({ requestReclamation, fetchReclamationState, getReclamationHit, getReclamationBosses, getReclamationShareIds, getReclamationClaimIds, runReclamationRewards, getReclamationAutoTarget, runReclamationBattles })`,
     {
+      Math: Object.assign(Object.create(Math), { random }),
       axios: {
         async post(url, body) {
           const response = await worker.fetch(
@@ -105,6 +115,56 @@ async function createRunner({
     }
   )
   return { ...client, worker, requests }
+}
+
+async function createBattleView(api) {
+  let now = 0
+  let frame = null
+  let frameId = 0
+  let unmount
+  const document = { hidden: false, addEventListener() {}, removeEventListener() {} }
+  const source = (await readFile('src/components/ReclamationEvent.vue', 'utf8'))
+    .split('<script setup>')[1]
+    .split('</script>')[0]
+    .replace(/import\s*\{[\s\S]*?\}\s*from\s*['"][^'"]+['"]/g, '')
+  const view = vm.runInNewContext(
+    `${source}\n;({ refresh, startAutomaticBattles, handleVisibilityChange, automatic, playing, shots, damage, seconds, error, state })`,
+    {
+      ...api,
+      computed,
+      ref,
+      defineProps: () => ({ user: { cookie } }),
+      onMounted() {},
+      onBeforeUnmount: (handler) => {
+        unmount = handler
+      },
+      document,
+      performance: { now: () => now },
+      requestAnimationFrame: (callback) => {
+        frame = callback
+        return ++frameId
+      },
+      cancelAnimationFrame: () => {
+        frame = null
+      },
+    }
+  )
+  await view.refresh()
+  return {
+    ...view,
+    unmount: () => unmount(),
+    setHidden(hidden) {
+      document.hidden = hidden
+      view.handleVisibilityChange()
+    },
+    async advance(milliseconds) {
+      now += milliseconds
+      const callback = frame
+      frame = null
+      callback?.(now)
+      await new Promise(setImmediate)
+    },
+  }
 }
 
 test('活动经 Worker 转换游戏凭据、签名，领奖和结算后回查次数与伤害', async () => {
@@ -214,4 +274,171 @@ test('无效结算参数在本地拒绝，网络异常不重试也不返回带�
     {}
   )
   assert.equal(response.status, 400)
+})
+
+test('自动瞄准偏向中心，并保留随机偏移与不同命中等级', async () => {
+  let seed = 20261107
+  const api = await createRunner({
+    random: () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0
+      return seed / 0x100000000
+    },
+  })
+  const targets = Array.from({ length: 500 }, () => api.getReclamationAutoTarget())
+  assert.ok(targets.every((target) => target >= 0.36 && target <= 0.64))
+  const center = targets.filter((target) => Math.abs(target - 0.5) < 0.07).length
+  assert.ok(center > targets.length - center)
+  const ratings = new Set(targets.map((target) => api.getReclamationHit(target).rating))
+  assert.ok(ratings.has('PERFECT'))
+  assert.ok(ratings.has('GREAT'))
+  assert.ok(ratings.has('GOOD'))
+})
+
+test('自动战斗逐局回查剩余次数，用完后领取新达成的伤害奖励', async () => {
+  const api = await createRunner({
+    rewardGroups: [
+      { reward_id: 3, status: 0 },
+      { reward_id: 7, status: 1 },
+    ],
+  })
+  let remaining
+  const playAttempts = []
+  const scores = [225000, 235000]
+  const outcome = await api.runReclamationBattles(cookie, {
+    bossId: 6,
+    shouldStop: () => false,
+    onState: (state) => {
+      remaining = state.remaining_attempts
+    },
+    playRound: async (bossId) => {
+      assert.equal(bossId, 6)
+      playAttempts.push(remaining)
+      return scores[playAttempts.length - 1]
+    },
+  })
+  assert.deepEqual(playAttempts, [2, 1])
+  assert.equal(outcome.rounds, 2)
+  assert.equal(outcome.damage, 460000)
+  assert.equal(outcome.claimed, 2)
+  assert.equal(outcome.state.remaining_attempts, 0)
+  assert.equal(outcome.state.total_damage, 560000)
+  assert.ok(outcome.state.reward_groups.every((reward) => reward.status === 2))
+  assert.deepEqual(
+    api.requests
+      .filter(({ action }) => ['battleSettlement', 'claimReward'].includes(action))
+      .map(({ action }) => action),
+    ['battleSettlement', 'battleSettlement', 'claimReward', 'claimReward']
+  )
+})
+
+test('请求停止时完成当前局，关闭进行中的小游戏时不提交结算', async () => {
+  const api = await createRunner()
+  let stopped = false
+  const outcome = await api.runReclamationBattles(cookie, {
+    bossId: 6,
+    shouldStop: () => stopped,
+    onState: () => {},
+    playRound: async () => {
+      stopped = true
+      return 200000
+    },
+  })
+  assert.equal(outcome.rounds, 1)
+  assert.equal(outcome.stopped, true)
+  assert.equal(outcome.state.remaining_attempts, 1)
+  assert.equal(api.requests.filter(({ action }) => action === 'claimReward').length, 0)
+
+  const cancelled = await createRunner()
+  const result = await cancelled.runReclamationBattles(cookie, {
+    bossId: 6,
+    shouldStop: () => false,
+    onState: () => {},
+    playRound: async () => null,
+  })
+  assert.equal(result.stopped, true)
+  assert.equal(result.rounds, 0)
+  assert.equal(cancelled.requests.filter(({ action }) => action === 'battleSettlement').length, 0)
+})
+
+test('结算成功但响应丢失时停止自动战斗，不重试或提前领奖', async () => {
+  const api = await createRunner({ settlementError: true })
+  await assert.rejects(
+    api.runReclamationBattles(cookie, {
+      bossId: 6,
+      shouldStop: () => false,
+      onState: () => {},
+      playRound: async () => 200000,
+    }),
+    /活动请求未确认/
+  )
+  assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, 1)
+  assert.equal(api.requests.filter(({ action }) => action === 'claimReward').length, 0)
+  const state = await api.fetchReclamationState(cookie)
+  assert.equal(state.remaining_attempts, 1)
+  assert.equal(state.total_damage, 300000)
+})
+
+test('结算后次数未减少时停止，不继续消耗或自动领奖', async () => {
+  const api = await createRunner({ consumeAttempts: false })
+  await assert.rejects(
+    api.runReclamationBattles(cookie, {
+      bossId: 6,
+      shouldStop: () => false,
+      onState: () => {},
+      playRound: async () => 200000,
+    }),
+    /攻击次数未减少/
+  )
+  assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, 1)
+  assert.equal(api.requests.filter(({ action }) => action === 'claimReward').length, 0)
+})
+
+test('实际小游戏在正常帧率和每秒一帧时都完成十次攻击，再自动结算领奖', async () => {
+  for (const frameInterval of [1000 / 60, 1000]) {
+    let seed = 20261107
+    const api = await createRunner({
+      random: () => {
+        seed = (seed * 1664525 + 1013904223) >>> 0
+        return seed / 0x100000000
+      },
+    })
+    const view = await createBattleView(api)
+    const completed = view.startAutomaticBattles()
+    for (let index = 0; index < 4000 && view.automatic.value; index += 1) {
+      await view.advance(frameInterval)
+    }
+    assert.equal(view.automatic.value, false, `动画间隔 ${frameInterval}ms 应完成自动战斗`)
+    await completed
+    assert.equal(view.error.value, '')
+    assert.equal(view.state.value.remaining_attempts, 0)
+    assert.equal(view.shots.value, 10)
+    const settlements = api.requests.filter(({ action }) => action === 'battleSettlement')
+    assert.equal(settlements.length, 2)
+    assert.ok(
+      settlements.every(({ payload }) => payload.damage >= 150000 && payload.damage <= 300000)
+    )
+    assert.equal(api.requests.filter(({ action }) => action === 'claimReward').length, 1)
+    view.unmount()
+  }
+})
+
+test('页面隐藏时暂停自动小游戏，卸载页面后不提交未结束的战斗', async () => {
+  const api = await createRunner()
+  const view = await createBattleView(api)
+  const completed = view.startAutomaticBattles()
+  for (let index = 0; index < 10 && !view.playing.value; index += 1) await view.advance(0)
+  assert.equal(view.playing.value, true)
+  await view.advance(1000)
+  view.setHidden(true)
+  const remaining = view.seconds.value
+  const shots = view.shots.value
+  await view.advance(60000)
+  assert.equal(view.seconds.value, remaining)
+  assert.equal(view.shots.value, shots)
+  view.setHidden(false)
+  await view.advance(1000)
+  assert.ok(view.seconds.value >= remaining - 1)
+  view.unmount()
+  await completed
+  assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, 0)
 })

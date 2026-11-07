@@ -121,6 +121,46 @@ export async function runReclamationRewards(cookie, action) {
   return completed
 }
 
+export function getReclamationAutoTarget() {
+  return 0.5 + (Math.random() + Math.random() - 1) * 0.14
+}
+
+export async function runReclamationBattles(cookie, { bossId, playRound, onState, shouldStop }) {
+  let state = await fetchReclamationState(cookie)
+  onState(state)
+  const initialAttempts = state.remaining_attempts
+  let rounds = 0
+  let damage = 0
+  for (let index = 0; index < initialAttempts; index += 1) {
+    if (shouldStop() || state.remaining_attempts <= 0) break
+    const bosses = getReclamationBosses(state)
+    const boss = bosses.find((item) => item.boss_id === bossId) || bosses[0]
+    if (!boss) break
+    const score = await playRound(boss.boss_id)
+    if (score === null) return { rounds, damage, claimed: 0, stopped: true, state }
+    const remaining = state.remaining_attempts
+    const settled = await requestReclamation(cookie, 'settle', {
+      boss_id: boss.boss_id,
+      damage: score,
+    })
+    rounds += 1
+    damage += settled.damage
+    state = await fetchReclamationState(cookie)
+    onState(state)
+    if (state.remaining_attempts >= remaining) {
+      throw new Error('结算后攻击次数未减少，自动战斗已停止，请刷新进度确认')
+    }
+  }
+  const stopped = shouldStop()
+  let claimed = 0
+  if (!stopped) {
+    claimed = await runReclamationRewards(cookie, 'claim')
+    state = await fetchReclamationState(cookie)
+    onState(state)
+  }
+  return { rounds, damage, claimed, stopped, state }
+}
+
 export function getReclamationHit(position) {
   const distance = Math.abs(position - 0.5)
   if (distance <= 0.04) return { rating: 'PERFECT', damage: 30000 }

@@ -2,7 +2,11 @@
   <section class="reclamation-panel">
     <div class="event-toolbar">
       <strong>第三次地面夺还战</strong>
-      <el-button size="small" :loading="loading" :disabled="busy || playing" @click="refresh"
+      <el-button
+        size="small"
+        :loading="loading"
+        :disabled="busy || playing || automatic"
+        @click="refresh"
         >刷新进度</el-button
       >
       <a :href="RECLAMATION_URL" target="_blank" rel="noopener noreferrer">官方活动</a>
@@ -53,7 +57,11 @@
           </span>
         </div>
         <div class="battle-controls">
-          <el-select v-model="bossId" aria-label="攻击战区" :disabled="playing || busy">
+          <el-select
+            v-model="bossId"
+            aria-label="攻击战区"
+            :disabled="playing || busy || automatic"
+          >
             <el-option
               v-for="boss in bosses"
               :key="boss.boss_id"
@@ -61,7 +69,17 @@
               :label="`${RECLAMATION_BOSSES[boss.boss_id]} · ${boss.hp_percent}%`"
             />
           </el-select>
-          <el-button type="primary" :disabled="!canStart" @click="startBattle">开始一局</el-button>
+          <el-button :disabled="!canStart || automatic" @click="startBattle">开始一局</el-button>
+          <el-button
+            type="primary"
+            :loading="automatic"
+            :disabled="!canStart || automatic"
+            @click="startAutomaticBattles"
+            >一键战斗并领奖</el-button
+          >
+          <el-button v-if="automatic" :disabled="stopRequested" @click="stopRequested = true"
+            >本局后停止</el-button
+          >
         </div>
         <p class="battle-help">
           30 秒内最多攻击 10 次，指针越接近中央，伤害越高。结算消耗 1 次攻击机会。
@@ -74,7 +92,11 @@
           <div class="aim-track" role="img" aria-label="中央红色区域命中伤害最高">
             <div class="aim-needle" :style="{ left: `${position * 100}%` }"></div>
           </div>
-          <el-button class="fire-button" type="primary" :disabled="!playing" @click="fire"
+          <el-button
+            class="fire-button"
+            type="primary"
+            :disabled="!playing || automatic"
+            @click="fire"
             >发射</el-button
           >
           <strong class="hit-rating" aria-live="polite">{{ rating }}</strong>
@@ -83,14 +105,14 @@
         <div class="reward-actions">
           <el-button
             :loading="batchAction === 'share'"
-            :disabled="busy || loading || playing || !shareIds.length"
+            :disabled="busy || loading || playing || automatic || !shareIds.length"
             @click="runRewards('share')"
             >一键分享</el-button
           >
           <el-button
             type="primary"
             :loading="batchAction === 'claim'"
-            :disabled="busy || loading || playing || !claimIds.length"
+            :disabled="busy || loading || playing || automatic || !claimIds.length"
             @click="runRewards('claim')"
             >一键领取</el-button
           >
@@ -101,7 +123,7 @@
             <el-button
               v-if="reward.status === 1"
               size="small"
-              :disabled="busy || playing"
+              :disabled="busy || playing || automatic"
               @click="claim(reward.reward_id)"
               >领取</el-button
             >
@@ -122,10 +144,12 @@ import {
   RECLAMATION_URL,
   fetchReclamationState,
   getReclamationBosses,
+  getReclamationAutoTarget,
   getReclamationClaimIds,
   getReclamationHit,
   getReclamationShareIds,
   requestReclamation,
+  runReclamationBattles,
   runReclamationRewards,
 } from '../utils/reclamation'
 
@@ -134,6 +158,8 @@ const state = ref(null)
 const loading = ref(false)
 const busy = ref(false)
 const batchAction = ref('')
+const automatic = ref(false)
+const stopRequested = ref(false)
 const error = ref('')
 const result = ref('')
 const areaId = ref(Number(props.user.playerInfo?.area_id) || 84)
@@ -171,16 +197,24 @@ let previousTime = 0
 let deadline = 0
 let nextShot = 0
 let direction = 1
+let autoTarget = 0.5
+let finishAutoRound = null
+let pausedAt = null
+let disposed = false
 
-async function updateState() {
-  state.value = await fetchReclamationState(props.user.cookie)
+function applyState(data) {
+  state.value = data
   if (!bosses.value.some((boss) => boss.boss_id === bossId.value)) {
     bossId.value = bosses.value[0]?.boss_id ?? null
   }
 }
 
+async function updateState() {
+  applyState(await fetchReclamationState(props.user.cookie))
+}
+
 async function refresh() {
-  if (loading.value || busy.value || playing.value) return
+  if (loading.value || busy.value || playing.value || automatic.value) return
   loading.value = true
   error.value = ''
   try {
@@ -226,7 +260,7 @@ async function bindRole() {
 }
 
 async function claim(rewardId) {
-  if (busy.value || playing.value) return
+  if (busy.value || playing.value || automatic.value) return
   busy.value = true
   error.value = ''
   result.value = ''
@@ -242,7 +276,7 @@ async function claim(rewardId) {
 }
 
 async function runRewards(action) {
-  if (busy.value || loading.value || playing.value) return
+  if (busy.value || loading.value || playing.value || automatic.value) return
   busy.value = true
   batchAction.value = action
   error.value = ''
@@ -265,6 +299,53 @@ async function runRewards(action) {
   }
 }
 
+async function startAutomaticBattles() {
+  if (!canStart.value || automatic.value) return
+  automatic.value = true
+  stopRequested.value = false
+  error.value = ''
+  result.value = ''
+  try {
+    const outcome = await runReclamationBattles(props.user.cookie, {
+      bossId: bossId.value,
+      onState: applyState,
+      shouldStop: () => stopRequested.value || disposed,
+      playRound: (selectedBoss) =>
+        new Promise((resolve) => {
+          bossId.value = selectedBoss
+          finishAutoRound = resolve
+          startBattle()
+        }),
+    })
+    if (!disposed) {
+      applyState(outcome.state)
+      result.value = `自动战斗${outcome.stopped ? '已停止' : '结束'}，完成 ${outcome.rounds} 局，伤害 ${format(outcome.damage)}，已领取 ${outcome.claimed} 项奖励`
+    }
+  } catch (cause) {
+    error.value = cause.message
+    state.value = null
+  } finally {
+    automatic.value = false
+    stopRequested.value = false
+  }
+}
+
+function handleVisibilityChange() {
+  if (!automatic.value || !playing.value) return
+  if (document.hidden) {
+    pausedAt = performance.now()
+    cancelAnimationFrame(frame)
+  } else if (pausedAt !== null) {
+    const now = performance.now()
+    const elapsed = now - pausedAt
+    deadline += elapsed
+    nextShot += elapsed
+    previousTime = now
+    pausedAt = null
+    frame = requestAnimationFrame(tick)
+  }
+}
+
 function startBattle() {
   if (!canStart.value) return
   shots.value = 0
@@ -277,33 +358,57 @@ function startBattle() {
   previousTime = performance.now()
   deadline = previousTime + 30000
   nextShot = 0
+  autoTarget = getReclamationAutoTarget()
+  pausedAt = null
   seconds.value = 30
   playing.value = true
   frame = requestAnimationFrame(tick)
+  handleVisibilityChange()
 }
 
 function tick(now) {
+  if (!playing.value) return
+  if (automatic.value) {
+    const until = Math.min(now, deadline)
+    // 固定步长补齐被浏览器限速的动画帧，保持命中与攻击间隔一致。
+    while (playing.value && previousTime < until) {
+      const stepTime = Math.min(previousTime + 1000 / 60, until)
+      advanceAim(stepTime, (stepTime - previousTime) / 1000)
+      previousTime = stepTime
+    }
+  } else {
+    advanceAim(now, Math.min((now - previousTime) / 1000, 0.05))
+    previousTime = now
+  }
   if (!playing.value) return
   if (now >= deadline) {
     settle()
     return
   }
   seconds.value = Math.ceil((deadline - now) / 1000)
-  const delta = Math.min((now - previousTime) / 1000, 0.05)
-  previousTime = now
+  frame = requestAnimationFrame(tick)
+}
+
+function advanceAim(now, delta) {
   if (now >= nextShot) {
+    const previousPosition = position.value
     const speed = (20 * (1.2 ** (7 / 9)) ** Math.min(shots.value, 9) * 2) / 60
     position.value += direction * speed * delta
     if (position.value >= 1 || position.value <= 0) {
       position.value = Math.max(0, Math.min(1, position.value))
       direction *= -1
     }
+    if (automatic.value && (previousPosition - autoTarget) * (position.value - autoTarget) <= 0) {
+      fireAt(now)
+    }
   }
-  frame = requestAnimationFrame(tick)
 }
 
 function fire() {
-  const now = performance.now()
+  fireAt(performance.now())
+}
+
+function fireAt(now) {
   if (!playing.value || now < nextShot) return
   if (now >= deadline) {
     settle()
@@ -314,6 +419,7 @@ function fire() {
   rating.value = hit.rating
   damage.value += hit.damage
   shots.value += 1
+  autoTarget = getReclamationAutoTarget()
   if (shots.value === 10) settle()
 }
 
@@ -321,6 +427,13 @@ async function settle() {
   if (!playing.value) return
   playing.value = false
   cancelAnimationFrame(frame)
+  pausedAt = null
+  if (finishAutoRound) {
+    const resolve = finishAutoRound
+    finishAutoRound = null
+    resolve(shots.value ? damage.value : null)
+    return
+  }
   if (!shots.value) {
     result.value = '未造成伤害，本局取消'
     return
@@ -342,10 +455,17 @@ async function settle() {
   }
 }
 
-onMounted(refresh)
+onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+  refresh()
+})
 onBeforeUnmount(() => {
+  disposed = true
   playing.value = false
   cancelAnimationFrame(frame)
+  finishAutoRound?.(null)
+  finishAutoRound = null
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
