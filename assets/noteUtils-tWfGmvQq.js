@@ -1,0 +1,1 @@
+function e(e){if(!e)return``;let t=e;return t=t.replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/>/g,`&gt;`).replace(/"/g,`&quot;`).replace(/'/g,`&#39;`),t=t.replace(/\n/g,`<br>`),t=t.replace(/\[([^\]]*)\]\(([^)]+)\)/g,(e,t,n)=>{let r=n.trim(),i=t||r;return/^https?:\/\//i.test(r)?`<a href="${r}" target="_blank" rel="noopener noreferrer">${i}</a>`:i}),t}export{e as t};

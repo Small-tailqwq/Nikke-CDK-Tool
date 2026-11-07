@@ -1,0 +1,1 @@
+var e=`/Nikke-CDK-Tool/assets/doro_icon-N2ZJXVk1.png`;export{e as t};
