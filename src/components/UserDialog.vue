@@ -2031,16 +2031,24 @@ const handleSubmit = async () => {
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    width: 100%;
     max-width: 360px;
     box-sizing: border-box;
     display: flex;
     align-items: center;
 
+    > .el-card__body {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+
     @media screen and (max-width: 768px) {
       height: 90px;
       margin-bottom: 12px;
       border-radius: 6px;
-      width: 100%;
       max-width: none;
     }
 
@@ -2074,6 +2082,7 @@ const handleSubmit = async () => {
 
     .cookie-mask-content {
       width: 100%;
+      box-sizing: border-box;
       display: flex;
       align-items: center;
       justify-content: flex-start;
@@ -2125,6 +2134,7 @@ const handleSubmit = async () => {
     }
 
     .cookie-mask-text {
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -2566,43 +2576,70 @@ const handleSubmit = async () => {
       align-items: stretch;
     }
 
+    // 登录辅助入口：两列网格对齐，每项用各自的强调色区分
     .dialog-footer-left {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      row-gap: 4px;
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+      gap: 2px 4px;
 
       @media screen and (max-width: 768px) {
-        justify-content: center;
         order: 2;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .help-button {
-        display: flex;
-        align-items: center;
-        gap: 4px;
+        --accent: var(--el-color-info);
+
+        margin: 0; // 去掉 el-button 相邻按钮的默认左边距，避免两行错位
+        height: 30px;
+        padding: 0 10px;
+        justify-content: flex-start;
+        border-radius: 6px;
         font-size: 12px;
-        color: var(--el-color-info);
-        padding: 4px 8px;
-        border-radius: 4px;
-        transition: all 0.3s ease;
+        color: var(--el-text-color-secondary);
+        transition:
+          color 0.2s ease,
+          background-color 0.2s ease;
 
-        @media screen and (max-width: 768px) {
-          font-size: 12px;
-          padding: 6px 10px;
-        }
-
-        &:hover {
-          background-color: var(--el-color-info-light-9);
-          color: var(--el-color-info-dark-2);
+        > span {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .el-icon {
           font-size: 14px;
+          color: var(--accent);
+        }
 
-          @media screen and (max-width: 768px) {
-            font-size: 13px;
-          }
+        // 选择器要压过主题里 html.dark .el-button--xxx:hover:not(...) 的通用光晕/上浮
+        &.el-button:hover:not(.is-disabled):not(.is-loading),
+        &.el-button:focus-visible {
+          color: var(--accent);
+          background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+          box-shadow: none;
+          transform: none;
+        }
+
+        &:active {
+          background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+
+        &.el-button--primary {
+          --accent: var(--el-color-primary);
+        }
+
+        &.el-button--success {
+          --accent: var(--el-color-success);
+        }
+
+        &.el-button--warning {
+          --accent: var(--el-color-warning);
+        }
+
+        @media screen and (max-width: 768px) {
+          height: 34px;
+          justify-content: center;
         }
       }
     }
