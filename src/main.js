@@ -1,9 +1,11 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+// Element Plus 组件由 unplugin-vue-components 按需引入，这里只装全局能力，避免整包打进首屏
+import { ElLoading, ElMessage, ElMessageBox, provideGlobalConfig } from 'element-plus'
+import zhCn from 'element-plus/es/locale/lang/zh-cn.mjs'
 import 'element-plus/es/components/message/style/css'
 import 'element-plus/es/components/message-box/style/css'
+import 'element-plus/es/components/loading/style/css'
 import App from './App.vue'
 import router from './router'
 import { setupInstallPrompt } from './utils/installPrompt'
@@ -53,9 +55,10 @@ const app = createApp(App)
 // 使用插件
 app.use(createPinia())
 app.use(router)
-app.use(ElementPlus, {
-  locale: zhCn,
-})
+app.use(ElLoading) // v-loading 指令
+app.use(ElMessage)
+app.use(ElMessageBox) // 让函数式调用的 MessageBox 也拿到下面的全局语言配置
+provideGlobalConfig({ locale: zhCn }, app, true)
 
 app.mount('#app')
 

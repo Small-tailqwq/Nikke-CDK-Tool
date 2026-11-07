@@ -4,12 +4,8 @@
     :style="iconStyle"
     v-bind="$attrs"
   >
-    <!-- Element Plus 图标 -->
-    <component v-if="isElementIcon" :is="iconName" />
-    
     <!-- 自定义 SVG 图标 -->
-    <svg 
-      v-else 
+    <svg
       viewBox="0 0 1024 1024" 
       width="1em" 
       height="1em"
@@ -22,7 +18,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import * as ElementIcons from '@element-plus/icons-vue'
 
 interface Props {
   name: string
@@ -38,15 +33,8 @@ const props = withDefaults(defineProps<Props>(), {
   spin: false,
 })
 
-// 判断是否为Element Plus图标
-const isElementIcon = computed(() => {
-  return Object.keys(ElementIcons).includes(props.name)
-})
-
-// 获取图标名称（用于动态组件）
-const iconName = computed(() => {
-  return isElementIcon.value ? (ElementIcons as any)[props.name] : props.name
-})
+// 只保留自定义 SVG；之前 import * 会把全部 Element 图标打进首屏包
+const iconName = computed(() => props.name)
 
 // 图标class
 const iconClass = computed(() => {
