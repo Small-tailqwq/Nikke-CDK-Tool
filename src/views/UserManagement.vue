@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>用户管理</span>
           <div class="header-actions">
-            <el-dropdown trigger="click" class="column-selector">
+            <el-dropdown v-if="!isCardLayout" trigger="click" class="column-selector">
               <el-button
                 size="small"
                 circle
@@ -64,7 +64,99 @@
         </div>
       </template>
 
-      <el-table v-loading="userStore.loading" :data="userStore.users" stripe class="user-table">
+      <!-- 小屏：卡片列表，内容一屏看全，不需要横向滚动 -->
+      <div v-if="isCardLayout" v-loading="userStore.loading" class="user-card-list">
+        <div v-for="row in userStore.users" :key="row.id" class="user-item">
+          <div class="user-item-head">
+            <div class="user-item-title">
+              <span class="user-item-name">{{ row.name }}</span>
+              <div class="server-display">
+                <el-tag
+                  v-for="(tag, index) in parseServerTags(row)"
+                  :key="index"
+                  :type="tag.type"
+                  size="small"
+                  class="server-tag"
+                >
+                  {{ tag.text }}
+                </el-tag>
+              </div>
+            </div>
+            <bla-bla-status-menu :user="row" :ran-today="blaRanToday(row)" />
+          </div>
+
+          <div class="user-item-info">
+            <span class="user-item-uid">UID {{ row.uid || '—' }}</span>
+            <template v-if="row.server === 'cn'">
+              <span>{{ getCnRoleName(row) }}</span>
+            </template>
+            <template v-else-if="row.playerInfo">
+              <span>{{ row.playerInfo.role_name }}</span>
+              <span v-if="row.playerInfo.team_combat"
+                >战力 {{ row.playerInfo.team_combat.toLocaleString() }}</span
+              >
+            </template>
+          </div>
+
+          <div v-if="row.server !== 'cn'" class="user-item-status">
+            <el-tag :type="getCookieStatusType(row)" size="small">
+              {{
+                getCookieExpireDays(row) === -1
+                  ? 'Cookie 异常'
+                  : `Cookie 剩余 ${getCookieExpireDays(row)} 天`
+              }}
+            </el-tag>
+            <el-tag
+              v-if="hasSavedLoginCredential(row)"
+              type="success"
+              effect="plain"
+              size="small"
+              class="credential-status-tag"
+            >
+              凭证
+            </el-tag>
+          </div>
+
+          <div class="user-item-actions">
+            <el-button size="small" @click="handleEdit(row)">编辑</el-button>
+            <el-button
+              v-if="shouldShowRenewButton(row)"
+              size="small"
+              :type="hasSavedLoginCredential(row) ? 'primary' : 'warning'"
+              plain
+              :loading="getRenewLoading(row.id)"
+              @click="handleRenewUserCookie(row)"
+            >
+              {{ getRenewButtonText(row) }}
+            </el-button>
+            <el-button
+              v-if="row.server !== 'cn'"
+              size="small"
+              type="success"
+              plain
+              :loading="syncLoading"
+              @click="handleSyncHistory(row)"
+            >
+              同步
+            </el-button>
+            <el-button size="small" type="danger" plain @click="handleDelete(row)">删除</el-button>
+          </div>
+        </div>
+
+        <el-empty
+          v-if="!userStore.loading && userStore.users.length === 0"
+          :image-size="72"
+          description="暂无用户"
+        />
+      </div>
+
+      <el-table
+        v-else
+        v-loading="userStore.loading"
+        :data="userStore.users"
+        stripe
+        class="user-table"
+      >
         <el-table-column v-if="getColumnVisible('name')" prop="name" label="用户名" min-width="100">
           <template #default="{ row }">
             <el-tooltip :content="row.name" placement="top">
@@ -379,6 +471,8 @@ const isMobile = computed(() => screenWidth.value <= 768)
 const isSmallScreen = computed(() => screenWidth.value <= 1200)
 const isMediumScreen = computed(() => screenWidth.value <= 1024)
 const isCompactScreen = computed(() => screenWidth.value <= 900)
+// ≤ 900px（手机、竖屏平板）改用卡片布局
+const isCardLayout = computed(() => screenWidth.value <= 900)
 
 // 动态计算操作列宽度
 const getActionColumnWidth = computed(() => {
@@ -1256,6 +1350,11 @@ onBeforeUnmount(() => {
     padding: 12px;
   }
 
+  // 手机：外层 el-main 已有留白，这里不再叠加
+  @media screen and (max-width: 640px) {
+    padding: 0;
+  }
+
   .server-display {
     display: flex;
     align-items: center;
@@ -1431,9 +1530,20 @@ onBeforeUnmount(() => {
         gap: 8px;
         align-items: center;
 
-        @media screen and (max-width: 768px) {
-          flex-wrap: wrap;
-          gap: 6px;
+        @media screen and (max-width: 900px) {
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+
+          .el-button {
+            width: 100%;
+            margin: 0;
+          }
+        }
+
+        @media screen and (min-width: 641px) and (max-width: 900px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
     }
@@ -1494,6 +1604,92 @@ onBeforeUnmount(() => {
     }
   }
 }
+.user-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  min-height: 80px;
+
+  @media screen and (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+.user-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-fill-color-blank);
+  min-width: 0;
+}
+
+.user-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-item-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.user-item-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.user-item-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+
+  span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.user-item-uid {
+  font-family: var(--cdk-font-mono, ui-monospace, monospace);
+}
+
+.user-item-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.user-item-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--el-border-color-extra-light);
+
+  .el-button {
+    margin: 0;
+    width: 100%;
+  }
+}
+
 .column-selector {
   margin-right: 8px;
 }

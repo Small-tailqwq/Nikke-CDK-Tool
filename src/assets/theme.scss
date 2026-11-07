@@ -1021,3 +1021,51 @@ html.theme-changing *::before,
 html.theme-changing *::after {
   transition: none !important;
 }
+
+/* =============== CDK 备注 Tooltip =============== */
+/* popper 传送到 body，必须写成全局样式；正文与链接分开着色 */
+.el-popper.cdk-note-tooltip {
+  z-index: 9999 !important;
+  max-width: min(400px, calc(100vw - 32px));
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--cdk-glass-border);
+  background: var(--cdk-overlay-bg);
+  color: var(--el-text-color-regular);
+  box-shadow: var(--el-box-shadow-dark);
+
+  .el-popper__arrow::before {
+    background: var(--cdk-overlay-bg);
+    border-color: var(--cdk-glass-border);
+  }
+
+  .note-content {
+    line-height: 1.6;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+    text-decoration: none;
+    word-break: break-word;
+
+    a {
+      color: var(--el-color-primary) !important;
+      font-weight: 500;
+      text-decoration: underline !important;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 3px;
+      text-decoration-color: color-mix(in srgb, var(--el-color-primary) 45%, transparent) !important;
+      transition: text-decoration-color 0.2s ease;
+
+      &::after {
+        content: '↗';
+        display: inline-block;
+        margin-left: 2px;
+        font-size: 0.85em;
+        text-decoration: none;
+      }
+
+      &:hover {
+        text-decoration-color: currentColor !important;
+      }
+    }
+  }
+}

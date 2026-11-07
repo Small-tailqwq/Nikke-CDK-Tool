@@ -53,8 +53,10 @@
                   >
                     {{
                       getCookieExpireDays(user) === -1
-                        ? 'Cookie时间异常'
-                        : `Cookie剩余 ${getCookieExpireDays(user)} 天`
+                        ? 'Cookie异常'
+                        : isPhone
+                          ? `Cookie ${getCookieExpireDays(user)}天`
+                          : `Cookie剩余 ${getCookieExpireDays(user)} 天`
                     }}
                   </el-tag>
                 </div>
@@ -155,7 +157,14 @@
         </div>
       </template>
 
+      <history-record-list
+        v-if="isCompact"
+        :records="exchangeStore.recentHistory"
+        :loading="exchangeStore.loading"
+      />
+
       <el-table
+        v-else
         v-loading="exchangeStore.loading"
         :data="exchangeStore.recentHistory"
         stripe
@@ -198,7 +207,7 @@
     <el-dialog
       v-model="captchaDialogVisible"
       title="国服CDK兑换 - 验证码"
-      width="400px"
+      :width="isPhone ? '92%' : '400px'"
       :close-on-click-modal="false"
     >
       <div class="captcha-dialog-content">
@@ -294,11 +303,15 @@ const UserDialog = defineAsyncComponent(() => import('../components/UserDialog.v
 import { exchangeCDK, getCaptchaCN, exchangeCDKCN } from '../utils/api'
 import { getCookieExpireDays as calculateCookieExpireDays } from '../utils/dateUtils'
 import { showCustomMessage } from '../utils/customMessage'
+import { useViewport } from '../composables/useViewport'
+import HistoryRecordList from '../components/HistoryRecordList.vue'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
+
+const { isPhone, isCompact } = useViewport()
 
 const selectedUserIds = ref([])
 const dialogVisible = ref(false)
@@ -1233,6 +1246,7 @@ onMounted(() => {
     .user-card {
       border: 2px solid var(--el-border-color-light);
       border-radius: 8px;
+      margin-bottom: 0; // 外层 .user-card 选择器也会命中账户卡，网格内不需要额外间距
       padding: 16px;
       cursor: pointer;
       transition: all 0.3s ease;
@@ -1642,29 +1656,119 @@ onMounted(() => {
   }
 
   // 响应式设计
-  @media (max-width: 768px) {
+  // 平板：卡片略窄，一行放更多账户
+  @media (max-width: 900px) {
     .user-cards-container {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 12px;
+      margin-top: 0;
 
-      .user-card-content {
-        .user-info {
-          .server-info {
-            margin-top: 6px;
-            gap: 6px;
+      .user-card {
+        height: auto; // 覆盖 App.vue 中全局的固定 120px，内容多时不被裁切
+        padding: 12px;
 
-            .server-badge,
-            .sub-region-badge {
-              padding: 2px 8px;
-              font-size: 10px;
+        .user-card-content {
+          padding: 0;
+          height: auto;
+          justify-content: flex-start;
+          gap: 0;
+
+          .user-info h3,
+          .user-info p {
+            margin-right: 24px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+
+  // 手机：两列紧凑账户卡，选择区不再占满整屏
+  @media (max-width: 640px) {
+    .user-card,
+    .cdk-card,
+    .history-card {
+      margin-bottom: 12px;
+    }
+
+    .user-cards-container {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+
+      .user-card {
+        height: auto; // 覆盖 App.vue 中全局的固定 120px
+        padding: 10px;
+        border-width: 1.5px;
+        min-width: 0;
+
+        .user-card-content {
+          gap: 0;
+          padding: 0;
+          height: auto;
+          justify-content: flex-start;
+
+          .user-info {
+            min-width: 0;
+
+            h3 {
+              font-size: 14px;
+              margin: 0 22px 2px 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
             }
 
-            .sub-region-badge {
-              padding: 2px 8px;
-              font-size: 10px;
+            p {
+              font-size: 12px;
+              margin: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
             }
 
-            .cookie-status {
+            .server-info {
+              margin-top: 6px;
+              gap: 4px;
+
+              .server-badge,
+              .sub-region-badge {
+                padding: 1px 6px;
+                font-size: 10px;
+                box-shadow: none;
+              }
+
+              .cookie-status {
+                font-size: 10px;
+                height: 18px;
+                padding: 0 5px;
+              }
+            }
+          }
+
+          .selection-indicator {
+            top: 8px;
+            right: 8px;
+            width: 18px;
+            height: 18px;
+
+            .el-icon {
               font-size: 11px;
+            }
+          }
+        }
+
+        &.add-user-card {
+          min-height: 0;
+
+          .add-user-content {
+            flex-direction: row;
+            gap: 6px;
+            font-size: 13px;
+
+            .el-icon {
+              font-size: 16px;
             }
           }
         }
@@ -1672,9 +1776,15 @@ onMounted(() => {
     }
 
     .card-header {
-      flex-direction: column;
-      align-items: flex-start;
       gap: 8px;
+    }
+
+    .exchange-section .exchange-results .result-title {
+      margin-left: 8px;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

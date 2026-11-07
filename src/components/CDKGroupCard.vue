@@ -150,25 +150,37 @@
       <transition name="card-expand" appear>
         <div
           v-if="isExpanded"
+          ref="backdropRef"
           class="overlay-backdrop"
-          @click="closeOverlay"
-          @keydown.esc="closeOverlay"
-          tabindex="0"
+          :class="{ 'is-fan': useFan }"
+          tabindex="-1"
           role="dialog"
           aria-modal="true"
           aria-labelledby="overlay-title"
+          @click="closeOverlay"
+          @keydown="handleOverlayKeydown"
         >
           <div class="overlay-container" @click.stop="">
             <div class="overlay-header">
               <h3 id="overlay-title">
                 {{ group.groupName || '未命名CDK组合' }}
               </h3>
-              <el-button type="primary" circle size="small" @click="closeOverlay">
-                <el-icon><Close /></el-icon>
-              </el-button>
+              <div class="overlay-header-actions">
+                <span class="overlay-selected-count" :class="{ active: selectedSubCount > 0 }">
+                  {{ selectedSubCount }} / {{ group.cdks.length }}
+                </span>
+                <el-button type="primary" circle size="small" @click="closeOverlay">
+                  <el-icon><Close /></el-icon>
+                </el-button>
+              </div>
             </div>
 
-            <div class="sub-cards-container beautiful-scrollbar">
+            <div
+              :class="useFan ? 'fan-stage' : 'sub-cards-container beautiful-scrollbar'"
+              :style="useFan ? fanStageStyle : undefined"
+              @pointerleave="activeIndex = -1"
+              @click.self="useFan && closeOverlay()"
+            >
               <div
                 v-for="(subCdk, index) in group.cdks"
                 :key="subCdk.code"
@@ -176,12 +188,22 @@
                 :class="{
                   available: subCdk.status === '可用',
                   unavailable: subCdk.status === '已过期',
+                  'fan-card': useFan,
+                  'is-active': useFan && activeIndex === index,
+                  'is-selected': isSubSelected(subCdk.code),
                 }"
-                :style="{
-                  '--delay': index * 150 + 'ms',
-                  '--index': index,
-                }"
+                :style="useFan ? getFanCardStyle(index) : { '--delay': index * 60 + 'ms' }"
+                :data-card-tilt="useFan ? '' : undefined"
+                role="checkbox"
+                :aria-checked="isSubSelected(subCdk.code)"
+                :aria-disabled="subCdk.status === '已过期'"
+                @pointerenter="activeIndex = index"
+                @click="toggleSubSelection(subCdk)"
               >
+                <span class="sub-cdk-check" aria-hidden="true">
+                  <el-icon><Check /></el-icon>
+                </span>
+
                 <div class="sub-cdk-header">
                   <h4>{{ subCdk.name || subCdk.code }}</h4>
                   <div class="sub-cdk-status-group">
@@ -223,6 +245,7 @@
                     size="large"
                     :class="{ copied: copiedCode === subCdk.code }"
                     @mousedown="copyCdk(subCdk.code, $event)"
+                    @click.stop=""
                   >
                     <span class="code-text" :style="'--char-count:'+subCdk.code.length">{{ subCdk.code }}</span>
                     <el-icon class="copy-icon"><Document /></el-icon>
@@ -240,7 +263,7 @@
                   </el-tag>
                 </div>
 
-                <div v-if="subCdk.note" class="sub-cdk-note">
+                <div v-if="subCdk.note" class="sub-cdk-note" @click.stop="">
                   <el-tooltip
                     placement="top"
                     :show-after="500"
@@ -290,8 +313,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { Document, InfoFilled, Picture, Collection, Grid, Close } from '@element-plus/icons-vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import {
+  Document,
+  InfoFilled,
+  Picture,
+  Collection,
+  Grid,
+  Close,
+  Check,
+} from '@element-plus/icons-vue'
 import { getImageUrl, getImageSrcset, getMediumImageUrl } from '@/utils/imageUtils'
 import type { CDKGroup } from '../utils/fetchCdk'
 import {
@@ -305,6 +336,7 @@ import { showCustomMessage } from '../utils/customMessage'
 import { formatNoteContent } from '../utils/noteUtils'
 import type { CheckboxValueType } from 'element-plus'
 import { useCardTilt } from '@/composables/useCardTilt'
+import { useViewport } from '@/composables/useViewport'
 import ImageViewer from './ImageViewer.vue'
 
 interface Props {
@@ -326,13 +358,173 @@ const { onPointerEnter, onPointerMove, onPointerLeave } = useCardTilt()
 // 展开状态
 const isExpanded = ref(false)
 
+const backdropRef = ref<HTMLElement | null>(null)
+
+// ===== 扇形展开 =====
+const { width: viewportWidth, finePointer } = useViewport()
+const FAN_CARD_WIDTH = 236
+const FAN_CARD_HEIGHT = 312
+
+// 宽屏 + 精确指针才使用扇形，触屏和窄屏回落为列表
+const useFan = computed(
+  () => finePointer.value && viewportWidth.value >= 900 && props.group.cdks.length > 1
+)
+
+const activeIndex = ref(-1)
+const fanned = ref(false) // 入场：先叠成一摞，再散开
+const settled = ref(false) // 入场结束后取消逐张延迟，悬浮跟手
+let settleTimer: ReturnType<typeof setTimeout> | null = null
+
+const fanGeometry = computed(() => {
+  const n = props.group.cdks.length
+  const mid = (n - 1) / 2
+  const stageWidth = Math.min(viewportWidth.value - 80, 1160)
+  // 相邻两张的水平间距：铺满舞台，同时保留手牌式的重叠
+  const spacing =
+    n > 1
+      ? Math.max(
+          48,
+          Math.min(FAN_CARD_WIDTH * 0.72, (stageWidth - FAN_CARD_WIDTH - 40) / (n - 1))
+        )
+      : 0
+  const angleStep = n > 1 ? Math.min(9, 44 / (n - 1)) : 0
+  const maxDrop = Math.min(56, 16 * mid)
+  const dropK = mid > 0 ? maxDrop / (mid * mid) : 0
+  // 悬浮时邻居让位的距离
+  const push = Math.max(0, Math.min(90, FAN_CARD_WIDTH * 1.06 - spacing) * 0.5)
+  return { n, mid, spacing, angleStep, dropK, maxDrop, push }
+})
+
+const fanStageStyle = computed(() => ({
+  '--fan-card-w': FAN_CARD_WIDTH + 'px',
+  '--fan-card-h': FAN_CARD_HEIGHT + 'px',
+  height: FAN_CARD_HEIGHT + fanGeometry.value.maxDrop + 110 + 'px',
+}))
+
+const getFanCardStyle = (index: number) => {
+  const { mid, spacing, angleStep, dropK, push } = fanGeometry.value
+  const offset = index - mid
+  const active = activeIndex.value
+
+  if (!fanned.value) {
+    return {
+      '--x': '0px',
+      '--y': '48px',
+      '--r': `${(offset * 1.2).toFixed(2)}deg`,
+      '--s': '0.92',
+      '--delay': '0ms',
+      zIndex: index + 1,
+      opacity: 0,
+    }
+  }
+
+  let x = offset * spacing
+  let y = offset * offset * dropK
+  let r = offset * angleStep
+  let s = 1
+  let z = index + 1
+
+  if (active >= 0) {
+    if (index === active) {
+      y -= 44
+      r *= 0.25
+      s = 1.07
+      z = 100
+    } else {
+      const dist = index - active
+      const falloff = 1 / Math.abs(dist)
+      x += Math.sign(dist) * push * falloff
+      y += 10 * falloff
+    }
+  }
+
+  return {
+    '--x': `${x.toFixed(1)}px`,
+    '--y': `${y.toFixed(1)}px`,
+    '--r': `${r.toFixed(2)}deg`,
+    '--s': String(s),
+    '--delay': settled.value ? '0ms' : `${index * 40}ms`,
+    zIndex: z,
+  }
+}
+
+let openedAt = 0
+
+const startFanIn = () => {
+  openedAt = performance.now()
+  fanned.value = false
+  settled.value = false
+  activeIndex.value = -1
+  if (settleTimer) clearTimeout(settleTimer)
+  // 双 rAF：先绘制叠放状态，再触发散开过渡
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      fanned.value = true
+      settleTimer = setTimeout(
+        () => {
+          settled.value = true
+        },
+        props.group.cdks.length * 40 + 600
+      )
+    })
+  )
+}
+
 watch(isExpanded, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
+    startFanIn()
+    nextTick(() => backdropRef.value?.focus({ preventScroll: true }))
   } else {
     document.body.style.overflow = ''
+    activeIndex.value = -1
   }
 })
+
+onBeforeUnmount(() => {
+  if (settleTimer) clearTimeout(settleTimer)
+  if (isExpanded.value) document.body.style.overflow = ''
+})
+
+// ===== 子卡片单独选择 =====
+const isSubSelected = (code: string) => props.selectedCdks.includes(code)
+
+const selectedSubCount = computed(
+  () => props.group.cdks.filter((cdk) => props.selectedCdks.includes(cdk.code)).length
+)
+
+const toggleSubSelection = (subCdk: { code: string; status: string }) => {
+  if (subCdk.status === '已过期') return
+  // 打开瞬间的同一次点击/双击不应落到刚出现的卡片上
+  if (performance.now() - openedAt < 400) return
+  const selected = props.selectedCdks.includes(subCdk.code)
+  emit(
+    'update:selectedCdks',
+    selected
+      ? props.selectedCdks.filter((code) => code !== subCdk.code)
+      : [...props.selectedCdks, subCdk.code]
+  )
+}
+
+const handleOverlayKeydown = (e: KeyboardEvent) => {
+  const n = props.group.cdks.length
+  if (e.key === 'Escape') {
+    closeOverlay()
+    return
+  }
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault()
+    const step = e.key === 'ArrowRight' ? 1 : -1
+    const current = activeIndex.value < 0 ? (step > 0 ? -1 : n) : activeIndex.value
+    activeIndex.value = (current + step + n) % n
+    return
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && activeIndex.value >= 0) {
+    if ((e.target as HTMLElement)?.closest?.('button, input, a')) return
+    e.preventDefault()
+    toggleSubSelection(props.group.cdks[activeIndex.value])
+  }
+}
 
 // 复制状态管理
 const copiedCode = ref<string | null>(null)
@@ -1021,6 +1213,206 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
     font-size: 18px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.overlay-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.overlay-selected-count {
+  font-family: var(--cdk-font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--el-text-color-secondary);
+  border: 1px solid var(--cdk-glass-border);
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+
+  &.active {
+    color: #00d4ff;
+    border-color: rgba(0, 212, 255, 0.4);
+    background: rgba(0, 212, 255, 0.08);
+  }
+}
+
+/* =============== 扇形展开 =============== */
+.overlay-backdrop.is-fan .overlay-container {
+  max-width: 1240px;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  overflow: visible;
+
+  .overlay-header {
+    border-bottom: none;
+    max-width: 760px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 8px 8px;
+
+    h3 {
+      color: #fff;
+      text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .overlay-selected-count:not(.active) {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.fan-stage {
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  // 卡片基准点放在舞台底部中心偏上
+  padding-top: 70px;
+}
+
+.sub-cdk-card.fan-card {
+  position: absolute;
+  left: 50%;
+  top: 70px;
+  width: var(--fan-card-w);
+  height: var(--fan-card-h);
+  margin-left: calc(var(--fan-card-w) / -2);
+  box-sizing: border-box;
+  overflow: hidden;
+  cursor: pointer;
+  // 不透明背景：重叠的卡片不再逐层做 backdrop-filter，开销稳定
+  background: var(--cdk-overlay-bg);
+  animation: none;
+  transform-origin: 50% 85%;
+  // 扇形位置 + 跟随指针的 3D 倾斜（--tilt-* 由 useCardTilt 写入）
+  transform: translate3d(var(--x), var(--y), 0) rotate(var(--r)) perspective(900px)
+    rotateX(calc(var(--tilt-x, 0deg) * 0.7)) rotateY(calc(var(--tilt-y, 0deg) * 0.7))
+    scale(var(--s));
+  box-shadow: -6px 10px 24px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) var(--delay, 0ms),
+    opacity 0.35s ease var(--delay, 0ms),
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+  will-change: transform;
+  contain: layout paint;
+
+  .sub-cdk-reward p {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .sub-cdk-meta {
+    margin-top: auto;
+  }
+
+  &.is-active {
+    transition:
+      transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 0.25s ease,
+      border-color 0.25s ease;
+    box-shadow:
+      var(--shadow-x, 0px) calc(var(--shadow-y, 10px) + 18px) calc(var(--shadow-blur, 28px) + 20px)
+        rgba(0, 0, 0, 0.45),
+      var(--cdk-state-glow, 0 0 0 rgba(0, 0, 0, 0));
+    border-color: var(--cdk-border-hover);
+
+    // 倾斜时的高光，随指针纵向位置变化
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(
+        160deg,
+        rgba(255, 255, 255, calc((var(--img-brightness, 1) - 0.8) * 0.18)) 0%,
+        transparent 55%
+      );
+    }
+
+    &.available {
+      --cdk-state-glow: var(--cdk-glow-cyan);
+      border-color: var(--cdk-border-available-hover);
+    }
+
+    &.unavailable {
+      --cdk-state-glow: var(--cdk-glow-red);
+      border-color: var(--cdk-border-unavailable-hover);
+    }
+  }
+
+  &.unavailable {
+    opacity: 1;
+    cursor: default;
+
+    > :not(.sub-cdk-check) {
+      opacity: 0.75;
+    }
+  }
+}
+
+/* 选中标记（扇形与列表共用） */
+.sub-cdk-card {
+  position: relative;
+  cursor: pointer;
+
+  &.unavailable {
+    cursor: default;
+  }
+
+  .sub-cdk-check {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--cdk-border-hover);
+    background: rgba(5, 6, 10, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 12px;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  }
+
+  &.unavailable .sub-cdk-check {
+    display: none;
+  }
+
+  .sub-cdk-header {
+    padding-left: 26px;
+  }
+
+  &.is-selected:not(.unavailable) {
+    border-color: #00d4ff;
+
+    .sub-cdk-check {
+      background: #00d4ff;
+      border-color: #00d4ff;
+      color: #05060a;
+      transform: scale(1.08);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sub-cdk-card.fan-card {
+    transition: opacity 0.2s ease !important;
   }
 }
 
@@ -1197,20 +1589,20 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .sub-cdk-card:hover {
+  .sub-cdk-card:not(.fan-card):hover {
     transform: translateY(-4px) scale(1.015);
     border-color: var(--cdk-border-hover);
     box-shadow: 0 18px 30px rgba(5, 8, 15, 0.2);
   }
 
-  .sub-cdk-card.available:hover {
+  .sub-cdk-card.available:not(.fan-card):hover {
     border-color: var(--cdk-border-available-hover);
     box-shadow:
       0 18px 30px rgba(5, 8, 15, 0.2),
       var(--cdk-glow-cyan);
   }
 
-  .sub-cdk-card.unavailable:hover {
+  .sub-cdk-card.unavailable:not(.fan-card):hover {
     border-color: var(--cdk-border-unavailable-hover);
     box-shadow:
       0 18px 30px rgba(5, 8, 15, 0.2),
@@ -1218,27 +1610,20 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
   }
 }
 
+.sub-cdk-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--cdk-glass-border);
+}
+
 .sub-cdk-author { font-size: 11px; color: var(--el-text-color-secondary); }
 .sub-cdk-created { font-size: 11px; color: var(--el-text-color-secondary); }
 
-/* =============== Tooltip =============== */
-:global(.cdk-note-tooltip) {
-  z-index: 9999 !important;
-  max-width: 400px !important;
-  background: var(--cdk-overlay-bg) !important;
-  border: 1px solid var(--cdk-glass-border) !important;
-  border-radius: 8px !important;
-  box-shadow: var(--el-box-shadow-dark) !important;
-  padding: 10px !important;
-
-  .note-content {
-    line-height: 1.5 !important;
-    font-size: 13px !important;
-    color: var(--el-text-color-regular) !important;
-
-    a { color: var(--el-color-primary) !important; text-decoration: underline !important; }
-  }
-}
+/* 备注 tooltip 的样式在 theme.scss（.cdk-note-tooltip），popper 被传送到 body 外，组件内样式无法正确命中 */
 
 .note-trigger {
   display: flex;

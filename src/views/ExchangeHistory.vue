@@ -75,7 +75,15 @@
         </div>
       </template>
 
+      <history-record-list
+        v-if="isCompact"
+        :records="historyList"
+        :loading="loading"
+        @item-click="handleRowClick"
+      />
+
       <el-table
+        v-else
         v-loading="loading"
         :data="historyList"
         stripe
@@ -83,7 +91,6 @@
         @row-click="handleRowClick"
       >
         <el-table-column
-          v-if="!isMobile"
           prop="date"
           label="兑换时间"
           min-width="180"
@@ -100,7 +107,6 @@
         <el-table-column prop="userName" label="用户" min-width="120" />
         <el-table-column prop="cdk" label="CDK码" min-width="200" />
         <el-table-column
-          v-if="!isMobile"
           label="服务器"
           min-width="110"
           class-name="hide-on-mobile server-column"
@@ -116,7 +122,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" min-width="80" :fixed="isMobile ? false : 'right'">
+        <el-table-column label="状态" min-width="80" fixed="right">
           <template #default="{ row }">
             <div class="status-column">
               <el-tag :type="row.success ? 'success' : 'danger'" size="small">
@@ -152,7 +158,8 @@
           v-model:page-size="pageSize"
           :total="total"
           :page-sizes="[10, 20, 50, 100]"
-          :layout="isMobile ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
+          :layout="isPhone ? 'prev, pager, next' : 'total, sizes, prev, pager, next'"
+          :pager-count="isPhone ? 5 : 7"
           size="small"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -161,7 +168,12 @@
     </el-card>
 
     <!-- 确认对话框 -->
-    <el-dialog v-model="clearDialogVisible" :title="clearDialogTitle" width="300px" center>
+    <el-dialog
+      v-model="clearDialogVisible"
+      :title="clearDialogTitle"
+      :width="isPhone ? '92%' : '360px'"
+      center
+    >
       <span>{{ clearDialogMessage }}</span>
       <template #footer>
         <span class="dialog-footer">
@@ -172,7 +184,11 @@
     </el-dialog>
 
     <!-- 融合记录详情对话框 -->
-    <el-dialog v-model="mergeDetailVisible" title="融合记录详情" width="500px">
+    <el-dialog
+      v-model="mergeDetailVisible"
+      title="融合记录详情"
+      :width="isPhone ? '92%' : '500px'"
+    >
       <div v-if="selectedRecord" class="merge-detail">
         <div class="merge-info">
           <p><strong>CDK码：</strong>{{ selectedRecord.cdk }}</p>
@@ -227,6 +243,8 @@ import { useExchangeStore } from '../stores/exchange'
 import { ArrowDown, InfoFilled } from '@element-plus/icons-vue'
 import { serverOptions, getServerName, getServerTagType } from '../utils/serverUtils'
 import { showCustomMessage } from '../utils/customMessage'
+import { useViewport } from '../composables/useViewport'
+import HistoryRecordList from '../components/HistoryRecordList.vue'
 
 const userStore = useUserStore()
 const exchangeStore = useExchangeStore()
@@ -247,8 +265,8 @@ const clearType = ref('') // 'all' 或 'filtered'
 const mergeDetailVisible = ref(false)
 const selectedRecord = ref(null)
 
-// 检测是否为移动端
-const isMobile = computed(() => window.innerWidth <= 768)
+// 手机/竖屏平板改用卡片列表，避免表格横向滚动
+const { isPhone, isCompact } = useViewport()
 
 // 检查是否有国际服用户
 const hasGlobalUsers = computed(() => {
@@ -437,6 +455,11 @@ onBeforeUnmount(() => {
     padding: 12px;
   }
 
+  // 手机：外层 el-main 已有留白，这里不再叠加
+  @media screen and (max-width: 640px) {
+    padding: 0;
+  }
+
   .history-card {
     margin-bottom: 20px;
 
@@ -459,9 +482,28 @@ onBeforeUnmount(() => {
 
         .el-select {
           width: 150px;
+        }
 
-          @media screen and (max-width: 768px) {
-            width: 120px;
+        // 小屏：三个筛选一行，两个操作一行，铺满宽度
+        @media screen and (max-width: 900px) {
+          width: 100%;
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: 8px;
+
+          .el-select {
+            width: 100%;
+            grid-column: span 2;
+          }
+
+          > .el-button,
+          > .el-dropdown {
+            grid-column: span 3;
+            margin: 0;
+          }
+
+          > .el-dropdown .el-button {
+            width: 100%;
           }
         }
       }

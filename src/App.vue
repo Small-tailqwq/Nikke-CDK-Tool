@@ -587,6 +587,17 @@ onBeforeUnmount(() => {
   --footer-height: 60px;
 }
 
+// 手机：收窄外层留白，把宽度留给内容
+@media screen and (max-width: 640px) {
+  :root {
+    --app-padding: 12px;
+  }
+
+  .el-card {
+    --el-card-padding: 14px;
+  }
+}
+
 html,
 body {
   margin: 0;
@@ -748,13 +759,14 @@ body {
           }
         }
 
-        // 移动端适配
+        // 移动端适配（需带上 .title-container 才能覆盖上面的基础规则）
         @media screen and (max-width: 768px) {
-          h1 {
+          .title-container h1 {
             font-size: 20px;
+            white-space: nowrap;
           }
 
-          .splash-text {
+          .title-container .splash-text {
             font-size: 12px;
             transform: translate(-2%, 25%) scale(1) rotate(-15deg);
           }
@@ -775,11 +787,11 @@ body {
         }
 
         @media screen and (max-width: 480px) {
-          h1 {
+          .title-container h1 {
             font-size: 18px;
           }
 
-          .splash-text {
+          .title-container .splash-text {
             font-size: 11px;
             transform: translate(2%, 30%) scale(1) rotate(-15deg);
           }
@@ -835,6 +847,8 @@ body {
       .nav-menu {
         display: flex;
         justify-content: center;
+        // 溢出时从左侧开始排列，避免居中把第一个菜单项裁到不可滚动的区域
+        justify-content: safe center;
         align-items: center;
         min-width: min-content;
         padding: 0 8px;
@@ -1112,6 +1126,10 @@ body {
             height: 36px;
             line-height: 36px;
             font-size: 14px;
+
+            @media screen and (max-width: 480px) {
+              padding: 0 9px;
+            }
 
             &.active::before {
               top: -10px;

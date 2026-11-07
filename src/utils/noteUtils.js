@@ -26,7 +26,11 @@ export function formatNoteContent(note) {
     const cleanUrl = url.trim()
     const linkText = text || cleanUrl // 如果没有文本，使用URL作为显示文本
 
-    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" style="color: var(--el-color-primary); text-decoration: underline;">${linkText}</a>`
+    // 只放行 http(s) 链接，其余按普通文本显示
+    if (!/^https?:\/\//i.test(cleanUrl)) return linkText
+
+    // 样式见 theme.scss 中的 .cdk-note-tooltip a
+    return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${linkText}</a>`
   })
 
   return formattedNote
