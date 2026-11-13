@@ -3,7 +3,12 @@
     <Transition name="iv-fade" @after-leave="onAfterLeave">
       <div
         v-if="modelValue"
+        ref="viewerRef"
         class="image-viewer-mask"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="backTitle"
+        tabindex="-1"
         @click.self="close"
       >
         <div
@@ -71,6 +76,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { Close, Loading, Picture } from '@element-plus/icons-vue'
+import { useModalFocus } from '@/composables/useModalFocus'
 
 interface Props {
   modelValue: boolean
@@ -94,6 +100,8 @@ const failed = ref(false)
 const loading = ref(false)
 const dragging = ref(false)
 const rotationY = ref(0)
+const viewerRef = ref<HTMLElement | null>(null)
+useModalFocus(computed(() => props.modelValue), viewerRef)
 let savedOverflow = ''
 let dragStartX = 0
 let dragStartRotation = 0
@@ -232,6 +240,13 @@ watch(
   () => props.modelValue,
   (open) => {
     if (open) {
+      if (!document.getElementById('image-viewer-fonts')) {
+        const stylesheet = document.createElement('link')
+        stylesheet.id = 'image-viewer-fonts'
+        stylesheet.rel = 'stylesheet'
+        stylesheet.href = 'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=LXGW+WenKai&display=swap'
+        document.head.appendChild(stylesheet)
+      }
       resetState()
       lockScroll(true)
       window.addEventListener('keydown', onKeydown)

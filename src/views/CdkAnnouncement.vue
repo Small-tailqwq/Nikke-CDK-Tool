@@ -1,5 +1,5 @@
 <template>
-  <div class="cdk-announcement page-scrollbar">
+  <div class="cdk-announcement page-scrollbar" :class="{ 'is-loading': listLoading }" :aria-busy="listLoading">
     <!-- NIKKE 情报过滤面板 -->
     <div class="filter-panel">
       <div class="filter-panel-inner">
@@ -8,6 +8,7 @@
             <span class="filter-label">服务器</span>
             <el-select
               v-model="filterForm.server"
+              aria-label="服务器"
               placeholder="选择服务器"
               clearable
               size="small"
@@ -23,6 +24,7 @@
             <span class="filter-label">状态</span>
             <el-select
               v-model="filterForm.status"
+              aria-label="状态"
               placeholder="选择状态"
               clearable
               size="small"
@@ -39,6 +41,7 @@
             <span class="filter-label">角色</span>
             <el-select
               v-model="filterForm.character"
+              aria-label="角色"
               placeholder="选择角色"
               clearable
               size="small"
@@ -58,6 +61,7 @@
             <span class="filter-label">排序</span>
             <el-select
               v-model="filterForm.sortOrder"
+              aria-label="排序"
               placeholder="排序"
               size="small"
               style="width: 95px"
@@ -93,7 +97,7 @@
       :gap="20"
       :get-item-key="getCdkKey"
     >
-      <template #default="{ item: cdk }">
+      <template #default="{ item: cdk, index }">
         <!-- 广告卡片 -->
         <AdCard
           v-if="isAdData(cdk)"
@@ -113,6 +117,7 @@
         <CDKGroupCard
           v-else-if="isCDKGroup(cdk)"
           :group="cdk"
+          :image-loading="index < 4 ? 'eager' : 'lazy'"
           v-model:selectedCdks="selectedCdks"
           :exchange-status="getCdkExchangeStatus(cdk)"
           :selected-user-exchange-history="selectedUserExchangeHistory"
@@ -138,6 +143,7 @@
           <div class="cdk-checkbox-wrapper">
             <el-checkbox
               :model-value="selectedCdks.includes(cdk.code)"
+              :aria-label="`选择 ${cdk.code}`"
               :disabled="cdk.status !== '可用'"
               class="cdk-checkbox"
               :show-label="false"
@@ -149,15 +155,20 @@
           <div
             class="cdk-image"
             :class="{ 'has-image': !!cdk.image }"
+            :role="cdk.image ? 'button' : undefined"
+            :tabindex="cdk.image ? 0 : undefined"
+            :aria-label="cdk.image ? `查看 ${cdk.name || cdk.code} 图片` : undefined"
             :style="cdk.image ? { cursor: 'zoom-in' } : null"
             @click="cdk.image && openViewer(cdk)"
+            @keydown.enter.prevent="cdk.image && openViewer(cdk)"
+            @keydown.space.prevent="cdk.image && openViewer(cdk)"
           >
             <img
               v-if="cdk.image"
               :src="getImageUrl(cdk.image)"
               :srcset="getImageSrcset(cdk.image)"
               :alt="cdk.name || '未命名CDK'"
-              loading="lazy"
+              :loading="index < 4 ? 'eager' : 'lazy'"
             />
             <div v-else class="image-placeholder">
               <el-icon><Picture /></el-icon>
@@ -189,15 +200,16 @@
           <div class="cdk-content">
             <h3>{{ cdk.name || '未命名CDK' }}</h3>
 
-            <el-tag
-              class="code-tag"
-              size="large"
+            <button
+              type="button"
+              class="code-tag el-tag el-tag--large el-tag--light el-tag--primary"
+              :aria-label="`复制 ${cdk.code}`"
               :class="{ copied: copiedCode === cdk.code }"
-              @mousedown="copyCdk(cdk.code, $event)"
+              @click="copyCdk(cdk.code, $event)"
             >
               <span class="code-text" :style="'--char-count:'+cdk.code.length">{{ cdk.code }}</span>
               <el-icon class="copy-icon"><Document /></el-icon>
-            </el-tag>
+            </button>
 
             <div v-if="cdk.reward" class="cdk-reward">
               <h4>奖励内容：</h4>
@@ -238,7 +250,7 @@
       </template>
     </MasonryLayout>
 
-    <el-empty v-if="filteredCdks.length === 0" description="暂无CDK" />
+    <el-empty v-if="!listLoading && filteredCdks.length === 0" description="暂无CDK" />
 
     <ImageViewer
       v-model="viewerVisible"
@@ -250,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { Document, InfoFilled, Picture } from '@element-plus/icons-vue'
 import { getImageUrl, getImageSrcset, getMediumImageUrl } from '@/utils/imageUtils'
 import {
@@ -293,6 +305,7 @@ const { onPointerEnter: onCardPointerEnter, onPointerMove: onCardPointerMove, on
 
 // CDK列表数据
 const cdkList = ref<CDK[]>([])
+const listLoading = ref(true)
 
 const filterForm = ref<FilterForm>({
   // 使用空字符串表示未选择，避免与类型不符的 null 引起 TS 报错
@@ -435,6 +448,9 @@ const loadCdkList = async () => {
   } catch (error) {
     showCustomMessage('获取CDK列表失败', 'error')
     console.error(error)
+  } finally {
+    await nextTick()
+    requestAnimationFrame(() => { listLoading.value = false })
   }
 }
 
@@ -865,6 +881,10 @@ onBeforeUnmount(() => {
 
 <style lang="scss" scoped>
 .cdk-announcement {
+  &.page-scrollbar.is-loading {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
   padding: 20px 20px 68px;
   max-width: 100%;
   box-sizing: border-box;
@@ -1339,6 +1359,11 @@ onBeforeUnmount(() => {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
 
   .code-text {
     position: relative;

@@ -60,7 +60,8 @@ app.use(ElMessage)
 app.use(ElMessageBox) // 让函数式调用的 MessageBox 也拿到下面的全局语言配置
 provideGlobalConfig({ locale: zhCn }, app, true)
 
-app.mount('#app')
+// 首次异步路由就绪后再绘制页面，避免空内容下的页脚先显示再移动。
+router.isReady().then(() => app.mount('#app'))
 
 // 在空闲时间预取常用路由的代码块，减少首次导航卡顿
 const prefetchRouteModules = () => {

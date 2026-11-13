@@ -32,8 +32,10 @@ const props = withDefaults(defineProps<Props>(), {
 const containerRef = ref<HTMLElement>()
 const itemPositions = ref<Array<{ left: number; top: number; width: number }>>([])
 const containerHeight = ref(0)
+const layoutReady = ref(false)
 let observer: ResizeObserver | null = null
 let layoutFrame = 0
+let transitionFrame = 0
 let mounted = false
 let lastContainerWidth = 0
 const observedSizes = new Map<HTMLElement, { width: number; height: number }>()
@@ -54,6 +56,7 @@ const getItemStyle = (index: number) => {
     top: '0px',
     width: position ? `${position.width}px` : '100%',
     opacity: position ? '1' : '0',
+    transition: layoutReady.value ? undefined : 'none',
     transform: position ? `translate(${position.left}px, ${position.top}px)` : 'translateY(20px)',
   }
 }
@@ -111,6 +114,10 @@ function calculateLayout() {
   })
   itemPositions.value = positions
   containerHeight.value = items.length ? Math.max(...heights) - props.gap + padding : 0
+  // 首次定位直接落在目标位置，避免所有卡片从视口顶部移动并触发离屏图片加载。
+  if (items.length && !layoutReady.value && !transitionFrame) {
+    transitionFrame = requestAnimationFrame(() => { layoutReady.value = true })
+  }
 }
 
 watch(() => props.items.map((item, index) => props.getItemKey(item, index)), scheduleLayout, {
@@ -144,6 +151,7 @@ onMounted(() => {
 onUnmounted(() => {
   mounted = false
   cancelAnimationFrame(layoutFrame)
+  cancelAnimationFrame(transitionFrame)
   observer?.disconnect()
   observedSizes.clear()
   window.removeEventListener('resize', scheduleLayout)
@@ -156,7 +164,6 @@ defineExpose({ recalculate: scheduleLayout })
 .masonry-layout {
   position: relative;
   width: 100%;
-  transition: height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .masonry-item {

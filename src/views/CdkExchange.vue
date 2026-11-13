@@ -1471,7 +1471,7 @@ onMounted(() => {
         align-items: center;
         gap: 6px;
         font-size: 13px;
-        color: var(--el-color-info);
+        color: var(--el-text-color-secondary);
 
         .el-icon {
           font-size: 14px;

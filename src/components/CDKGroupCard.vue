@@ -20,6 +20,7 @@
       <div class="cdk-checkbox-wrapper">
         <el-checkbox
           v-model="isGroupSelected"
+          :aria-label="`选择 ${group.groupName || group.groupId} 的可用 CDK`"
           :disabled="getGroupStatus(group) === '已过期'"
           class="cdk-checkbox"
           :show-label="false"
@@ -32,14 +33,20 @@
       <div
         class="cdk-image"
         :class="{ 'has-image': !!group.image }"
+        :role="group.image ? 'button' : undefined"
+        :tabindex="group.image ? 0 : undefined"
+        :aria-label="group.image ? `查看 ${group.groupName || group.groupId} 图片` : undefined"
         :style="group.image ? { cursor: 'zoom-in' } : null"
         @click="group.image && openViewer(group.image)"
+        @keydown.enter.prevent="group.image && openViewer(group.image)"
+        @keydown.space.prevent="group.image && openViewer(group.image)"
       >
         <img
           v-if="group.image"
           :src="getImageUrl(group.image)"
           :srcset="getImageSrcset(group.image)"
           :alt="group.groupName || '未命名CDK组合'"
+          :loading="imageLoading"
         />
         <div v-else class="image-placeholder">
           <el-icon><Picture /></el-icon>
@@ -240,16 +247,16 @@
 
                 <!-- CDK代码区域 - 复用单个CDK卡片样式 -->
                 <div class="sub-cdk-code-section">
-                  <el-tag
-                    class="code-tag"
-                    size="large"
+                  <button
+                    type="button"
+                    class="code-tag el-tag el-tag--large el-tag--light el-tag--primary"
+                    :aria-label="`复制 ${subCdk.code}`"
                     :class="{ copied: copiedCode === subCdk.code }"
-                    @mousedown="copyCdk(subCdk.code, $event)"
-                    @click.stop=""
+                    @click.stop="copyCdk(subCdk.code, $event)"
                   >
                     <span class="code-text" :style="'--char-count:'+subCdk.code.length">{{ subCdk.code }}</span>
                     <el-icon class="copy-icon"><Document /></el-icon>
-                  </el-tag>
+                  </button>
                 </div>
 
                 <div v-if="subCdk.reward" class="sub-cdk-reward">
@@ -313,7 +320,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import {
   Document,
   InfoFilled,
@@ -338,9 +345,11 @@ import type { CheckboxValueType } from 'element-plus'
 import { useCardTilt } from '@/composables/useCardTilt'
 import { useViewport } from '@/composables/useViewport'
 import ImageViewer from './ImageViewer.vue'
+import { useModalFocus } from '@/composables/useModalFocus'
 
 interface Props {
   group: CDKGroup
+  imageLoading?: 'eager' | 'lazy'
   selectedCdks: string[]
   exchangeStatus?: string | null // 新增兑换状态
   selectedUserExchangeHistory?: any[] // 兑换历史记录
@@ -350,7 +359,7 @@ interface Emits {
   (e: 'update:selectedCdks', value: string[]): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { imageLoading: 'lazy' })
 const emit = defineEmits<Emits>()
 
 const { onPointerEnter, onPointerMove, onPointerLeave } = useCardTilt()
@@ -359,6 +368,7 @@ const { onPointerEnter, onPointerMove, onPointerLeave } = useCardTilt()
 const isExpanded = ref(false)
 
 const backdropRef = ref<HTMLElement | null>(null)
+useModalFocus(isExpanded, backdropRef)
 
 // ===== 扇形展开 =====
 const { width: viewportWidth, finePointer } = useViewport()
@@ -474,7 +484,6 @@ watch(isExpanded, (val) => {
   if (val) {
     document.body.style.overflow = 'hidden'
     startFanIn()
-    nextTick(() => backdropRef.value?.focus({ preventScroll: true }))
   } else {
     document.body.style.overflow = ''
     activeIndex.value = -1
@@ -1102,7 +1111,6 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
       border-radius: 3px;
 
       &.expired {
-        opacity: 0.5;
         text-decoration: line-through;
       }
     }
@@ -1498,6 +1506,11 @@ const getSubCdkExchangeStatus = (cdkCode: string): string | null => {
       font-size: 13px;
       cursor: pointer;
       transition: all 0.3s;
+
+      &:focus-visible {
+        outline: 2px solid var(--el-color-primary);
+        outline-offset: 2px;
+      }
 
       .code-text {
         position: relative;
