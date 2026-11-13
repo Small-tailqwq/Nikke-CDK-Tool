@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import vm from 'node:vm'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 const cookie =
   'game_openid=OPENID_PLACEHOLDER; game_token=TOKEN_PLACEHOLDER; game_channelid=131; game_gameid=29080; unrelated=SECRET_PLACEHOLDER'
@@ -15,8 +15,11 @@ async function createRunner({
   random = Math.random,
   settlementError = false,
   consumeAttempts = true,
+  roleBound = true,
+  today = () => new Date().toDateString(),
 } = {}) {
   const requests = []
+  const waits = []
   let damage = 100000
   let attempts = 2
   const rewards = rewardGroups.map((reward) => ({ ...reward }))
@@ -70,7 +73,7 @@ async function createRunner({
         data = {
           total_damage: damage,
           remaining_attempts: attempts,
-          saved_role: { area_id: '81', role_id: 'ROLE_PLACEHOLDER' },
+          saved_role: roleBound ? { area_id: '81', role_id: 'ROLE_PLACEHOLDER' } : {},
         }
       } else if (action === 'rewardRecords') {
         data = { reward_groups: rewards }
@@ -93,12 +96,18 @@ async function createRunner({
     },
   })
   const apiSource = (await readFile('src/utils/reclamation.js', 'utf8'))
-    .replace(/^import axios from 'axios'\r?\n/, '')
+    .replace(/^import .+ from .+\r?\n/gm, '')
     .replace('import.meta.env.VITE_API_BASE_URL', 'undefined')
     .replaceAll('export ', '')
   const client = vm.runInNewContext(
-    `${apiSource}\n;({ requestReclamation, fetchReclamationState, getReclamationHit, getReclamationBosses, getReclamationShareIds, getReclamationClaimIds, runReclamationRewards, getReclamationAutoTarget, runReclamationBattles })`,
+    `${apiSource}\n;({ requestReclamation, fetchReclamationState, getReclamationHit, getReclamationBosses, getReclamationShareIds, getReclamationClaimIds, runReclamationRewards, getReclamationAutoTarget, getReclamationAimSpeed, playReclamationAutoRound, reclamationRunning, runReclamationBattles, runDailyReclamation })`,
     {
+      reactive,
+      getBlaTodayKey: today,
+      setTimeout(callback, delay) {
+        waits.push(delay)
+        callback()
+      },
       Math: Object.assign(Object.create(Math), { random }),
       axios: {
         async post(url, body) {
@@ -114,10 +123,11 @@ async function createRunner({
       },
     }
   )
-  return { ...client, worker, requests }
+  return { ...client, worker, requests, waits }
 }
 
 async function createBattleView(api) {
+  const updates = []
   let now = 0
   let frame = null
   let frameId = 0
@@ -128,12 +138,15 @@ async function createBattleView(api) {
     .split('</script>')[0]
     .replace(/import\s*\{[\s\S]*?\}\s*from\s*['"][^'"]+['"]/g, '')
   const view = vm.runInNewContext(
-    `${source}\n;({ refresh, startAutomaticBattles, handleVisibilityChange, automatic, playing, shots, damage, seconds, error, state })`,
+    `${source}\n;({ refresh, startBattle, startAutomaticBattles, handleVisibilityChange, canStart, automatic, playing, shots, damage, seconds, error, state })`,
     {
       ...api,
       computed,
       ref,
-      defineProps: () => ({ user: { cookie } }),
+      watch,
+      getBlaTodayKey: () => new Date().toDateString(),
+      useUserStore: () => ({ updateUser: async (id, fields) => updates.push({ id, ...fields }) }),
+      defineProps: () => ({ user: { id: 'TEST_USER', cookie } }),
       onMounted() {},
       onBeforeUnmount: (handler) => {
         unmount = handler
@@ -152,6 +165,7 @@ async function createBattleView(api) {
   await view.refresh()
   return {
     ...view,
+    updates,
     unmount: () => unmount(),
     setHidden(hidden) {
       document.hidden = hidden
@@ -412,6 +426,8 @@ test('实际小游戏在正常帧率和每秒一帧时都完成十次攻击，�
     assert.equal(view.error.value, '')
     assert.equal(view.state.value.remaining_attempts, 0)
     assert.equal(view.shots.value, 10)
+    assert.equal(view.updates.length, 1)
+    assert.equal(view.updates[0].reclamationLastRunDateKey, new Date().toDateString())
     const settlements = api.requests.filter(({ action }) => action === 'battleSettlement')
     assert.equal(settlements.length, 2)
     assert.ok(
@@ -441,4 +457,96 @@ test('页面隐藏时暂停自动小游戏，卸载页面后不提交未结束�
   view.unmount()
   await completed
   assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, 0)
+})
+
+test('后台自动战斗使用瞄准规则和真实攻击间隔，无需挂载小游戏', async () => {
+  const api = await createRunner({ random: () => 0.5 })
+  const outcome = await api.runReclamationBattles(cookie)
+  assert.equal(outcome.completed, true)
+  assert.equal(outcome.rounds, 2)
+  assert.equal(outcome.claimed, 1)
+  assert.equal(api.waits.length, 2)
+  assert.ok(api.waits.every((duration) => duration >= 4000 && duration <= 30000))
+  assert.ok(outcome.damage >= 300000 && outcome.damage <= 600000)
+})
+
+test('每日自动战斗独立于 BlaBla 完成日期，仅处理启用自动任务的国际服账号', async () => {
+  let day = 'Fri Nov 13 2026'
+  const api = await createRunner({ today: () => day })
+  const eligible = { id: 1, name: '测试账号', server: 'global', cookie, blaEnabled: true, blaLastRunDateKey: day }
+  const updates = []
+  const store = {
+    users: [
+      eligible,
+      { ...eligible, id: 2, server: 'cn' },
+      { ...eligible, id: 3, server: 'hmt' },
+      { ...eligible, id: 4, blaEnabled: false },
+      { ...eligible, id: 5, cookie: '' },
+      { ...eligible, id: 6, reclamationLastRunDateKey: day },
+    ],
+    async updateUser(id, fields) {
+      updates.push(id)
+      Object.assign(this.users.find((user) => user.id === id), fields)
+    },
+  }
+  const results = await api.runDailyReclamation(store)
+  assert.equal(results.length, 1)
+  assert.equal(results[0].success, true)
+  assert.deepEqual(updates, [1])
+  assert.equal(eligible.reclamationLastRunDateKey, day)
+  const requestCount = api.requests.length
+  assert.equal((await api.runDailyReclamation(store)).length, 0)
+  assert.equal(api.requests.length, requestCount)
+  day = 'Sat Nov 14 2026'
+  store.users = [eligible]
+  assert.equal((await api.runDailyReclamation(store))[0].success, true)
+  assert.equal(eligible.reclamationLastRunDateKey, day)
+})
+
+test('领奖失败不标记每日完成，再次打开时回查剩余次数并继续领奖', async () => {
+  const api = await createRunner({ failRewardId: 1 })
+  const updates = []
+  const store = {
+    users: [{ id: 1, name: '测试账号', server: 'global', cookie, blaEnabled: true }],
+    updateUser: async (id, fields) => updates.push({ id, fields }),
+  }
+  const first = await api.runDailyReclamation(store)
+  assert.equal(first[0].success, false)
+  assert.match(first[0].message, /TEST_FAILURE_PLACEHOLDER/)
+  assert.equal(updates.length, 0)
+  const settlements = api.requests.filter(({ action }) => action === 'battleSettlement').length
+  await api.runDailyReclamation(store)
+  assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, settlements)
+  assert.equal(api.requests.filter(({ action }) => action === 'claimReward').length, 2)
+  assert.equal(api.reclamationRunning.size, 0)
+})
+
+test('未绑定角色时提示绑定，不战斗、不领奖、不标记每日完成', async () => {
+  const api = await createRunner({ roleBound: false })
+  const results = await api.runDailyReclamation({
+    users: [{ id: 1, name: '测试账号', server: 'global', cookie, blaEnabled: true }],
+    updateUser: () => assert.fail('未绑定角色不应保存完成日期'),
+  })
+  assert.equal(results[0].success, false)
+  assert.match(results[0].message, /绑定角色/)
+  assert.equal(api.requests.filter(({ action }) => ['battleSettlement', 'claimReward'].includes(action)).length, 0)
+})
+
+test('后台战斗期间禁用手动战斗，重复执行不产生第二次结算', async () => {
+  const api = await createRunner()
+  let finishRound
+  const running = api.runReclamationBattles(cookie, {
+    playRound: () => new Promise((resolve) => { finishRound = resolve }),
+  })
+  while (!finishRound) await new Promise((resolve) => setImmediate(resolve))
+  const view = await createBattleView(api)
+  assert.equal(view.canStart.value, false)
+  view.startBattle()
+  assert.equal(view.playing.value, false)
+  await assert.rejects(api.runReclamationBattles(cookie), /正在运行/)
+  finishRound(null)
+  await running
+  assert.equal(api.reclamationRunning.size, 0)
+  assert.equal(api.requests.filter(({ action }) => action === 'battleSettlement').length, 0)
+  view.unmount()
 })

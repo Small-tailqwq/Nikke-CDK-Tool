@@ -214,6 +214,7 @@ const DoroSummonAnimation = defineAsyncComponent(
 )
 import { runBlaTasks } from './utils/blaSigner'
 import { getBlaTodayKey, hasUserBlaRunToday } from './utils/blaRunState'
+import { runDailyReclamation } from './utils/reclamation'
 import { notifyBlaRunCompletion } from './utils/browserNotification'
 import { showCustomMessage, ProgressMessage, showInstallPrompt } from './utils/customMessage'
 import CookieWarningAlert from './components/CookieWarningAlert.vue'
@@ -532,6 +533,30 @@ watch(route, (to, from) => {
       totalCount: 1,
       lines: [`执行失败: ${error.message || '未知错误'}`],
     })
+  }
+
+  let reclamationProgress = null
+  try {
+    const results = await runDailyReclamation(userStore, (user, index, total) => {
+      reclamationProgress ||= new ProgressMessage('正在准备地面夺还战...')
+      reclamationProgress.updateProgress(
+        (index / total) * 100,
+        `正在执行 ${user.name} 的地面夺还战并领奖...`
+      )
+    })
+    if (results.length) {
+      const failures = results.filter((result) => !result.success)
+      if (failures.length) {
+        reclamationProgress.error(
+          `地面夺还战：成功 ${results.length - failures.length}，失败 ${failures.length}；${failures.map((result) => `${result.name}: ${result.message}`).join('；')}`
+        )
+      } else {
+        reclamationProgress.complete(`地面夺还战完成：${results.length} 个账号已战斗并领奖`)
+      }
+    }
+  } catch (error) {
+    console.error('[App] 地面夺还战自动执行失败:', error)
+    reclamationProgress?.error(`地面夺还战自动执行失败: ${error.message}`)
   }
 })
 

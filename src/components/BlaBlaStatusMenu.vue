@@ -709,7 +709,8 @@ watch(
 .bla-dialog {
   display: flex;
   flex-direction: column;
-  max-height: calc(100dvh - 48px);
+  max-height: 90dvh;
+  margin-bottom: 5vh;
   padding: 24px;
   border-radius: 16px;
   .el-dialog__header {

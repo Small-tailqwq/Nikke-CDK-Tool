@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { reactive } from 'vue'
+import { getBlaTodayKey } from './blaRunState'
+
+export const reclamationRunning = reactive(new Set())
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://nikke-cdk.hayasa.org'
 export const RECLAMATION_URL = 'https://nikke-en.com/events/3rdreclamation/'
@@ -125,9 +129,57 @@ export function getReclamationAutoTarget() {
   return 0.5 + (Math.random() + Math.random() - 1) * 0.14
 }
 
-export async function runReclamationBattles(cookie, { bossId, playRound, onState, shouldStop }) {
+export function getReclamationAimSpeed(shots) {
+  return (20 * (1.2 ** (7 / 9)) ** Math.min(shots, 9) * 2) / 60
+}
+
+export async function playReclamationAutoRound() {
+  let position = 0
+  let direction = 1
+  let shots = 0
+  let damage = 0
+  let elapsed = 0
+  let nextShot = 0
+  let target = getReclamationAutoTarget()
+  while (shots < 10 && elapsed < 30000) {
+    const step = Math.min(1000 / 60, 30000 - elapsed)
+    elapsed += step
+    if (elapsed < nextShot) continue
+    const previousPosition = position
+    position += (direction * getReclamationAimSpeed(shots) * step) / 1000
+    if (position >= 1 || position <= 0) {
+      position = Math.max(0, Math.min(1, position))
+      direction *= -1
+    }
+    if ((previousPosition - target) * (position - target) <= 0) {
+      damage += getReclamationHit(position).damage
+      shots += 1
+      target = getReclamationAutoTarget()
+      nextShot = elapsed + 400
+    }
+  }
+  // 后台任务沿用界面的瞄准和攻击间隔，完成一局后再提交结算。
+  await new Promise((resolve) => setTimeout(resolve, Math.ceil(elapsed)))
+  return damage || null
+}
+
+export async function runReclamationBattles(cookie, options = {}) {
+  if (reclamationRunning.has(cookie)) throw new Error('该账号的地面夺还战正在运行')
+  reclamationRunning.add(cookie)
+  try {
+    return await performReclamationBattles(cookie, options)
+  } finally {
+    reclamationRunning.delete(cookie)
+  }
+}
+
+async function performReclamationBattles(
+  cookie,
+  { bossId, playRound = playReclamationAutoRound, onState = () => {}, shouldStop = () => false }
+) {
   let state = await fetchReclamationState(cookie)
   onState(state)
+  if (!state.saved_role?.role_id) throw new Error('请先在地面夺还战中绑定角色')
   const initialAttempts = state.remaining_attempts
   let rounds = 0
   let damage = 0
@@ -137,7 +189,8 @@ export async function runReclamationBattles(cookie, { bossId, playRound, onState
     const boss = bosses.find((item) => item.boss_id === bossId) || bosses[0]
     if (!boss) break
     const score = await playRound(boss.boss_id)
-    if (score === null) return { rounds, damage, claimed: 0, stopped: true, state }
+    if (score === null)
+      return { rounds, damage, claimed: 0, stopped: true, completed: false, state }
     const remaining = state.remaining_attempts
     const settled = await requestReclamation(cookie, 'settle', {
       boss_id: boss.boss_id,
@@ -158,7 +211,33 @@ export async function runReclamationBattles(cookie, { bossId, playRound, onState
     state = await fetchReclamationState(cookie)
     onState(state)
   }
-  return { rounds, damage, claimed, stopped, state }
+  const completed =
+    !stopped && (state.remaining_attempts <= 0 || getReclamationBosses(state).length === 0)
+  return { rounds, damage, claimed, stopped, completed, state }
+}
+
+export async function runDailyReclamation(userStore, onProgress = () => {}) {
+  const today = getBlaTodayKey()
+  const users = userStore.users.filter(
+    (user) =>
+      user.blaEnabled &&
+      user.cookie &&
+      user.server === 'global' &&
+      user.reclamationLastRunDateKey !== today
+  )
+  const results = []
+  for (const [index, user] of users.entries()) {
+    onProgress(user, index, users.length)
+    try {
+      const outcome = await runReclamationBattles(user.cookie)
+      if (!outcome.completed) throw new Error('战斗尚未完成，请刷新活动进度')
+      await userStore.updateUser(user.id, { reclamationLastRunDateKey: today })
+      results.push({ name: user.name, success: true })
+    } catch (error) {
+      results.push({ name: user.name, success: false, message: error.message })
+    }
+  }
+  return results
 }
 
 export function getReclamationHit(position) {

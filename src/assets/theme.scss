@@ -483,6 +483,13 @@ html {
   scrollbar-gutter: stable;
 }
 
+@supports (scrollbar-gutter: stable) {
+  body.el-popup-parent--hidden {
+    // 根元素已预留滚动条空间，弹窗锁定时无需再次扣除宽度。
+    width: auto !important;
+  }
+}
+
 /* 页面主滚动容器统一规则 */
 .page-scrollbar {
   scrollbar-width: thin;

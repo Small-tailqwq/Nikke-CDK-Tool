@@ -12,6 +12,7 @@
       <a :href="RECLAMATION_URL" target="_blank" rel="noopener noreferrer">官方活动</a>
     </div>
     <el-alert v-if="error" :title="error" type="warning" :closable="false" />
+    <p v-if="backgroundRunning" class="battle-result" role="status">正在自动战斗并领奖...</p>
     <template v-if="state">
       <div class="event-stats">
         <span
@@ -60,7 +61,7 @@
           <el-select
             v-model="bossId"
             aria-label="攻击战区"
-            :disabled="playing || busy || automatic"
+            :disabled="playing || busy || automatic || backgroundRunning"
           >
             <el-option
               v-for="boss in bosses"
@@ -105,14 +106,18 @@
         <div class="reward-actions">
           <el-button
             :loading="batchAction === 'share'"
-            :disabled="busy || loading || playing || automatic || !shareIds.length"
+            :disabled="
+              busy || loading || playing || automatic || backgroundRunning || !shareIds.length
+            "
             @click="runRewards('share')"
             >一键分享</el-button
           >
           <el-button
             type="primary"
             :loading="batchAction === 'claim'"
-            :disabled="busy || loading || playing || automatic || !claimIds.length"
+            :disabled="
+              busy || loading || playing || automatic || backgroundRunning || !claimIds.length
+            "
             @click="runRewards('claim')"
             >一键领取</el-button
           >
@@ -123,7 +128,7 @@
             <el-button
               v-if="reward.status === 1"
               size="small"
-              :disabled="busy || playing || automatic"
+              :disabled="busy || playing || automatic || backgroundRunning"
               @click="claim(reward.reward_id)"
               >领取</el-button
             >
@@ -136,7 +141,9 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useUserStore } from '../stores/user'
+import { getBlaTodayKey } from '../utils/blaRunState'
 import {
   RECLAMATION_AREAS,
   RECLAMATION_BOSSES,
@@ -151,9 +158,16 @@ import {
   requestReclamation,
   runReclamationBattles,
   runReclamationRewards,
+  getReclamationAimSpeed,
+  reclamationRunning,
 } from '../utils/reclamation'
 
 const props = defineProps({ user: { type: Object, required: true } })
+const userStore = useUserStore()
+let manualReservation = false
+const backgroundRunning = computed(
+  () => reclamationRunning.has(props.user.cookie) && !automatic.value && !manualReservation
+)
 const state = ref(null)
 const loading = ref(false)
 const busy = ref(false)
@@ -183,6 +197,7 @@ const canStart = computed(
     !playing.value &&
     !busy.value &&
     !loading.value &&
+    !backgroundRunning.value &&
     state.value?.remaining_attempts > 0 &&
     bosses.value.some((boss) => boss.boss_id === bossId.value)
 )
@@ -260,7 +275,7 @@ async function bindRole() {
 }
 
 async function claim(rewardId) {
-  if (busy.value || playing.value || automatic.value) return
+  if (busy.value || playing.value || automatic.value || backgroundRunning.value) return
   busy.value = true
   error.value = ''
   result.value = ''
@@ -276,7 +291,8 @@ async function claim(rewardId) {
 }
 
 async function runRewards(action) {
-  if (busy.value || loading.value || playing.value || automatic.value) return
+  if (busy.value || loading.value || playing.value || automatic.value || backgroundRunning.value)
+    return
   busy.value = true
   batchAction.value = action
   error.value = ''
@@ -305,6 +321,7 @@ async function startAutomaticBattles() {
   stopRequested.value = false
   error.value = ''
   result.value = ''
+  const runDateKey = getBlaTodayKey()
   try {
     const outcome = await runReclamationBattles(props.user.cookie, {
       bossId: bossId.value,
@@ -317,6 +334,9 @@ async function startAutomaticBattles() {
           startBattle()
         }),
     })
+    if (outcome.completed) {
+      await userStore.updateUser(props.user.id, { reclamationLastRunDateKey: runDateKey })
+    }
     if (!disposed) {
       applyState(outcome.state)
       result.value = `自动战斗${outcome.stopped ? '已停止' : '结束'}，完成 ${outcome.rounds} 局，伤害 ${format(outcome.damage)}，已领取 ${outcome.claimed} 项奖励`
@@ -348,6 +368,10 @@ function handleVisibilityChange() {
 
 function startBattle() {
   if (!canStart.value) return
+  if (!automatic.value) {
+    manualReservation = true
+    reclamationRunning.add(props.user.cookie)
+  }
   shots.value = 0
   damage.value = 0
   rating.value = ''
@@ -392,7 +416,7 @@ function tick(now) {
 function advanceAim(now, delta) {
   if (now >= nextShot) {
     const previousPosition = position.value
-    const speed = (20 * (1.2 ** (7 / 9)) ** Math.min(shots.value, 9) * 2) / 60
+    const speed = getReclamationAimSpeed(shots.value)
     position.value += direction * speed * delta
     if (position.value >= 1 || position.value <= 0) {
       position.value = Math.max(0, Math.min(1, position.value))
@@ -435,6 +459,7 @@ async function settle() {
     return
   }
   if (!shots.value) {
+    releaseManualBattle()
     result.value = '未造成伤害，本局取消'
     return
   }
@@ -452,8 +477,19 @@ async function settle() {
     state.value = null
   } finally {
     busy.value = false
+    releaseManualBattle()
   }
 }
+
+function releaseManualBattle() {
+  if (!manualReservation) return
+  manualReservation = false
+  reclamationRunning.delete(props.user.cookie)
+}
+
+watch(backgroundRunning, (running, wasRunning) => {
+  if (!running && wasRunning) refresh()
+})
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -465,6 +501,7 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(frame)
   finishAutoRound?.(null)
   finishAutoRound = null
+  if (!busy.value) releaseManualBattle()
   document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
