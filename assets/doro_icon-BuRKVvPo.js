@@ -1,0 +1,1 @@
+var e=`/assets/doro_icon-N2ZJXVk1.png`;export{e as t};
