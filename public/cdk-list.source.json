@@ -1,6 +1,6 @@
 {
   "version": 2.5,
-  "lastUpdate": "2026-11-03T02:45:25.000Z",
+  "lastUpdate": "2026-11-17T07:35:59.000Z",
   "cdks": [
     {
       "type": "group",
@@ -891,6 +891,19 @@
           "note": "字面为 Memories with You（与你的回忆）。奖励以贡献者兑换截图为准，细项亦见 [GameWith](https://gamewith.jp/nikke/article/show/371014)。未找到官方 X 原文；社区 Discord 贡献于 2026-10-30。GameKee 记有效期至 11/24 22:59。",
           "author": "SHIFTEA",
           "created": "2026-10-30"
+        },
+        {
+          "code": "NIKKENOWAND4EVER",
+          "name": "妮姬现在与永远",
+          "reward": "招募券×1,信用点盒：1H×1,芯尘盒：1H×1,战斗数据辑盒：1H×1,模组高级增强器×20",
+          "servers": [
+            "global",
+            "tw"
+          ],
+          "status": "可用",
+          "note": "「4周年纪念手册」网页活动兑换码。字面为 NIKKE Now and 4 Ever（妮姬现在与永远）。来源：[妮姬JP的X](https://x.com/NIKKE_japan/status/2122585535655104845)。有效期至 11/30 23:59（UTC+9）。奖励物品来自玩家兑换邮件截图；1H 盒与模组高级增强器角标不清，数量沿用同图标的 ×1 / ×20，招募券按单张记 ×1。",
+          "author": "killua",
+          "created": "2026-11-17"
         }
       ]
     },
