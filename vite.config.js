@@ -10,7 +10,7 @@ import cdkAdminPlugin from './scripts/vite-plugin-cdk-admin.mjs'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/Nikke-CDK-Tool/',
+  base: '/',
   plugins: [
     vue(),
     // 本地 CDK 管理后台的读写接口（仅 dev 生效）
@@ -50,7 +50,6 @@ export default defineConfig({
         background_color: '#141414',
         display: 'standalone',
         orientation: 'portrait',
-        // 相对路径：dev 解析为 /，生产解析为 /Nikke-CDK-Tool/
         start_url: './',
         scope: './',
         icons: [

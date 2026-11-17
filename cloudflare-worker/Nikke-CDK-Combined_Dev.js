@@ -804,7 +804,7 @@ async function handleProxyLoginEntrance(request, sid) {
     const sid = ${JSON.stringify(sid)}
     const $ = (id) => document.getElementById(id)
     const setStatus = (html, cls='') => { const el = $('status'); el.className = 'status ' + (cls||'muted'); el.innerHTML = html }
-    // 从查询参数读取回调基址 cb（例如 http://127.0.0.1:5173/ 或 https://small-tailqwq.github.io/Nikke-CDK-Tool/）
+    // 从查询参数读取回调基址 cb（例如 http://127.0.0.1:5173/ 或 https://nikke.hayasa.link/）
     const qs = new URLSearchParams(location.search)
     const cbBase = qs.get('cb') || ''
 

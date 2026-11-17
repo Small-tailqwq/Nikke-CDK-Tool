@@ -8,7 +8,7 @@
 
 - 前端: Vue 3 SPA，Composition API，Pinia，Vue Router，Element Plus，SCSS
 - 路由模式: `createWebHashHistory(import.meta.env.BASE_URL)`
-- Vite base 路径: `/Nikke-CDK-Tool/`
+- Vite base 路径: `/`
 - 语言: JavaScript 与 TypeScript 共存，`tsconfig.json` 允许 JS
 - 类型检查: 未配置 `vue-tsc`，CI 依赖 lint 和 build 而非专门的 TS 检查
 

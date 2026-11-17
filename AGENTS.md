@@ -28,7 +28,7 @@ npm run update-images
 - 只编辑 `public/cdk-list.source.json`，不手动编辑 `public/cdk-list.json`
 - 公告图片文件名需匹配 `cdk.code` 或 `groupId`
 - 生产分支为 `masrer`，不要改名或"修正"
-- `vite.config.js` base: `/Nikke-CDK-Tool/`，路由使用 hash history
+- `vite.config.js` base: `/`，路由使用 hash history
 
 ## 研究产物规则
 

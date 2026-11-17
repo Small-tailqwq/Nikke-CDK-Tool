@@ -414,7 +414,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 🔗 相关链接
 
-- [🌐 在线体验](https://small-tailqwq.github.io/Nikke-CDK-Tool/) - GitHub Pages
+- [🌐 在线体验](https://nikke.hayasa.link/) - GitHub Pages
 - [📦 项目仓库](https://github.com/Small-tailqwq/Nikke-CDK-Tool) - GitHub
 - [🐛 问题反馈](https://github.com/Small-tailqwq/Nikke-CDK-Tool/issues) - Issues
 - [📝 CDK投稿](https://chalk-quotation-b2d.notion.site/210563f728f1801ea74ec231b2359e79) - Notion 问卷

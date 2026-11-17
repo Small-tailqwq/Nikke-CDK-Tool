@@ -411,7 +411,7 @@ This tool is for educational and communication purposes only. The developer is n
 
 ## 🔗 Links
 
-- [🌐 Live Demo](https://small-tailqwq.github.io/Nikke-CDK-Tool/) - GitHub Pages
+- [🌐 Live Demo](https://nikke.hayasa.link/) - GitHub Pages
 - [📦 Repository](https://github.com/Small-tailqwq/Nikke-CDK-Tool) - GitHub
 - [🐛 Issue Tracker](https://github.com/Small-tailqwq/Nikke-CDK-Tool/issues) - Issues
 - [📝 CDK Submission](https://chalk-quotation-b2d.notion.site/210563f728f1801ea74ec231b2359e79) - Notion Form
