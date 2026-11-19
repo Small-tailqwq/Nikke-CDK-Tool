@@ -112,12 +112,6 @@
                 </section>
               </div>
             </el-tab-pane>
-            <el-tab-pane v-if="hasAnniversaryEvent" label="周年活动" name="event" lazy>
-              <div class="tab-scroll beautiful-scrollbar"><Nikke4thEvent :user="user" /></div>
-            </el-tab-pane>
-            <el-tab-pane v-if="user.server === 'global'" label="地面夺还战" name="reclamation" lazy>
-              <div class="tab-scroll beautiful-scrollbar"><ReclamationEvent :user="user" /></div>
-            </el-tab-pane>
             <el-tab-pane label="每月兑换" name="exchange">
               <div class="tab-scroll beautiful-scrollbar">
                 <div class="exchange-layout">
@@ -247,9 +241,6 @@ import { useUserStore } from '../stores/user'
 import { showCustomMessage } from '../utils/customMessage'
 import { fetchBlaOverview, runBlaTasks } from '../utils/blaSigner'
 import { getBlaTodayKey } from '../utils/blaRunState'
-import Nikke4thEvent from './Nikke4thEvent.vue'
-import ReclamationEvent from './ReclamationEvent.vue'
-import { getNikke4thOpenCount } from '../utils/nikke4th'
 
 const props = defineProps({
   user: {
@@ -270,7 +261,6 @@ const savingConfig = ref(false)
 const overviewError = ref('')
 const dialogVisible = ref(false)
 const activeTab = ref('tasks')
-const hasAnniversaryEvent = getNikke4thOpenCount() > 0
 
 const monthlyProductOptions = [
   '[Global] 珠寶 ×30',

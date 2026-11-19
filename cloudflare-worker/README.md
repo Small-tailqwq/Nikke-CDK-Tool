@@ -185,17 +185,9 @@ Content-Type: application/json
 
 “每日游玩游戏”先尝试一次任务登记接口，再以官方回查的进度为准；未完成时提示自行启动游戏后刷新，不将其视为自动任务失败。工具不唤起客户端。
 
-### 4周年「女神的轨迹」活动
-
-`POST /global/bla/nikke4th/{state,save-role,complete,share-gift,comment,poll,vote}` 使用相同的 `{ cookie, payload }` 请求格式。Worker 为活动流程接口添加官方签名和游戏、语言请求头，留言和投票使用对应的社区接口。
-
-用户管理页的 BlaBla 面板可查询活动进度、填写留言、选择投票并执行任务。空白项和已完成章节会跳过；留言和投票不自动重试。印记以活动接口回查结果为准。活动共13个印记，最终章于北京时间2026年10月25日10:00开放，活动于11月18日22:59结束。先部署 Worker，再发布前端。
-
-活动规则：[「女神的轨迹」4周年活动](https://www.blablalink.com/post/detail?post_uuid=2578391934563964420)。
+### 真实续签（推荐）
 
 注意：根据现有抓包与实测，`/global/cookie-renewal` 调用的上游 `https://api.blablalink.com/api/user/Login` 只会把现有 `game_token` 重新写回浏览器 Cookie，通常不会签发新的游戏令牌，因此不能视为“真实续签”。
-
-### 真实续签（推荐）
 
 真实有效的方式是使用账号密码重新走一遍官方登录链路：
 
@@ -204,16 +196,6 @@ Content-Type: application/json
 3. `https://api.blablalink.com/api/user/Login`
 
 仓库内对应的 Worker 端点是 `POST /api/login`，前端“邮箱登录 / 获取Token”与已保存凭证的刷新逻辑都应走这条链路。
-
-### 第三次地面夺还战
-
-`POST /global/reclamation/{public-init,state,rewards,roles,save-role,claim,share,settle}` 使用 `{ cookie, payload }` 请求格式，复用现有国际服账号的 Cookie。Worker 将游戏凭据转换为活动认证参数并签名，向固定 NEX 活动后端转发。
-
-用户管理页的 BlaBla 面板中，“地面夺还战”可查询个人进度、绑定角色、领取奖励并进行30秒、最多10次攻击的小游戏。结算提交本局实际得分，领奖和结算不自动重试；操作后回查官方进度。先部署 Worker，再发布前端。
-
-“一键分享”完成首次分享和已击败战区的战绩分享，并由活动接口发放分享奖励；“一键领取”逐项领取官方状态为可领取的奖励。批量操作先刷新状态，跳过已领取项目，请求失败即停止并回查进度。
-
-“一键战斗并领奖”在中心附近随机选择每次攻击的目标位置，沿用指针小游戏计算实际伤害，逐局结算并回查攻击次数；剩余次数用完后自动领取可领奖励。可选择本局后停止；页面进入后台时暂停，返回后继续。结算失败或回查次数未减少时停止自动战斗，由用户刷新确认。
 
 ### 安全令牌认证
 
